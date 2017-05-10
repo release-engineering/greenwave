@@ -1,0 +1,22 @@
+# Build artifacts
+__pycache__/
+*.py[cod]
+build/
+dist/
+sdist/
+docs/_build/
+eggs/
+*egg-info/
+*.egg
+
+# Vim temporary files
+*~
+*.swp
+*.swo
+
+# Unit tests and coverage reports
+.tox/
+.coverage
+.cache
+coverage.xml
+htmlcov
