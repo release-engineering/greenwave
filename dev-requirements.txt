@@ -1,0 +1,9 @@
+# Testing requirements
+flake8
+mock
+pytest
+pytest-cov
+
+# Documentation build requirements
+sphinx
+sphinxcontrib-httpdomain
