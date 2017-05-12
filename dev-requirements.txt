@@ -3,6 +3,7 @@ flake8
 mock
 pytest
 pytest-cov
+requests_mock
 
 # Documentation build requirements
 sphinx
