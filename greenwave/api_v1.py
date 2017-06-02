@@ -73,7 +73,7 @@ def make_decision():
                 for result in results:
                     if result['outcome'] not in ('PASSED', 'INFO'):
                         # query WaiverDB to check whether the result has a waiver
-                        res = requests_session.get('{0}/waivers/?project_version={1}&result_id={2}'.format(
+                        res = requests_session.get('{0}/waivers/?product_version={1}&result_id={2}'.format(
                             current_app.config['WAIVERDB_API_URL'], product_version,
                             result['id'])
                         )

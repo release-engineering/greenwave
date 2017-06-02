@@ -162,7 +162,7 @@ def test_make_a_decison_on_failed_result_with_waiver(client):
             }
           ]
         }
-        m.register_uri('GET', '{}/waivers/?result_id={}&project_version={}'.format(
+        m.register_uri('GET', '{}/waivers/?result_id={}&product_version={}'.format(
             current_app.config['WAIVERDB_API_URL'],
             331284,
             'rhel-7'
@@ -223,7 +223,7 @@ def test_make_a_decison_on_failed_result(client):
             'foo-1.0.0-2.el7',
             'dist.rpmdiff.comparison.xml_validity,dist.rpmdiff.comparison.virus_scan'
         ), json=mocked_results)
-        m.register_uri('GET', '{}/waivers/?result_id={}&project_version={}'.format(
+        m.register_uri('GET', '{}/waivers/?result_id={}&product_version={}'.format(
             current_app.config['WAIVERDB_API_URL'],
             331284,
             'rhel-7'
