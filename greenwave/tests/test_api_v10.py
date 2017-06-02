@@ -17,7 +17,7 @@ from mock import patch
 
 def test_cannot_make_decision_without_product_version(client):
     data = {
-        'decision_context': 'errta_newfile_to_qe',
+        'decision_context': 'errata_newfile_to_qe',
         'subject': ['foo-1.0.0-1.el7']
     }
     r = client.post('/api/v1.0/decision', data=json.dumps(data),
@@ -39,7 +39,7 @@ def test_cannot_make_decision_without_decision_context(client):
 
 def test_cannot_make_decision_without_subject(client):
     data = {
-        'decision_context': 'errta_newfile_to_qe',
+        'decision_context': 'errata_newfile_to_qe',
         'product_version': 'rhel-7',
     }
     r = client.post('/api/v1.0/decision', data=json.dumps(data),
