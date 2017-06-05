@@ -15,7 +15,6 @@ class Config(object):
     A GreenWave Flask configuration.
     """
     DEBUG = True
-    JOURNAL_LOGGING = False
     HOST = '0.0.0.0'
     PORT = 5005
     PRODUCTION = False
