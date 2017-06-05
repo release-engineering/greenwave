@@ -23,7 +23,7 @@ def test_cannot_make_decision_without_product_version(client):
     r = client.post('/api/v1.0/decision', data=json.dumps(data),
                     content_type='application/json')
     assert r.status_code == 400
-    assert 'Missing required product version' in r.get_data()
+    assert u'Missing required product version' in r.get_data(as_text=True)
 
 
 def test_cannot_make_decision_without_decision_context(client):
@@ -34,7 +34,7 @@ def test_cannot_make_decision_without_decision_context(client):
     r = client.post('/api/v1.0/decision', data=json.dumps(data),
                     content_type='application/json')
     assert r.status_code == 400
-    assert 'Missing required decision context' in r.get_data()
+    assert u'Missing required decision context' in r.get_data(as_text=True)
 
 
 def test_cannot_make_decision_without_subject(client):
@@ -45,7 +45,7 @@ def test_cannot_make_decision_without_subject(client):
     r = client.post('/api/v1.0/decision', data=json.dumps(data),
                     content_type='application/json')
     assert r.status_code == 400
-    assert 'Missing required subject' in r.get_data()
+    assert u'Missing required subject' in r.get_data(as_text=True)
 
 
 def test_404_for_inapplicable_policies(client):
@@ -57,7 +57,7 @@ def test_404_for_inapplicable_policies(client):
     r = client.post('/api/v1.0/decision', data=json.dumps(data),
                     content_type='application/json')
     assert r.status_code == 404
-    assert 'Cannot find any applicable policies for %s' % data['product_version'] in r.get_data()
+    assert u'Cannot find any applicable policies for rhel-7' in r.get_data(as_text=True)
 
 
 def test_make_a_decison_on_passed_result(client):
@@ -110,7 +110,7 @@ def test_make_a_decison_on_passed_result(client):
                             content_type='application/json')
             assert r.status_code == 200
             res_data = json.loads(r.get_data(as_text=True))
-            assert res_data['policies_satisified'] == True
+            assert res_data['policies_satisified'] is True
             assert res_data['applicable_policies'] == ['1']
             assert res_data['summary'] == 'foo-1.0.0-2.el7: policy 1 is satisfied as all required' \
                 ' tests are passing'
@@ -184,7 +184,7 @@ def test_make_a_decison_on_failed_result_with_waiver(client):
                             content_type='application/json')
             assert r.status_code == 200
             res_data = json.loads(r.get_data(as_text=True))
-            assert res_data['policies_satisified'] == True
+            assert res_data['policies_satisified'] is True
             assert res_data['applicable_policies'] == ['1']
             assert res_data['summary'] == 'foo-1.0.0-2.el7: policy 1 is satisfied as all required' \
                 ' tests are passing'
@@ -246,7 +246,7 @@ def test_make_a_decison_on_failed_result(client):
                             content_type='application/json')
             assert r.status_code == 200
             res_data = json.loads(r.get_data(as_text=True))
-            assert res_data['policies_satisified'] == False
+            assert res_data['policies_satisified'] is False
             assert res_data['applicable_policies'] == ['1']
             assert res_data['summary'] == 'foo-1.0.0-2.el7: 2 of 2 required tests' \
                 ' failed, the policy 1 is not satisfied'
@@ -289,7 +289,7 @@ def test_make_a_decison_on_no_results(client):
                             content_type='application/json')
             assert r.status_code == 200
             res_data = json.loads(r.get_data(as_text=True))
-            assert res_data['policies_satisified'] == False
+            assert res_data['policies_satisified'] is False
             assert res_data['applicable_policies'] == ['1']
             assert res_data['summary'] == 'foo-1.0.0-2.el7: no test results found'
             expected_unsatisfied_requirements = [

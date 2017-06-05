@@ -51,7 +51,7 @@ def make_decision():
     product_version = request.get_json()['product_version']
     decision_context = request.get_json()['decision_context']
     applicable_policies = {}
-    for policy_id, policy in policies.iteritems():
+    for policy_id, policy in policies.items():
         if product_version == policy['product_version'] and \
            decision_context == policy['decision_context']:
                 applicable_policies[policy_id] = policy
@@ -61,7 +61,7 @@ def make_decision():
     policies_satisified = True
     summary = []
     unsatisfied_requirements = []
-    for policy_id, policy in applicable_policies.iteritems():
+    for policy_id, policy in applicable_policies.items():
         for item in subjects:
             res = requests_session.get('{0}/results?item={1}&testcases={2}'.format(
                 current_app.config['RESULTSDB_API_URL'], item, ','.join(policy['rules']))

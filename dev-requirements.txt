@@ -6,5 +6,6 @@ pytest-cov
 requests_mock
 
 # Documentation build requirements
-sphinx
+# Pin sphinx until https://bitbucket.org/birkenfeld/sphinx-contrib/issues/182 is fixed and released
+sphinx==1.5.6
 sphinxcontrib-httpdomain
