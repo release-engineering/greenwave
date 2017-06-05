@@ -61,11 +61,12 @@ def make_decision():
     policies_satisified = True
     summary = []
     unsatisfied_requirements = []
+    timeout = current_app.config['REQUESTS_TIMEOUT']
     for policy_id, policy in applicable_policies.items():
         for item in subjects:
-            res = requests_session.get('{0}/results?item={1}&testcases={2}'.format(
+            url = '{0}/results?item={1}&testcases={2}'.format(
                 current_app.config['RESULTSDB_API_URL'], item, ','.join(policy['rules']))
-            )
+            res = requests_session.get(url, timeout=timeout)
             res.raise_for_status()
             results = res.json()['data']
             total_failed_results = 0
@@ -73,10 +74,9 @@ def make_decision():
                 for result in results:
                     if result['outcome'] not in ('PASSED', 'INFO'):
                         # query WaiverDB to check whether the result has a waiver
-                        res = requests_session.get('{0}/waivers/?product_version={1}&result_id={2}'.format(
-                            current_app.config['WAIVERDB_API_URL'], product_version,
-                            result['id'])
-                        )
+                        url = '{0}/waivers/?product_version={1}&result_id={2}'.format(
+                            current_app.config['WAIVERDB_API_URL'], product_version, result['id'])
+                        res = requests_session.get(url, timeout=timeout)
                         res.raise_for_status()
                         waiver = res.json()['data']
                         if not waiver or not waiver[0]['waived']:

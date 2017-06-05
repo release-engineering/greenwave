@@ -22,6 +22,7 @@ class Config(object):
     SECRET_KEY = 'replace-me-with-something-random'
     RESULTSDB_API_URL = 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0'
     WAIVERDB_API_URL = 'https://waiverdb.fedoraproject.org/api/v1.0'
+    REQUESTS_TIMEOUT = (6.1, 15)
 
 
 class ProductionConfig(Config):
