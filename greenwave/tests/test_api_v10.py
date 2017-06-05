@@ -110,7 +110,7 @@ def test_make_a_decison_on_passed_result(client):
                             content_type='application/json')
             assert r.status_code == 200
             res_data = json.loads(r.get_data(as_text=True))
-            assert res_data['policies_satisified'] == True
+            assert res_data['policies_satisified'] is True
             assert res_data['applicable_policies'] == ['1']
             assert res_data['summary'] == 'foo-1.0.0-2.el7: policy 1 is satisfied as all required' \
                 ' tests are passing'
@@ -184,7 +184,7 @@ def test_make_a_decison_on_failed_result_with_waiver(client):
                             content_type='application/json')
             assert r.status_code == 200
             res_data = json.loads(r.get_data(as_text=True))
-            assert res_data['policies_satisified'] == True
+            assert res_data['policies_satisified'] is True
             assert res_data['applicable_policies'] == ['1']
             assert res_data['summary'] == 'foo-1.0.0-2.el7: policy 1 is satisfied as all required' \
                 ' tests are passing'
@@ -246,7 +246,7 @@ def test_make_a_decison_on_failed_result(client):
                             content_type='application/json')
             assert r.status_code == 200
             res_data = json.loads(r.get_data(as_text=True))
-            assert res_data['policies_satisified'] == False
+            assert res_data['policies_satisified'] is False
             assert res_data['applicable_policies'] == ['1']
             assert res_data['summary'] == 'foo-1.0.0-2.el7: 2 of 2 required tests' \
                 ' failed, the policy 1 is not satisfied'
@@ -289,7 +289,7 @@ def test_make_a_decison_on_no_results(client):
                             content_type='application/json')
             assert r.status_code == 200
             res_data = json.loads(r.get_data(as_text=True))
-            assert res_data['policies_satisified'] == False
+            assert res_data['policies_satisified'] is False
             assert res_data['applicable_policies'] == ['1']
             assert res_data['summary'] == 'foo-1.0.0-2.el7: no test results found'
             expected_unsatisfied_requirements = [
