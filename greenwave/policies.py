@@ -1,18 +1,179 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-policies = {
+
+class Answer(object):
+    """
+    Represents the result of evaluating a policy rule against a particular
+    item. But we call it an "answer" because the word "result" is a bit
+    overloaded in here. :-)
+
+    This base class is not used directly -- each answer is an instance of
+    a subclass, depending on what the answer was.
+    """
+
+    pass
+
+
+class RuleSatisfied(Answer):
+    """
+    The rule's requirements are satisfied for this item.
+    """
+
+    is_satisfied = True
+
+
+class RuleNotSatisfied(Answer):
+    """
+    The rule's requirements are not satisfied for this item.
+
+    Not used directly -- the answer is an instance of a subclass, specifying
+    exactly what was not satisfied.
+    """
+
+    is_satisfied = False
+
+    def to_json(self):
+        """
+        Returns a machine-readable description of the problem for API responses.
+        """
+        raise NotImplementedError()
+
+
+class TestResultMissing(RuleNotSatisfied):
+    """
+    A required test case is missing (that is, we did not find any result in
+    ResultsDB with a matching item and test case name).
+    """
+
+    def __init__(self, item, test_case_name):
+        self.item = item
+        self.test_case_name = test_case_name
+
+    def to_json(self):
+        return {
+            'type': 'test-result-missing',
+            'item': self.item,
+            'testcase': self.test_case_name,
+        }
+
+
+class TestResultFailed(RuleNotSatisfied):
+    """
+    A required test case did not pass (that is, its outcome in ResultsDB was
+    not ``PASSED`` or ``INFO``) and no corresponding waiver was found.
+    """
+
+    def __init__(self, item, test_case_name, result_id):
+        self.item = item
+        self.test_case_name = test_case_name
+        self.result_id = result_id
+
+    def to_json(self):
+        return {
+            'type': 'test-result-failed',
+            'item': self.item,
+            'testcase': self.test_case_name,
+            'result_id': self.result_id,
+        }
+
+
+def summarize_answers(answers, policy_id):
+    """
+    Produces a one-sentence human-readable summary of the result of evaluating a policy.
+
+    Args:
+        answers (list): List of :py:class:`Answers <Answer>` from evaluating a policy.
+
+    Returns:
+        str: Human-readable summary.
+    """
+    if all(answer.is_satisfied for answer in answers):
+        return 'policy {} is satisfied as all required tests are passing'.format(policy_id)
+    failure_count = len([answer for answer in answers if isinstance(answer, TestResultFailed)])
+    if failure_count:
+        return ('{} of {} required tests failed, the policy {} is not satisfied'.format(
+                failure_count, len(answers), policy_id))
+    if all(isinstance(answer, TestResultMissing) for answer in answers):
+        return 'no test results found'
+    # XXX need to handle some missing but others passing
+    return 'inexplicable result'
+
+
+class Rule(object):
+    """
+    An individual rule within a policy. A policy consists of multiple rules.
+    When the policy is evaluated, each rule returns an answer
+    (instance of :py:class:`Answer`).
+
+    This base class is not used directly.
+    """
+
+    def check(self, item, results, waivers):
+        """
+        Evaluate this policy rule for the given item.
+
+        Args:
+            item (str): The item we are evaluating ('item' key in ResultsDB,
+                        for example a build NVR).
+            results (list): List of result objects looked up in ResultsDB for this item.
+            waivers (list): List of waiver objects looked up in WaiverDB for the results.
+
+        Returns:
+            Answer: An instance of a subclass of :py:class:`Answer` describing the result.
+        """
+        raise NotImplementedError()
+
+
+class PassingTestCaseRule(Rule):
+    """
+    This rule requires either a passing result for the given test case, or
+    a non-passing result with a waiver.
+    """
+
+    def __init__(self, test_case_name):
+        self.test_case_name = test_case_name
+
+    def check(self, item, results, waivers):
+        matching_results = [r for r in results if r['testcase']['name'] == self.test_case_name]
+        if not matching_results:
+            return TestResultMissing(item, self.test_case_name)
+        # XXX need to handle multiple results (take the latest)
+        matching_result = matching_results[0]
+        if matching_result['outcome'] in ['PASSED', 'INFO']:
+            return RuleSatisfied()
+        # XXX limit who is allowed to waive
+        if any(w['result_id'] == matching_result['id'] and w['waived'] for w in waivers):
+            return RuleSatisfied()
+        return TestResultFailed(item, self.test_case_name, matching_result['id'])
+
+
+class Policy(object):
+
+    def __init__(self, id, product_version, decision_context, rules):
+        self.id = id
+        self.product_version = product_version
+        self.decision_context = decision_context
+        self.rules = rules
+
+    def check(self, item, results, waivers):
+        return [rule.check(item, results, waivers) for rule in self.rules]
+
+
+policies = [
     # Mimic the default Errata rule used for RHEL-7 https://errata.devel.redhat.com/workflow_rules/1
     # In Errata, in order to transition to QE state, an advisory must complete rpmdiff test.
     # A completed rpmdiff test could be some dist.rpmdiff.* testcases in ResultsDB and all the
     # tests need to be passed.
-    '1': {
-        'product_version': 'rhel-7',
-        'decision_context': 'errata_newfile_to_qe',
-        'rules': [
-            'dist.rpmdiff.comparison.xml_validity',
-            'dist.rpmdiff.comparison.virus_scan',
-            'dist.rpmdiff.comparison.upstream_source',
-            'dist.rpmdiff.comparison.symlinks',
-            'dist.rpmdiff.comparison.binary_stripping']
-    }
-}
+    Policy(
+        id='1',
+        product_version='rhel-7',
+        decision_context='errata_newfile_to_qe',
+        rules=[
+            PassingTestCaseRule('dist.rpmdiff.comparison.xml_validity'),
+            PassingTestCaseRule('dist.rpmdiff.comparison.virus_scan'),
+            PassingTestCaseRule('dist.rpmdiff.comparison.upstream_source'),
+            PassingTestCaseRule('dist.rpmdiff.comparison.symlinks'),
+            PassingTestCaseRule('dist.rpmdiff.comparison.binary_stripping'),
+        ],
+    ),
+]

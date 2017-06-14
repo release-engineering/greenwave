@@ -3,7 +3,7 @@
 import requests
 from flask import Blueprint, request, current_app, jsonify
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
-from greenwave.policies import policies
+from greenwave.policies import policies, summarize_answers
 
 api = (Blueprint('api_v1', __name__))
 
@@ -40,73 +40,46 @@ def make_decision():
         raise BadRequest('Invalid subject, must be a list of items')
     product_version = request.get_json()['product_version']
     decision_context = request.get_json()['decision_context']
-    applicable_policies = {}
-    for policy_id, policy in policies.items():
-        if product_version == policy['product_version'] and \
-           decision_context == policy['decision_context']:
-                applicable_policies[policy_id] = policy
+    applicable_policies = [policy for policy in policies
+                           if policy.product_version == product_version and
+                           policy.decision_context == decision_context]
     if not applicable_policies:
         raise NotFound('Cannot find any applicable policies for %s' % product_version)
     subjects = [item.strip() for item in request.get_json()['subject'] if item]
     policies_satisified = True
-    summary = []
+    summary_lines = []
     unsatisfied_requirements = []
     timeout = current_app.config['REQUESTS_TIMEOUT']
-    for policy_id, policy in applicable_policies.items():
+    for policy in applicable_policies:
         for item in subjects:
-            url = '{0}/results?item={1}&testcases={2}'.format(
-                current_app.config['RESULTSDB_API_URL'], item, ','.join(policy['rules']))
-            res = requests_session.get(url, timeout=timeout)
-            res.raise_for_status()
-            results = res.json()['data']
-            total_failed_results = 0
+            # XXX make this more efficient than just fetching everything
+            response = requests_session.get(
+                current_app.config['RESULTSDB_API_URL'] + '/results',
+                params={'item': item}, timeout=timeout)
+            response.raise_for_status()
+            results = response.json()['data']
             if results:
-                for result in results:
-                    if result['outcome'] not in ('PASSED', 'INFO'):
-                        # query WaiverDB to check whether the result has a waiver
-                        url = '{0}/waivers/?product_version={1}&result_id={2}'.format(
-                            current_app.config['WAIVERDB_API_URL'], product_version, result['id'])
-                        res = requests_session.get(url, timeout=timeout)
-                        res.raise_for_status()
-                        waiver = res.json()['data']
-                        if not waiver or not waiver[0]['waived']:
-                            policies_satisified = False
-                            total_failed_results += 1
-                            unsatisfied_requirements.append({
-                                'type': 'test-result-failed',
-                                'item': item,
-                                'testcase': result['testcase']['name'],
-                                'result_id': result['id']})
-                # find missing results
-                rules_applied = [result['testcase']['name'] for result in results]
-                for rule in policy['rules']:
-                    if rule not in rules_applied:
-                        total_failed_results += 1
-                        unsatisfied_requirements.append({
-                            'type': 'test-result-missing',
-                            'item': item,
-                            'testcase': rule})
-                if total_failed_results:
-                    summary.append(
-                        '{0}: {1} of {2} required tests failed, the policy {3} is not satisfied'
-                        .format(item, total_failed_results, len(policy['rules']),
-                                policy_id))
-                else:
-                    summary.append(
-                        '%s: policy %s is satisfied as all required tests are passing' % (
-                            item, policy_id))
+                response = requests_session.get(
+                    current_app.config['WAIVERDB_API_URL'] + '/waivers/',
+                    params={'product_version': product_version,
+                            'result_id': ','.join(str(result['id']) for result in results)},
+                    timeout=timeout)
+                response.raise_for_status()
+                waivers = response.json()['data']
             else:
+                waivers = []
+
+            answers = policy.check(item, results, waivers)
+            if not all(answer.is_satisfied for answer in answers):
                 policies_satisified = False
-                summary.append('%s: no test results found' % item)
-                for rule in policy['rules']:
-                    unsatisfied_requirements.append({
-                        'type': 'test-result-missing',
-                        'item': item,
-                        'testcase': rule})
+            summary_lines.append('{}: {}'.format(item, summarize_answers(answers, policy.id)))
+            unsatisfied_requirements.extend(answer for answer in answers
+                                            if not answer.is_satisfied)
+
     res = {
         'policies_satisified': policies_satisified,
-        'summary': '\n'.join(summary),
-        'applicable_policies': list(applicable_policies.keys()),
-        'unsatisfied_requirements': unsatisfied_requirements
+        'summary': '\n'.join(summary_lines),
+        'applicable_policies': [policy.id for policy in applicable_policies],
+        'unsatisfied_requirements': [a.to_json() for a in unsatisfied_requirements],
     }
     return jsonify(res), 200

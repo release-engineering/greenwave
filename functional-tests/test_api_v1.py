@@ -130,8 +130,7 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
     res_data = r.json()
     assert res_data['policies_satisified'] is False
     assert res_data['applicable_policies'] == ['1']
-    # XXX actually 1 failed and 4 are missing, need to improve this summary
-    expected_summary = '{}: 5 of 5 required tests failed, the policy 1 is not satisfied'.format(nvr)
+    expected_summary = '{}: 1 of 5 required tests failed, the policy 1 is not satisfied'.format(nvr)
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
