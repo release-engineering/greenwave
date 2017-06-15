@@ -7,7 +7,7 @@ policies = {
     # tests need to be passed.
     '1': {
         'product_version': 'rhel-7',
-        'decision_context': 'errta_newfile_to_qe',
+        'decision_context': 'errata_newfile_to_qe',
         'rules': [
             'dist.rpmdiff.comparison.xml_validity',
             'dist.rpmdiff.comparison.virus_scan',
