@@ -34,7 +34,8 @@ values in `greenwave/config.py`.
 
 ## Running test suite
 
-You can run this test suite with the following command::
+You can run the unit tests, which live in the `greenwave.tests` package, with
+the following command:
 
     $ py.test greenwave/tests/
 
@@ -42,6 +43,15 @@ To test against all supported versions of Python, you can use tox::
 
     $ sudo dnf install python3-tox
     $ tox
+
+There are also functional tests in the `functional-tests` directory.
+The functional tests will start their own copy of the
+[ResultsDB](https://pagure.io/taskotron/resultsdb),
+[WaiverDB](https://pagure.io/waiverdb), and Greenwave applications and then 
+send HTTP requests to them. If you have a git checkout of all three projects, 
+you can run the functional tests like this (adjust the paths as appropriate):
+
+    $ PYTHONPATH=../resultsdb:../waiverdb:. py.test functional-tests/
 
 ## Building the docs
 

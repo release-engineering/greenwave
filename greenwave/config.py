@@ -21,10 +21,12 @@ class ProductionConfig(Config):
 
 
 class DevelopmentConfig(Config):
-    RESULTSDB_API_URL = 'https://taskotron.stg.fedoraproject.org/resultsdb_api/api/v2.0'
-    WAIVERDB_API_URL = 'http://waiverdb-dev.fedorainfracloud.org/api/v1.0'
+    #RESULTSDB_API_URL = 'https://taskotron.stg.fedoraproject.org/resultsdb_api/api/v2.0'
+    RESULTSDB_API_URL = 'http://localhost:5001/api/v2.0'
+    #WAIVERDB_API_URL = 'http://waiverdb-dev.fedorainfracloud.org/api/v1.0'
+    WAIVERDB_API_URL = 'http://localhost:5004/api/v1.0'
 
 
 class TestingConfig(Config):
-    RESULTSDB_API_URL = 'https://resultsdb.domain.local/api/v2.0'
-    WAIVERDB_API_URL = 'https://waiverdb.domain.local/api/v1.0'
+    RESULTSDB_API_URL = 'http://localhost:5001/api/v2.0'
+    WAIVERDB_API_URL = 'http://localhost:5004/api/v1.0'

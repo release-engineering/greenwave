@@ -1,9 +1,9 @@
 # Testing requirements
 flake8
-mock
 pytest
 pytest-cov
-requests_mock
+waiverdb
+resultsdb
 
 # Documentation build requirements
 # Pin sphinx until https://bitbucket.org/birkenfeld/sphinx-contrib/issues/182 is fixed and released
