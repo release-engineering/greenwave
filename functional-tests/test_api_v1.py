@@ -4,12 +4,77 @@ import json
 
 
 all_rpmdiff_testcase_names = [
-    # XXX this is not all of them
-    'dist.rpmdiff.comparison.xml_validity',
-    'dist.rpmdiff.comparison.virus_scan',
-    'dist.rpmdiff.comparison.upstream_source',
-    'dist.rpmdiff.comparison.symlinks',
+    'dist.rpmdiff.analysis.abi_symbols',
+    'dist.rpmdiff.analysis.binary_stripping',
+    'dist.rpmdiff.analysis.build_log',
+    'dist.rpmdiff.analysis.changes_in_rpms',
+    'dist.rpmdiff.analysis.desktop_file_sanity',
+    'dist.rpmdiff.analysis.elflint',
+    'dist.rpmdiff.analysis.empty_payload',
+    'dist.rpmdiff.analysis.execshield',
+    'dist.rpmdiff.analysis.file_list',
+    'dist.rpmdiff.analysis.file_permissions',
+    'dist.rpmdiff.analysis.file_sizes',
+    'dist.rpmdiff.analysis.ipv_',
+    'dist.rpmdiff.analysis.java_byte_code',
+    'dist.rpmdiff.analysis.kernel_module_parameters',
+    'dist.rpmdiff.analysis.manpage_integrity',
+    'dist.rpmdiff.analysis.metadata',
+    'dist.rpmdiff.analysis.multilib_regressions',
+    'dist.rpmdiff.analysis.ownership',
+    'dist.rpmdiff.analysis.patches',
+    'dist.rpmdiff.analysis.pathnames',
+    'dist.rpmdiff.analysis.politics',
+    'dist.rpmdiff.analysis.rpath',
+    'dist.rpmdiff.analysis.rpm_changelog',
+    'dist.rpmdiff.analysis.rpm_config_doc_files',
+    'dist.rpmdiff.analysis.rpm_requires_provides',
+    'dist.rpmdiff.analysis.rpm_scripts',
+    'dist.rpmdiff.analysis.rpm_triggers',
+    'dist.rpmdiff.analysis.shell_syntax',
+    'dist.rpmdiff.analysis.specfile_checks',
+    'dist.rpmdiff.analysis.symlinks',
+    'dist.rpmdiff.analysis.upstream_source',
+    'dist.rpmdiff.analysis.virus_scan',
+    'dist.rpmdiff.analysis.xml_validity',
+    'dist.rpmdiff.comparison.abi_symbols',
     'dist.rpmdiff.comparison.binary_stripping',
+    'dist.rpmdiff.comparison.build_log',
+    'dist.rpmdiff.comparison.changed_files',
+    'dist.rpmdiff.comparison.changes_in_rpms',
+    'dist.rpmdiff.comparison.desktop_file_sanity',
+    'dist.rpmdiff.comparison.dt_needed',
+    'dist.rpmdiff.comparison.elflint',
+    'dist.rpmdiff.comparison.empty_payload',
+    'dist.rpmdiff.comparison.execshield',
+    'dist.rpmdiff.comparison.file_list',
+    'dist.rpmdiff.comparison.file_permissions',
+    'dist.rpmdiff.comparison.file_sizes',
+    'dist.rpmdiff.comparison.files_moving_rpm',
+    'dist.rpmdiff.comparison.file_types',
+    'dist.rpmdiff.comparison.ipv_',
+    'dist.rpmdiff.comparison.java_byte_code',
+    'dist.rpmdiff.comparison.kernel_module_parameters',
+    'dist.rpmdiff.comparison.kernel_module_pci_ids',
+    'dist.rpmdiff.comparison.manpage_integrity',
+    'dist.rpmdiff.comparison.metadata',
+    'dist.rpmdiff.comparison.multilib_regressions',
+    'dist.rpmdiff.comparison.ownership',
+    'dist.rpmdiff.comparison.patches',
+    'dist.rpmdiff.comparison.pathnames',
+    'dist.rpmdiff.comparison.politics',
+    'dist.rpmdiff.comparison.rpath',
+    'dist.rpmdiff.comparison.rpm_changelog',
+    'dist.rpmdiff.comparison.rpm_config_doc_files',
+    'dist.rpmdiff.comparison.rpm_requires_provides',
+    'dist.rpmdiff.comparison.rpm_scripts',
+    'dist.rpmdiff.comparison.rpm_triggers',
+    'dist.rpmdiff.comparison.shell_syntax',
+    'dist.rpmdiff.comparison.specfile_checks',
+    'dist.rpmdiff.comparison.symlinks',
+    'dist.rpmdiff.comparison.upstream_source',
+    'dist.rpmdiff.comparison.virus_scan',
+    'dist.rpmdiff.comparison.xml_validity',
 ]
 
 
@@ -130,7 +195,7 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
     res_data = r.json()
     assert res_data['policies_satisified'] is False
     assert res_data['applicable_policies'] == ['1']
-    expected_summary = '{}: 1 of 5 required tests failed, the policy 1 is not satisfied'.format(nvr)
+    expected_summary = '{}: 1 of 71 required tests failed, the policy 1 is not satisfied'.format(nvr)
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
@@ -146,7 +211,7 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
             'type': 'test-result-missing'
         } for name in all_rpmdiff_testcase_names if name != 'dist.rpmdiff.comparison.xml_validity'
     ]
-    assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+    assert sorted(res_data['unsatisfied_requirements']) == sorted(expected_unsatisfied_requirements)
 
 
 def test_make_a_decison_on_no_results(requests_session, greenwave_server, testdatabuilder):

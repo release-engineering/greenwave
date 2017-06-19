@@ -55,7 +55,7 @@ def make_decision():
             # XXX make this more efficient than just fetching everything
             response = requests_session.get(
                 current_app.config['RESULTSDB_API_URL'] + '/results',
-                params={'item': item}, timeout=timeout)
+                params={'item': item, 'limit': '1000'}, timeout=timeout)
             response.raise_for_status()
             results = response.json()['data']
             if results:
