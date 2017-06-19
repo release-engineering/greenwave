@@ -238,3 +238,23 @@ def test_make_a_decison_on_no_results(requests_session, greenwave_server, testda
         } for name in all_rpmdiff_testcase_names
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+
+
+def test_unrestricted_policy_is_always_satisfied(
+        requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    data = {
+        'decision_context': 'errata_newfile_to_qe',
+        'product_version': 'cdk-2',
+        'subject': [nvr]
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisified'] is True
+    assert res_data['applicable_policies'] == ['errata-unrestricted']
+    expected_summary = 'no tests are required'
+    assert res_data['summary'] == expected_summary
+    assert res_data['unsatisfied_requirements'] == []

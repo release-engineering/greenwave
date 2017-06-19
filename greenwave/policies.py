@@ -87,6 +87,8 @@ def summarize_answers(answers):
     Returns:
         str: Human-readable summary.
     """
+    if len(answers) == 0:
+        return 'no tests are required'
     if all(answer.is_satisfied for answer in answers):
         return 'all required tests passed'
     failure_count = len([answer for answer in answers if isinstance(answer, TestResultFailed)])
@@ -248,5 +250,15 @@ policies = [
             PassingTestCaseRule('dist.rpmdiff.comparison.virus_scan'),
             PassingTestCaseRule('dist.rpmdiff.comparison.xml_validity'),
         ],
+    ),
+    # Errata Tool "Unrestricted" rule set
+    Policy(
+        id='errata-unrestricted',
+        decision_context='errata_newfile_to_qe',
+        product_versions=[
+            'cdk-2',
+            'devstudio-2',
+        ],
+        rules=[],
     ),
 ]
