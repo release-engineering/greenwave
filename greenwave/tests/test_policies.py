@@ -14,6 +14,5 @@ def test_summarize_answers():
     assert summarize_answers([TestResultMissing('item', 'test'),
                               TestResultFailed('item', 'test', 'id')]) == \
         '1 of 2 required tests failed'
-    # XXX fix this one
     assert summarize_answers([TestResultMissing('item', 'test'), RuleSatisfied()]) == \
-        'inexplicable result'
+        '1 of 2 required tests not found'
