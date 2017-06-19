@@ -46,40 +46,32 @@ def make_decision():
     if not applicable_policies:
         raise NotFound('Cannot find any applicable policies for %s' % product_version)
     subjects = [item.strip() for item in request.get_json()['subject'] if item]
-    policies_satisified = True
-    summary_lines = []
-    unsatisfied_requirements = []
+    answers = []
     timeout = current_app.config['REQUESTS_TIMEOUT']
-    for policy in applicable_policies:
-        for item in subjects:
-            # XXX make this more efficient than just fetching everything
+    for item in subjects:
+        # XXX make this more efficient than just fetching everything
+        response = requests_session.get(
+            current_app.config['RESULTSDB_API_URL'] + '/results',
+            params={'item': item, 'limit': '1000'}, timeout=timeout)
+        response.raise_for_status()
+        results = response.json()['data']
+        if results:
             response = requests_session.get(
-                current_app.config['RESULTSDB_API_URL'] + '/results',
-                params={'item': item, 'limit': '1000'}, timeout=timeout)
+                current_app.config['WAIVERDB_API_URL'] + '/waivers/',
+                params={'product_version': product_version,
+                        'result_id': ','.join(str(result['id']) for result in results)},
+                timeout=timeout)
             response.raise_for_status()
-            results = response.json()['data']
-            if results:
-                response = requests_session.get(
-                    current_app.config['WAIVERDB_API_URL'] + '/waivers/',
-                    params={'product_version': product_version,
-                            'result_id': ','.join(str(result['id']) for result in results)},
-                    timeout=timeout)
-                response.raise_for_status()
-                waivers = response.json()['data']
-            else:
-                waivers = []
-
-            answers = policy.check(item, results, waivers)
-            if not all(answer.is_satisfied for answer in answers):
-                policies_satisified = False
-            summary_lines.append('{}: {}'.format(item, summarize_answers(answers, policy.id)))
-            unsatisfied_requirements.extend(answer for answer in answers
-                                            if not answer.is_satisfied)
-
+            waivers = response.json()['data']
+        else:
+            waivers = []
+        for policy in applicable_policies:
+            answers.extend(policy.check(item, results, waivers))
     res = {
-        'policies_satisified': policies_satisified,
-        'summary': '\n'.join(summary_lines),
+        'policies_satisified': all(answer.is_satisfied for answer in answers),
+        'summary': summarize_answers(answers),
         'applicable_policies': [policy.id for policy in applicable_policies],
-        'unsatisfied_requirements': [a.to_json() for a in unsatisfied_requirements],
+        'unsatisfied_requirements': [answer.to_json() for answer in answers
+                                     if not answer.is_satisfied],
     }
     return jsonify(res), 200

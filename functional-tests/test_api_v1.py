@@ -145,7 +145,7 @@ def test_make_a_decison_on_passed_result(requests_session, greenwave_server, tes
     res_data = r.json()
     assert res_data['policies_satisified'] is True
     assert res_data['applicable_policies'] == ['1']
-    expected_summary = '{}: policy 1 is satisfied as all required tests are passing'.format(nvr)
+    expected_summary = 'all required tests passed'
     assert res_data['summary'] == expected_summary
 
 
@@ -174,7 +174,7 @@ def test_make_a_decison_on_failed_result_with_waiver(
     res_data = r.json()
     assert res_data['policies_satisified'] is True
     assert res_data['applicable_policies'] == ['1']
-    expected_summary = '{}: policy 1 is satisfied as all required tests are passing'.format(nvr)
+    expected_summary = 'all required tests passed'
     assert res_data['summary'] == expected_summary
 
 
@@ -195,7 +195,7 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
     res_data = r.json()
     assert res_data['policies_satisified'] is False
     assert res_data['applicable_policies'] == ['1']
-    expected_summary = '{}: 1 of 71 required tests failed, the policy 1 is not satisfied'.format(nvr)
+    expected_summary = '1 of 71 required tests failed'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
@@ -228,7 +228,7 @@ def test_make_a_decison_on_no_results(requests_session, greenwave_server, testda
     res_data = r.json()
     assert res_data['policies_satisified'] is False
     assert res_data['applicable_policies'] == ['1']
-    expected_summary = '{}: no test results found'.format(nvr)
+    expected_summary = 'no test results found'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {

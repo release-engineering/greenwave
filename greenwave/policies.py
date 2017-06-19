@@ -77,7 +77,7 @@ class TestResultFailed(RuleNotSatisfied):
         }
 
 
-def summarize_answers(answers, policy_id):
+def summarize_answers(answers):
     """
     Produces a one-sentence human-readable summary of the result of evaluating a policy.
 
@@ -88,11 +88,10 @@ def summarize_answers(answers, policy_id):
         str: Human-readable summary.
     """
     if all(answer.is_satisfied for answer in answers):
-        return 'policy {} is satisfied as all required tests are passing'.format(policy_id)
+        return 'all required tests passed'
     failure_count = len([answer for answer in answers if isinstance(answer, TestResultFailed)])
     if failure_count:
-        return ('{} of {} required tests failed, the policy {} is not satisfied'.format(
-                failure_count, len(answers), policy_id))
+        return ('{} of {} required tests failed'.format(failure_count, len(answers)))
     if all(isinstance(answer, TestResultMissing) for answer in answers):
         return 'no test results found'
     # XXX need to handle some missing but others passing
