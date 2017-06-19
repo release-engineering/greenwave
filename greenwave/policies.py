@@ -150,11 +150,15 @@ class PassingTestCaseRule(Rule):
 
 class Policy(object):
 
-    def __init__(self, id, product_version, decision_context, rules):
+    def __init__(self, id, product_versions, decision_context, rules):
         self.id = id
-        self.product_version = product_version
+        self.product_versions = frozenset(product_versions)
         self.decision_context = decision_context
         self.rules = rules
+
+    def applies_to(self, decision_context, product_version):
+        return (decision_context == self.decision_context and
+                product_version in self.product_versions)
 
     def check(self, item, results, waivers):
         return [rule.check(item, results, waivers) for rule in self.rules]
@@ -167,7 +171,9 @@ policies = [
     # tests need to be passed.
     Policy(
         id='1',
-        product_version='rhel-7',
+        product_versions=[
+            'rhel-7',
+        ],
         decision_context='errata_newfile_to_qe',
         rules=[
             PassingTestCaseRule('dist.rpmdiff.analysis.abi_symbols'),

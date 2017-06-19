@@ -41,8 +41,7 @@ def make_decision():
     product_version = request.get_json()['product_version']
     decision_context = request.get_json()['decision_context']
     applicable_policies = [policy for policy in policies
-                           if policy.product_version == product_version and
-                           policy.decision_context == decision_context]
+                           if policy.applies_to(decision_context, product_version)]
     if not applicable_policies:
         raise NotFound('Cannot find any applicable policies for %s' % product_version)
     subjects = [item.strip() for item in request.get_json()['subject'] if item]
