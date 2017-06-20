@@ -51,8 +51,10 @@ def resultsdb_server(request):
     import resultsdb.cli
     del os.environ['TEST']
     app = resultsdb.app
-    init_func = lambda: resultsdb.cli.initialize_db(destructive=True)
-    server = WSGIServerThread(app, init_func, port=5001)
+    server = WSGIServerThread(
+        app,
+        init_func=lambda: resultsdb.cli.initialize_db(destructive=True),
+        port=5001)
     server.start()
     request.addfinalizer(server.stop)
     return server
@@ -68,8 +70,10 @@ def waiverdb_server(request):
         # WaiverDB entirely for now.
         MESSAGE_BUS_PUBLISH = False
     app = waiverdb.app.create_app(WaiverdbTestingConfig)
-    init_func = lambda: waiverdb.app.init_db(app)
-    server = WSGIServerThread(app, init_func, port=5004)
+    server = WSGIServerThread(
+        app,
+        init_func=lambda: waiverdb.app.init_db(app),
+        port=5004)
     server.start()
     request.addfinalizer(server.stop)
     return server
@@ -78,8 +82,7 @@ def waiverdb_server(request):
 @pytest.fixture(scope='session')
 def greenwave_server(request):
     app = greenwave.app_factory.create_app('greenwave.config.TestingConfig')
-    init_func = lambda: None
-    server = WSGIServerThread(app, init_func, port=5005)
+    server = WSGIServerThread(app, init_func=lambda: None, port=5005)
     server.start()
     request.addfinalizer(server.stop)
     return server
