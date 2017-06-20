@@ -8,6 +8,7 @@ docs/_build/
 eggs/
 *egg-info/
 *.egg
+/rpmbuild-output/
 
 # Vim temporary files
 *~

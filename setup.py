@@ -3,7 +3,6 @@
 
 import os
 import re
-
 from setuptools import setup, find_packages
 
 
@@ -21,13 +20,13 @@ def get_project_version(version_file='greenwave/__init__.py'):
             be in the format ``__version__ = '<version>'`` and the file must be
             UTF-8 encoded.
     """
-    with open(version_file, "rb") as f:
-        version_pattern = b"^__version__ = '(.+)'$"
+    with open(version_file, 'r') as f:
+        version_pattern = "^__version__ = '(.+)'$"
         match = re.search(version_pattern, f.read(), re.MULTILINE)
     if match is None:
-        err_msg = "No line matching  %r found in %r"
+        err_msg = 'No line matching %r found in %r'
         raise ValueError(err_msg % (version_pattern, version_file))
-    return match.groups()[0].decode("utf-8")
+    return match.group(1)
 
 
 def get_requirements(requirements_file='requirements.txt'):
@@ -88,7 +87,7 @@ setup(
     maintainer_email='infrastructure@lists.fedoraproject.org',
     platforms=['Fedora', 'GNU/Linux'],
     url='https://pagure.io/greenwave/',
-    packages=find_packages(exclude=('greenwave.tests', 'greenwave.tests.*')),
+    packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
     install_requires=get_requirements(),
