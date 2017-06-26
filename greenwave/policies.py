@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import yaml
+
 
 class Answer(object):
     """
@@ -102,7 +104,7 @@ def summarize_answers(answers):
     return 'inexplicable result'
 
 
-class Rule(object):
+class Rule(yaml.YAMLObject):
     """
     An individual rule within a policy. A policy consists of multiple rules.
     When the policy is evaluated, each rule returns an answer
@@ -110,7 +112,6 @@ class Rule(object):
 
     This base class is not used directly.
     """
-
     def check(self, item, results, waivers):
         """
         Evaluate this policy rule for the given item.
@@ -132,6 +133,7 @@ class PassingTestCaseRule(Rule):
     This rule requires either a passing result for the given test case, or
     a non-passing result with a waiver.
     """
+    yaml_tag = u'!PassingTestCaseRule'
 
     def __init__(self, test_case_name):
         self.test_case_name = test_case_name
@@ -149,8 +151,12 @@ class PassingTestCaseRule(Rule):
             return RuleSatisfied()
         return TestResultFailed(item, self.test_case_name, matching_result['id'])
 
+    def __repr__(self):
+        return "%s(test_case_name=%r)" % (self.__class__.__name__, self.test_case_name)
 
-class Policy(object):
+
+class Policy(yaml.YAMLObject):
+    yaml_tag = u'!Policy'
 
     def __init__(self, id, product_versions, decision_context, rules):
         self.id = id
@@ -165,100 +171,7 @@ class Policy(object):
     def check(self, item, results, waivers):
         return [rule.check(item, results, waivers) for rule in self.rules]
 
-
-policies = [
-    # Mimic the default Errata rule used for RHEL-7 https://errata.devel.redhat.com/workflow_rules/1
-    # In Errata, in order to transition to QE state, an advisory must complete rpmdiff test.
-    # A completed rpmdiff test could be some dist.rpmdiff.* testcases in ResultsDB and all the
-    # tests need to be passed.
-    Policy(
-        id='1',
-        product_versions=[
-            'rhel-7',
-        ],
-        decision_context='errata_newfile_to_qe',
-        rules=[
-            PassingTestCaseRule('dist.rpmdiff.analysis.abi_symbols'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.binary_stripping'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.build_log'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.changes_in_rpms'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.desktop_file_sanity'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.elflint'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.empty_payload'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.execshield'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.file_list'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.file_permissions'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.file_sizes'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.ipv_'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.java_byte_code'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.kernel_module_parameters'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.manpage_integrity'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.metadata'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.multilib_regressions'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.ownership'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.patches'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.pathnames'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.politics'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.rpath'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.rpm_changelog'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.rpm_config_doc_files'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.rpm_requires_provides'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.rpm_scripts'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.rpm_triggers'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.shell_syntax'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.specfile_checks'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.symlinks'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.upstream_source'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.virus_scan'),
-            PassingTestCaseRule('dist.rpmdiff.analysis.xml_validity'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.abi_symbols'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.binary_stripping'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.build_log'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.changed_files'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.changes_in_rpms'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.desktop_file_sanity'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.dt_needed'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.elflint'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.empty_payload'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.execshield'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.file_list'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.file_permissions'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.file_sizes'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.files_moving_rpm'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.file_types'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.ipv_'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.java_byte_code'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.kernel_module_parameters'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.kernel_module_pci_ids'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.manpage_integrity'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.metadata'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.multilib_regressions'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.ownership'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.patches'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.pathnames'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.politics'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.rpath'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.rpm_changelog'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.rpm_config_doc_files'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.rpm_requires_provides'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.rpm_scripts'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.rpm_triggers'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.shell_syntax'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.specfile_checks'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.symlinks'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.upstream_source'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.virus_scan'),
-            PassingTestCaseRule('dist.rpmdiff.comparison.xml_validity'),
-        ],
-    ),
-    # Errata Tool "Unrestricted" rule set
-    Policy(
-        id='errata-unrestricted',
-        decision_context='errata_newfile_to_qe',
-        product_versions=[
-            'cdk-2',
-            'devstudio-2',
-        ],
-        rules=[],
-    ),
-]
+    def __repr__(self):
+        return "%s(id=%r, product_versions=%r, decision_context=%r, rules=%r)" % (
+            self.__class__.__name__, self.id, self.product_versions, self.decision_context,
+            self.rules)

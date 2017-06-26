@@ -3,7 +3,7 @@
 import requests
 from flask import Blueprint, request, current_app, jsonify
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
-from greenwave.policies import policies, summarize_answers
+from greenwave.policies import summarize_answers
 
 api = (Blueprint('api_v1', __name__))
 
@@ -40,7 +40,7 @@ def make_decision():
         raise BadRequest('Invalid subject, must be a list of items')
     product_version = request.get_json()['product_version']
     decision_context = request.get_json()['decision_context']
-    applicable_policies = [policy for policy in policies
+    applicable_policies = [policy for policy in current_app.config['policies']
                            if policy.applies_to(decision_context, product_version)]
     if not applicable_policies:
         raise NotFound('Cannot find any applicable policies for %s' % product_version)

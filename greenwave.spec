@@ -23,6 +23,7 @@ BuildRequires:  python-flask
 BuildRequires:  pytest
 BuildRequires:  python-requests
 %endif
+BuildRequires:  PyYAML
 BuildArch:      noarch
 %if 0%{?fedora} || 0%{?rhel} > 7
 Requires:  python2-flask
@@ -31,6 +32,7 @@ Requires:  python2-requests
 Requires:  python-flask
 Requires:  python-requests
 %endif
+Requires:  PyYAML
 
 %description
 Greenwave is a service for gating on automated tests by querying ResultsDB and

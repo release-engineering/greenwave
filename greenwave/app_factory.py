@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import os
+import glob
+import yaml
 
 from flask import Flask
 from greenwave.logger import init_logging
@@ -33,6 +35,11 @@ def create_app(config_obj=None):
         load_config(app)
     if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':
         raise Warning("You need to change the app.secret_key value for production")
+    #load policies
+    policy_pathnames = glob.glob(os.path.join(app.config['POLICIES_DIR'], '*.yaml'))
+    app.config['policies'] = []
+    for policy_pathname in policy_pathnames:
+        app.config['policies'].extend(yaml.load_all(open(policy_pathname, 'r')))
     # register error handlers
     app.register_error_handler(ConnectionError, lambda e: (str(e), 503))
     app.register_error_handler(Timeout, lambda e: (str(e), 503))
