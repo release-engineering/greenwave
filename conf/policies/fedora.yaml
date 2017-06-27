@@ -1,0 +1,11 @@
+# Tasktron release-critical tasks rule
+# https://github.com/fedora-infra/fmn/blob/develop/fmn/rules/taskotron.py#L5
+--- !Policy
+id: "taskotron_release_critical_tasks"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.abicheck}
+  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
+  - !PassingTestCaseRule {test_case_name: dist.upgradepath}

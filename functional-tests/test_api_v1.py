@@ -77,6 +77,12 @@ all_rpmdiff_testcase_names = [
     'dist.rpmdiff.comparison.xml_validity',
 ]
 
+TASKTRON_RELEASE_CRITICAL_TASKS = [
+    'dist.abicheck',
+    'dist.rpmdeplint',
+    'dist.upgradepath',
+]
+
 
 def test_cannot_make_decision_without_product_version(requests_session, greenwave_server):
     data = {
@@ -256,5 +262,29 @@ def test_unrestricted_policy_is_always_satisfied(
     assert res_data['policies_satisified'] is True
     assert res_data['applicable_policies'] == ['errata-unrestricted']
     expected_summary = 'no tests are required'
+    assert res_data['summary'] == expected_summary
+    assert res_data['unsatisfied_requirements'] == []
+
+
+def test_bodhi_push_update_stable_policy(
+        requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS:
+        testdatabuilder.create_result(item=nvr,
+                                      testcase_name=testcase_name,
+                                      outcome='PASSED')
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject': [nvr]
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisified'] is True
+    assert res_data['applicable_policies'] == ['taskotron_release_critical_tasks']
+    expected_summary = 'all required tests passed'
     assert res_data['summary'] == expected_summary
     assert res_data['unsatisfied_requirements'] == []
