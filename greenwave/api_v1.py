@@ -17,8 +17,60 @@ def make_decision():
     results. The request must be
     :mimetype:`application/json`.
 
+    **Sample request**:
+
+    .. sourcecode:: http
+
+       POST /api/v1.0/decision HTTP/1.1
+       Host: localhost:5005
+       Accept-Encoding: gzip, deflate
+       Accept: application/json
+       Connection: keep-alive
+       User-Agent: HTTPie/0.9.4
+       Content-Type: application/json
+       Content-Length: 91
+
+       {
+           "decision_context": "bodhi_update_push_stable",
+           "product_version": "fedora-26",
+           "subject": ["glibc-1.0-1.f26"]
+       }
+
+
+    **Sample response**:
+
+    .. sourcecode:: http
+
+       HTTP/1.0 200
+       Content-Length: 228
+       Content-Type: application/json
+       Date: Thu, 16 Mar 2017 17:42:04 GMT
+       Server: Werkzeug/0.12.1 Python/2.7.13
+
+       {
+           "policies_satisified": "false",
+           "summary": "2 of 15 required tests failed",
+           "applicable_policies": ["1"],
+           "unsatisfied_requirements": [
+               {
+                   'item': "glibc-1.0-1.f26",
+                   'result_id': "123",
+                   'testcase': 'dist.depcheck',
+                   'type': 'test-result-failed'
+               },
+               {
+                   'item': "glibc-1.0-1.f26",
+                   'result_id': "124",
+                   'testcase': 'dist.rpmlint',
+                   'type': 'test-result-missing'
+               }
+           ]
+       }
+
     :jsonparam string product_version: The product version string used for querying WaiverDB.
-    :jsonparam string decision_context: The decision context string.
+    :jsonparam string decision_context: The decision context string, identified by a
+        free-form string label. It is to be named through coordination between policy
+        author and calling application, for example ``bodhi_update_push_stable``.
     :jsonparam array subject: A list of items about which the caller is requesting a decision
         used for querying ResultsDB. For example, a list of build NVRs.
     :statuscode 200: A decision was made.
