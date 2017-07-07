@@ -22,8 +22,8 @@ def test_summarize_answers():
 def test_load_policies():
     app = create_app('greenwave.config.TestingConfig')
     assert len(app.config['policies']) > 0
-    assert app.config['policies'][0].id == '1'
-    assert app.config['policies'][0].product_versions == ['rhel-7']
-    assert app.config['policies'][0].decision_context == 'errata_newfile_to_qe'
-    rule = app.config['policies'][0].rules[0]
-    assert rule.test_case_name == 'dist.rpmdiff.analysis.abi_symbols'
+    assert any(policy.id == '1' for policy in app.config['policies'])
+    assert any(policy.decision_context == 'errata_newfile_to_qe' for policy in
+               app.config['policies'])
+    assert any(rule.test_case_name == 'dist.rpmdiff.analysis.abi_symbols' for policy in
+               app.config['policies'] for rule in policy.rules)
