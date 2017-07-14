@@ -19,7 +19,7 @@ rules:
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.file_list}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.file_permissions}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.file_sizes}
-  - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.ipv_}
+  - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.ipv6}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.java_byte_code}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.kernel_module_parameters}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.manpage_integrity}
@@ -56,7 +56,7 @@ rules:
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.comparison.file_sizes}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.comparison.files_moving_rpm}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.comparison.file_types}
-  - !PassingTestCaseRule {test_case_name: dist.rpmdiff.comparison.ipv_}
+  - !PassingTestCaseRule {test_case_name: dist.rpmdiff.comparison.ipv6}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.comparison.java_byte_code}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.comparison.kernel_module_parameters}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.comparison.kernel_module_pci_ids}
