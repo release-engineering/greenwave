@@ -48,7 +48,7 @@ def make_decision():
        Server: Werkzeug/0.12.1 Python/2.7.13
 
        {
-           "policies_satisified": "false",
+           "policies_satisified": false,
            "summary": "2 of 15 required tests failed",
            "applicable_policies": ["1"],
            "unsatisfied_requirements": [
