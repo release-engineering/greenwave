@@ -134,6 +134,7 @@ class PassingTestCaseRule(Rule):
     a non-passing result with a waiver.
     """
     yaml_tag = u'!PassingTestCaseRule'
+    yaml_loader = yaml.SafeLoader
 
     def __init__(self, test_case_name):
         self.test_case_name = test_case_name
@@ -157,6 +158,7 @@ class PassingTestCaseRule(Rule):
 
 class Policy(yaml.YAMLObject):
     yaml_tag = u'!Policy'
+    yaml_loader = yaml.SafeLoader
 
     def __init__(self, id, product_versions, decision_context, rules):
         self.id = id
