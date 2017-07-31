@@ -39,7 +39,7 @@ def create_app(config_obj=None):
     policy_pathnames = glob.glob(os.path.join(app.config['POLICIES_DIR'], '*.yaml'))
     app.config['policies'] = []
     for policy_pathname in policy_pathnames:
-        app.config['policies'].extend(yaml.load_all(open(policy_pathname, 'r')))
+        app.config['policies'].extend(yaml.safe_load_all(open(policy_pathname, 'r')))
     # register error handlers
     app.register_error_handler(ConnectionError, lambda e: (str(e), 503))
     app.register_error_handler(Timeout, lambda e: (str(e), 503))
