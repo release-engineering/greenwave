@@ -93,7 +93,7 @@ def test_cannot_make_decision_without_product_version(requests_session, greenwav
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
-    assert u'Missing required product version' in r.text
+    assert u'Missing required product version' == r.json()['message']
 
 
 def test_cannot_make_decision_without_decision_context(requests_session, greenwave_server):
@@ -105,7 +105,7 @@ def test_cannot_make_decision_without_decision_context(requests_session, greenwa
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
-    assert u'Missing required decision context' in r.text
+    assert u'Missing required decision context' == r.json()['message']
 
 
 def test_cannot_make_decision_without_subject(requests_session, greenwave_server):
@@ -117,7 +117,7 @@ def test_cannot_make_decision_without_subject(requests_session, greenwave_server
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
-    assert u'Missing required subject' in r.text
+    assert u'Missing required subject' == r.json()['message']
 
 
 def test_404_for_inapplicable_policies(requests_session, greenwave_server):
@@ -130,7 +130,7 @@ def test_404_for_inapplicable_policies(requests_session, greenwave_server):
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 404
-    assert u'Cannot find any applicable policies for rhel-7' in r.text
+    assert u'Cannot find any applicable policies for rhel-7' == r.json()['message']
 
 
 def test_make_a_decison_on_passed_result(requests_session, greenwave_server, testdatabuilder):
