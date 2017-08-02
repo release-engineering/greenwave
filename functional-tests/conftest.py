@@ -113,7 +113,7 @@ class TestDataBuilder(object):
     def create_result(self, item, testcase_name, outcome):
         data = {
             'testcase': {'name': testcase_name},
-            'data': {'item': item},
+            'data': {'item': item, 'type': 'koji_build'},
             'outcome': outcome,
         }
         response = self.requests_session.post(

@@ -87,7 +87,7 @@ TASKTRON_RELEASE_CRITICAL_TASKS = [
 def test_cannot_make_decision_without_product_version(requests_session, greenwave_server):
     data = {
         'decision_context': 'errata_newfile_to_qe',
-        'subject': ['foo-1.0.0-1.el7']
+        'subject': [{'item': 'foo-1.0.0-1.el7', 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -99,7 +99,7 @@ def test_cannot_make_decision_without_product_version(requests_session, greenwav
 def test_cannot_make_decision_without_decision_context(requests_session, greenwave_server):
     data = {
         'product_version': 'rhel-7',
-        'subject': ['foo-1.0.0-1.el7']
+        'subject': [{'item': 'foo-1.0.0-1.el7', 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -120,11 +120,24 @@ def test_cannot_make_decision_without_subject(requests_session, greenwave_server
     assert u'Missing required subject' in r.text
 
 
+def test_cannot_make_decision_with_invalid_subject(requests_session, greenwave_server):
+    data = {
+        'decision_context': 'errata_newfile_to_qe',
+        'product_version': 'rhel-7',
+        'subject': ['foo-1.0.0-1.el7'],
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 400
+    assert u'Invalid subject, must be a list of dicts' in r.text
+
+
 def test_404_for_inapplicable_policies(requests_session, greenwave_server):
     data = {
         'decision_context': 'dummpy_decision',
         'product_version': 'rhel-7',
-        'subject': ['foo-1.0.0-1.el7']
+        'subject': [{'item': 'foo-1.0.0-1.el7', 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -142,7 +155,7 @@ def test_make_a_decison_on_passed_result(requests_session, greenwave_server, tes
     data = {
         'decision_context': 'errata_newfile_to_qe',
         'product_version': 'rhel-7',
-        'subject': [nvr]
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -171,7 +184,7 @@ def test_make_a_decison_on_failed_result_with_waiver(
     data = {
         'decision_context': 'errata_newfile_to_qe',
         'product_version': 'rhel-7',
-        'subject': [nvr]
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -192,7 +205,7 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
     data = {
         'decision_context': 'errata_newfile_to_qe',
         'product_version': 'rhel-7',
-        'subject': [nvr]
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -205,14 +218,14 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
-            'item': nvr,
+            'item': {'item': nvr, 'type': 'koji_build'},
             'result_id': result['id'],
             'testcase': 'dist.rpmdiff.comparison.xml_validity',
             'type': 'test-result-failed'
         },
     ] + [
         {
-            'item': nvr,
+            'item': {'item': nvr, 'type': 'koji_build'},
             'testcase': name,
             'type': 'test-result-missing'
         } for name in all_rpmdiff_testcase_names if name != 'dist.rpmdiff.comparison.xml_validity'
@@ -225,7 +238,7 @@ def test_make_a_decison_on_no_results(requests_session, greenwave_server, testda
     data = {
         'decision_context': 'errata_newfile_to_qe',
         'product_version': 'rhel-7',
-        'subject': [nvr]
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -238,7 +251,7 @@ def test_make_a_decison_on_no_results(requests_session, greenwave_server, testda
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
-            'item': nvr,
+            'item': {'item': nvr, 'type': 'koji_build'},
             'testcase': name,
             'type': 'test-result-missing'
         } for name in all_rpmdiff_testcase_names
@@ -252,7 +265,7 @@ def test_unrestricted_policy_is_always_satisfied(
     data = {
         'decision_context': 'errata_newfile_to_qe',
         'product_version': 'cdk-2',
-        'subject': [nvr]
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -276,7 +289,7 @@ def test_bodhi_push_update_stable_policy(
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject': [nvr]
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
