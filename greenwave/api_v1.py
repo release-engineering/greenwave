@@ -33,7 +33,7 @@ def make_decision():
        {
            "decision_context": "bodhi_update_push_stable",
            "product_version": "fedora-26",
-           "subject": ["glibc-1.0-1.f26"]
+           "subject": [{"item": "glibc-1.0-1.f26", "type": "koji_build"}]
        }
 
 
@@ -53,13 +53,13 @@ def make_decision():
            "applicable_policies": ["1"],
            "unsatisfied_requirements": [
                {
-                   'item': "glibc-1.0-1.f26",
+                   'item': {"item": "glibc-1.0-1.f26", "type": "koji_build"},
                    'result_id': "123",
                    'testcase': 'dist.depcheck',
                    'type': 'test-result-failed'
                },
                {
-                   'item': "glibc-1.0-1.f26",
+                   'item': {"item": "glibc-1.0-1.f26", "type": "koji_build"},
                    'result_id': "124",
                    'testcase': 'dist.rpmlint',
                    'type': 'test-result-missing'
@@ -71,8 +71,9 @@ def make_decision():
     :jsonparam string decision_context: The decision context string, identified by a
         free-form string label. It is to be named through coordination between policy
         author and calling application, for example ``bodhi_update_push_stable``.
-    :jsonparam array subject: A list of items about which the caller is requesting a decision
-        used for querying ResultsDB. For example, a list of build NVRs.
+    :jsonparam list subject: A list of items about which the caller is requesting a decision
+        used for querying ResultsDB. Each item contains one or more key-value pairs of 'data' key
+        in ResultsDB API. For example, [{"type": "koji_build", "item": "xscreensaver-5.37-3.fc27"}].
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
     """
@@ -96,14 +97,18 @@ def make_decision():
                            if policy.applies_to(decision_context, product_version)]
     if not applicable_policies:
         raise NotFound('Cannot find any applicable policies for %s' % product_version)
-    subjects = [item.strip() for item in request.get_json()['subject'] if item]
+    subjects = [item for item in request.get_json()['subject'] if isinstance(item, dict)]
+    if not subjects:
+        raise BadRequest('Invalid subject, must be a list of dicts')
     answers = []
     timeout = current_app.config['REQUESTS_TIMEOUT']
     for item in subjects:
         # XXX make this more efficient than just fetching everything
+        params = item.copy()
+        params.update({'limit': '1000'})
         response = requests_session.get(
             current_app.config['RESULTSDB_API_URL'] + '/results',
-            params={'item': item, 'limit': '1000'}, timeout=timeout)
+            params=params, timeout=timeout)
         response.raise_for_status()
         results = response.json()['data']
         if results:

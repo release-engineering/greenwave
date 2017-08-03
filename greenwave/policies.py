@@ -117,8 +117,9 @@ class Rule(yaml.YAMLObject):
         Evaluate this policy rule for the given item.
 
         Args:
-            item (str): The item we are evaluating ('item' key in ResultsDB,
-                        for example a build NVR).
+            item (dict): The item we are evaluating (one or more key-value pairs
+                of 'data' key in ResultsDB, for example {"type": "koji_build",
+                "item": "xscreensaver-5.37-3.fc27"}).
             results (list): List of result objects looked up in ResultsDB for this item.
             waivers (list): List of waiver objects looked up in WaiverDB for the results.
 
