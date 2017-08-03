@@ -7,7 +7,10 @@ import yaml
 from flask import Flask
 from greenwave.logger import init_logging
 from greenwave.api_v1 import api
+from greenwave.utils import json_error
+
 from requests import ConnectionError, Timeout
+from werkzeug.exceptions import default_exceptions
 
 
 def load_config(app):
@@ -41,8 +44,10 @@ def create_app(config_obj=None):
     for policy_pathname in policy_pathnames:
         app.config['policies'].extend(yaml.safe_load_all(open(policy_pathname, 'r')))
     # register error handlers
-    app.register_error_handler(ConnectionError, lambda e: (str(e), 503))
-    app.register_error_handler(Timeout, lambda e: (str(e), 503))
+    for code in default_exceptions.iterkeys():
+        app.register_error_handler(code, json_error)
+    app.register_error_handler(ConnectionError, json_error)
+    app.register_error_handler(Timeout, json_error)
     # initialize logging
     init_logging(app)
     # register blueprints
