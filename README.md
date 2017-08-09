@@ -60,3 +60,10 @@ You can view the docs locally with::
     $ cd docs
     $ make html
     $ firefox _build/html/index.html
+
+## Copyright and license
+
+This project is copyright Red Hat and other contributors, licensed under the
+terms of the GNU General Public License version 2 or later. See the `COPYING`
+file for the complete text of the license. Refer to the git history for
+complete authorship details.
