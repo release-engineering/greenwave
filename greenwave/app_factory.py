@@ -54,4 +54,16 @@ def create_app(config_obj=None):
     init_logging(app)
     # register blueprints
     app.register_blueprint(api, url_prefix="/api/v1.0")
+    app.add_url_rule('/healthcheck', view_func=healthcheck)
     return app
+
+
+def healthcheck():
+    """
+    Request handler for performing an application-level health check. This is
+    not part of the published API, it is intended for use by OpenShift or other
+    monitoring tools.
+
+    Returns a 200 response if the application is alive and able to serve requests.
+    """
+    return ('Health check OK', 200, [('Content-Type', 'text/plain')])
