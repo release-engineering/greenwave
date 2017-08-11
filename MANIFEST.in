@@ -2,3 +2,4 @@ include COPYING README.md requirements.txt dev-requirements.txt
 include pytest.ini
 recursive-include conf *
 recursive-include docs *.py *.rst *.inv Makefile
+recursive-include systemd *
