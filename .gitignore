@@ -9,6 +9,11 @@ eggs/
 *egg-info/
 *.egg
 /rpmbuild-output/
+/env*/
+conf/settings.py
+review-greenwave
+*.src.rpm
+
 
 # Vim temporary files
 *~
