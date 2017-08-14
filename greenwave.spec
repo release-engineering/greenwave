@@ -23,6 +23,8 @@ BuildRequires:  python-flask
 BuildRequires:  pytest
 BuildRequires:  python-requests
 %endif
+%{?systemd_requires}
+BuildRequires:  systemd
 BuildRequires:  PyYAML
 BuildArch:      noarch
 %if 0%{?fedora} || 0%{?rhel} > 7
@@ -49,6 +51,11 @@ make -C docs html text
 
 %install
 %py2_install
+install -d %{buildroot}%{_unitdir}
+install -m0644 \
+    systemd/%{name}.service \
+    systemd/%{name}.socket \
+    %{buildroot}%{_unitdir}
 
 %check
 export PYTHONPATH=%{buildroot}/%{python2_sitelib}
