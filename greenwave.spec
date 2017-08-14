@@ -62,5 +62,18 @@ py.test greenwave/tests/
 %endif
 %{python2_sitelib}/%{name}
 %{python2_sitelib}/%{name}*.egg-info
+%{_unitdir}/%{name}.service
+%{_unitdir}/%{name}.socket
+
+%post
+%systemd_post %{name}.service
+%systemd_post %{name}.socket
+
+%preun
+%systemd_preun %{name}.service
+%systemd_preun %{name}.socket
+
+%postun
+%systemd_postun_with_restart %{name}.service
 
 %changelog

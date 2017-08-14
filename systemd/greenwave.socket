@@ -1,0 +1,8 @@
+[Unit]
+Description=Greenwave Socket
+
+[Socket]
+ListenStream=/run/greenwave/socket
+
+[Install]
+WantedBy=sockets.target

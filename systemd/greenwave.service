@@ -1,0 +1,12 @@
+[Unit]
+Description=Greenwave Daemon
+Requires=greenwave.socket
+After=network.target
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/greenwave
+ExecStart=/usr/bin/gunicorn --bind unix:/run/greenwave/socket \
+        greenwave.wsgi:app
+
+[Install]
+WantedBy=multi-user.target
