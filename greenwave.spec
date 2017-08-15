@@ -7,7 +7,7 @@ Release:        1%{?dist}
 Summary:        Service for gating on automated tests
 License:        GPLv2+
 URL:            https://pagure.io/greenwave
-Source0:        https://files.pythonhosted.org/packages/source/w/%{name}/%{name}-%{upstream_version}.tar.gz
+Source0:        https://files.pythonhosted.org/packages/source/g/%{name}/%{name}-%{upstream_version}.tar.gz
 
 BuildRequires:  python2-devel
 %if 0%{?fedora} || 0%{?rhel} > 7
