@@ -301,3 +301,47 @@ def test_bodhi_push_update_stable_policy(
     expected_summary = 'all required tests passed'
     assert res_data['summary'] == expected_summary
     assert res_data['unsatisfied_requirements'] == []
+
+
+def test_multiple_results_in_a_subject(
+        requests_session, greenwave_server, testdatabuilder):
+    """
+    This makes sure that Greenwave uses the latest test result when a subject has
+    multiple test restuls.
+    """
+    nvr = testdatabuilder.unique_nvr()
+    testdatabuilder.create_result(item=nvr,
+                                  testcase_name='dist.abicheck',
+                                  outcome='PASSED')
+    # create one failed test result for dist.abicheck
+    result = testdatabuilder.create_result(item=nvr,
+                                           testcase_name='dist.abicheck',
+                                           outcome='FAILED')
+    # the rest passed
+    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
+        testdatabuilder.create_result(item=nvr,
+                                      testcase_name=testcase_name,
+                                      outcome='PASSED')
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    # The failed result should be taken into account.
+    assert res_data['policies_satisified'] is False
+    assert res_data['applicable_policies'] == ['taskotron_release_critical_tasks']
+    assert res_data['summary'] == '1 of 3 required tests failed'
+    expected_unsatisfied_requirements = [
+        {
+            'item': {'item': nvr, 'type': 'koji_build'},
+            'result_id': result['id'],
+            'testcase': 'dist.abicheck',
+            'type': 'test-result-failed'
+        },
+    ]
+    assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements

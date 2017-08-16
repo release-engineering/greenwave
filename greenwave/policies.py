@@ -144,7 +144,9 @@ class PassingTestCaseRule(Rule):
         matching_results = [r for r in results if r['testcase']['name'] == self.test_case_name]
         if not matching_results:
             return TestResultMissing(item, self.test_case_name)
-        # XXX need to handle multiple results (take the latest)
+        # If we find multiple matching results, we always use the first one which
+        # will be the latest chronologically, because ResultsDB always returns
+        # results ordered by `submit_time` descending.
         matching_result = matching_results[0]
         if matching_result['outcome'] in ['PASSED', 'INFO']:
             return RuleSatisfied()
