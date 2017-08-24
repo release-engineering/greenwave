@@ -3,7 +3,8 @@
 import os
 import glob
 import yaml
-from flask import jsonify, current_app
+from functools import wraps
+from flask import jsonify, current_app, make_response, request
 from flask.config import Config
 from werkzeug.exceptions import HTTPException
 
@@ -25,6 +26,9 @@ def json_error(error):
         current_app.logger.exception('Returning 500 to user.')
         response = jsonify(message=str(error.message))
         response.status_code = 500
+
+    response = insert_headers(response)
+
     return response
 
 
@@ -70,3 +74,15 @@ def load_policies(policies_dir):
     for policy_pathname in policy_pathnames:
         policies.extend(yaml.safe_load_all(open(policy_pathname, 'r')))
     return policies
+
+
+def insert_headers(response):
+    """ Insert the CORS headers for the give reponse if there are any
+    configured for the application.
+    """
+    if current_app.config.get('CORS_URL'):
+        response.headers['Access-Control-Allow-Origin'] = \
+            current_app.config['CORS_URL']
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        response.headers['Access-Control-Allow-Method'] = 'POST, OPTIONS'
+    return response

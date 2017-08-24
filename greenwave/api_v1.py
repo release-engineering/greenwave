@@ -150,4 +150,7 @@ def make_decision():
         'unsatisfied_requirements': [answer.to_json() for answer in answers
                                      if not answer.is_satisfied],
     }
-    return jsonify(res), 200
+    resp = jsonify(res)
+    resp = insert_headers(resp)
+    resp.status_code = 200
+    return resp
