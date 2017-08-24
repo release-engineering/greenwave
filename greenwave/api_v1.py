@@ -3,11 +3,29 @@
 import requests
 from flask import Blueprint, request, current_app, jsonify
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
+from greenwave import __version__
 from greenwave.policies import summarize_answers
+from greenwave.utils import insert_headers
 
 api = (Blueprint('api_v1', __name__))
 
 requests_session = requests.Session()
+
+
+@api.route('/version', methods=['GET'])
+def version():
+    """ Returns the current running version. """
+    resp = jsonify({'version': __version__})
+    resp = insert_headers(resp)
+    resp.status_code = 200
+    return resp
+
+
+@api.route('/decision', methods=['OPTIONS'])
+def make_decision_options():
+    """ Handles the OPTIONS requests to the /decision endpoint. """
+    resp = current_app.make_default_options_response()
+    return insert_headers(resp)
 
 
 @api.route('/decision', methods=['POST'])
