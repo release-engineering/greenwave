@@ -96,7 +96,9 @@ def make_decision():
     applicable_policies = [policy for policy in current_app.config['policies']
                            if policy.applies_to(decision_context, product_version)]
     if not applicable_policies:
-        raise NotFound('Cannot find any applicable policies for %s' % product_version)
+        raise NotFound(
+            'Cannot find any applicable policies for %s and %s' % (
+                product_version, decision_context))
     subjects = [item for item in request.get_json()['subject'] if isinstance(item, dict)]
     if not subjects:
         raise BadRequest('Invalid subject, must be a list of dicts')
