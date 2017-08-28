@@ -56,7 +56,7 @@ node('fedora') {
                 sh """
                 mkdir -p mock-result/el7
                 flock /etc/mock/epel-7-x86_64.cfg \
-                /usr/bin/mock --resultdir=mock-result/el7 -r epel-7-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
+                /usr/bin/mock --resultdir=mock-result/el7 --no-cleanup-after -r epel-7-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
                 """
                 archiveArtifacts artifacts: 'mock-result/el7/**'
             },
@@ -64,7 +64,7 @@ node('fedora') {
                 sh """
                 mkdir -p mock-result/f25
                 flock /etc/mock/fedora-25-x86_64.cfg \
-                /usr/bin/mock --resultdir=mock-result/f25 -r fedora-25-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
+                /usr/bin/mock --resultdir=mock-result/f25 --no-cleanup-after -r fedora-25-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
                 """
                 archiveArtifacts artifacts: 'mock-result/f25/**'
             },
