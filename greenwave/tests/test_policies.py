@@ -62,7 +62,6 @@ def test_missing_product_version():
     assert output.data == '{\n  "message": "Missing required product version"\n}\n'
 
 
-
 def test_missing_decision_context():
     app = create_app('greenwave.config.TestingConfig')
     test_app = app.test_client()
@@ -153,4 +152,4 @@ def test_invalid_decision_context():
     )
     assert output.status_code == 404
     assert output.data == '{\n  "message": "Cannot find any applicable '\
-    'policies for fedora-26 and bodhi_update_push"\n}\n'
+        'policies for fedora-26 and bodhi_update_push"\n}\n'
