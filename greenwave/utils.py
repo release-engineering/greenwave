@@ -3,8 +3,7 @@
 import os
 import glob
 import yaml
-from functools import wraps
-from flask import jsonify, current_app, make_response, request
+from flask import jsonify, current_app
 from flask.config import Config
 from werkzeug.exceptions import HTTPException
 
