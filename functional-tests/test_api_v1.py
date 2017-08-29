@@ -135,7 +135,7 @@ def test_cannot_make_decision_with_invalid_subject(requests_session, greenwave_s
 
 def test_404_for_inapplicable_policies(requests_session, greenwave_server):
     data = {
-        'decision_context': 'dummpy_decision',
+        'decision_context': 'dummy_decision',
         'product_version': 'rhel-7',
         'subject': [{'item': 'foo-1.0.0-1.el7', 'type': 'koji_build'}]
     }
@@ -143,7 +143,9 @@ def test_404_for_inapplicable_policies(requests_session, greenwave_server):
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 404
-    assert u'Cannot find any applicable policies for rhel-7' == r.json()['message']
+    expected = u'Cannot find any applicable policies ' + \
+        'for rhel-7 and dummy_decision'
+    assert expected == r.json()['message']
 
 
 def test_make_a_decison_on_passed_result(requests_session, greenwave_server, testdatabuilder):
