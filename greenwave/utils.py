@@ -6,6 +6,7 @@ import yaml
 from flask import jsonify, current_app
 from flask.config import Config
 from werkzeug.exceptions import HTTPException
+from greenwave.policies import Policy, Rule
 
 
 def json_error(error):
@@ -72,6 +73,14 @@ def load_policies(policies_dir):
     policies = []
     for policy_pathname in policy_pathnames:
         policies.extend(yaml.safe_load_all(open(policy_pathname, 'r')))
+    for policy in policies:
+        if not isinstance(policy, Policy):
+            raise RuntimeError('Policies are not configured properly as policy %s '
+                               'is not an instance of Policy' % policy)
+        for rule in policy.rules:
+            if not isinstance(rule, Rule):
+                raise RuntimeError('Policies are not configured properly as rule %s '
+                                   'is not an instance of Rule' % rule)
     return policies
 
 

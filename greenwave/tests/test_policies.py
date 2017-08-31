@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import json
+import pytest
 
 from greenwave.app_factory import create_app
 from greenwave.policies import summarize_answers, RuleSatisfied, TestResultMissing, TestResultFailed
+from greenwave.utils import load_policies
 
 
 def test_summarize_answers():
@@ -153,3 +155,35 @@ def test_invalid_decision_context():
     assert output.status_code == 404
     assert output.data == '{\n  "message": "Cannot find any applicable '\
         'policies for fedora-26 and bodhi_update_push"\n}\n'
+
+
+def test_misconfigured_policies(tmpdir):
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+---
+id: "taskotron_release_critical_tasks"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.abicheck}
+        """)
+    with pytest.raises(RuntimeError) as excinfo:
+        load_policies(tmpdir.strpath)
+    assert 'Policies are not configured properly' in str(excinfo.value)
+
+
+def test_misconfigured_policy_rules(tmpdir):
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: "taskotron_release_critical_tasks"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable
+rules:
+  - {test_case_name: dist.abicheck}
+        """)
+    with pytest.raises(RuntimeError) as excinfo:
+        load_policies(tmpdir.strpath)
+    assert 'Policies are not configured properly' in str(excinfo.value)
