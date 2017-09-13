@@ -4,6 +4,7 @@
 import json
 import pytest
 
+from greenwave import __version__
 from greenwave.app_factory import create_app
 from greenwave.policies import summarize_answers, RuleSatisfied, TestResultMissing, TestResultFailed
 from greenwave.utils import load_policies
@@ -187,3 +188,25 @@ rules:
     with pytest.raises(RuntimeError) as excinfo:
         load_policies(tmpdir.strpath)
     assert 'Policies are not configured properly' in str(excinfo.value)
+
+
+def test_version_endpoint():
+    app = create_app('greenwave.config.TestingConfig')
+    test_app = app.test_client()
+    output = test_app.get(
+        '/api/v1.0/version',
+        headers={"content-type": "application/json"}
+    )
+    assert output.status_code == 200
+    assert output.data == '{\n  "version": "%s"\n}\n' % __version__
+
+
+def test_version_endpoint_jsonp():
+    app = create_app('greenwave.config.TestingConfig')
+    test_app = app.test_client()
+    output = test_app.get(
+        '/api/v1.0/version?callback=bac123',
+        headers={"content-type": "application/json"}
+    )
+    assert output.status_code == 200
+    assert output.data == 'bac123({\n  "version": "%s"\n}\n);' % __version__

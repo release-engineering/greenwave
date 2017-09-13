@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import functools
 import os
 import glob
 import yaml
-from flask import jsonify, current_app
+from flask import jsonify, current_app, request
 from flask.config import Config
 from werkzeug.exceptions import HTTPException
 from greenwave.policies import Policy, Rule
@@ -30,6 +31,24 @@ def json_error(error):
     response = insert_headers(response)
 
     return response
+
+
+def jsonp(func):
+    """Wraps Jsonified output for JSONP requests."""
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        callback = request.args.get('callback', False)
+        if callback:
+            resp = func(*args, **kwargs)
+            resp.set_data('{}({});'.format(
+                str(callback),
+                resp.get_data()
+            ))
+            resp.mimetype = 'application/javascript'
+            return resp
+        else:
+            return func(*args, **kwargs)
+    return wrapped
 
 
 def load_config(config_obj=None):
