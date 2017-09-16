@@ -137,9 +137,6 @@ class PassingTestCaseRule(Rule):
     yaml_tag = u'!PassingTestCaseRule'
     yaml_loader = yaml.SafeLoader
 
-    def __init__(self, test_case_name):
-        self.test_case_name = test_case_name
-
     def check(self, item, results, waivers):
         matching_results = [r for r in results if r['testcase']['name'] == self.test_case_name]
         if not matching_results:
@@ -162,12 +159,6 @@ class PassingTestCaseRule(Rule):
 class Policy(yaml.YAMLObject):
     yaml_tag = u'!Policy'
     yaml_loader = yaml.SafeLoader
-
-    def __init__(self, id, product_versions, decision_context, rules):
-        self.id = id
-        self.product_versions = frozenset(product_versions)
-        self.decision_context = decision_context
-        self.rules = rules
 
     def applies_to(self, decision_context, product_version):
         return (decision_context == self.decision_context and
