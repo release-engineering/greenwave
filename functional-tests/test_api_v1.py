@@ -84,6 +84,26 @@ TASKTRON_RELEASE_CRITICAL_TASKS = [
 ]
 
 
+def test_inspect_policies(requests_session, greenwave_server):
+    r = requests_session.get(greenwave_server.url + 'api/v1.0/policies',
+                             headers={'Content-Type': 'application/json'})
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body['policies']) == 3
+    policy = body['policies'][0]
+    assert policy['id'] == 'taskotron_release_critical_tasks'
+    assert policy['decision_context'] == 'bodhi_update_push_stable'
+    assert policy['product_versions'] == ['fedora-26']
+    expected_rules = [
+        {'rule': 'PassingTestCaseRule',
+         'test_case_name': 'dist.abicheck'},
+        {'rule': 'PassingTestCaseRule',
+         'test_case_name': 'dist.rpmdeplint'},
+        {'rule': 'PassingTestCaseRule',
+         'test_case_name': 'dist.upgradepath'}]
+    assert policy['rules'] == expected_rules
+
+
 def test_cannot_make_decision_without_product_version(requests_session, greenwave_server):
     data = {
         'decision_context': 'errata_newfile_to_qe',

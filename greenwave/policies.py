@@ -128,6 +128,14 @@ class Rule(yaml.YAMLObject):
         """
         raise NotImplementedError()
 
+    def to_json(self):
+        """ Return a dict representation of this rule.
+
+        Returns:
+            dict: A representation of this Rule as a dict for an API response.
+        """
+        raise NotImplementedError()
+
 
 class PassingTestCaseRule(Rule):
     """
@@ -158,6 +166,12 @@ class PassingTestCaseRule(Rule):
     def __repr__(self):
         return "%s(test_case_name=%r)" % (self.__class__.__name__, self.test_case_name)
 
+    def to_json(self):
+        return {
+            'rule': self.__class__.__name__,
+            'test_case_name': self.test_case_name,
+        }
+
 
 class Policy(yaml.YAMLObject):
     yaml_tag = u'!Policy'
@@ -180,3 +194,11 @@ class Policy(yaml.YAMLObject):
         return "%s(id=%r, product_versions=%r, decision_context=%r, rules=%r)" % (
             self.__class__.__name__, self.id, self.product_versions, self.decision_context,
             self.rules)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'product_versions': self.product_versions,
+            'decision_context': self.decision_context,
+            'rules': [rule.to_json() for rule in self.rules],
+        }

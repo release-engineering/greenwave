@@ -21,6 +21,55 @@ def version():
     return resp
 
 
+@api.route('/policies', methods=['GET'])
+def get_policies():
+    """ Returns all currently loaded policies.
+
+    **Sample response**:
+
+    .. sourcecode:: http
+
+       HTTP/1.0 200
+       Content-Length: 228
+       Content-Type: application/json
+       Date: Thu, 16 Mar 2017 17:42:04 GMT
+       Server: Werkzeug/0.12.1 Python/2.7.13
+
+       {
+           "policies": [
+               {
+                   "id": "taskotron_release_critical_tasks",
+                   "decision_context": "bodhi_update_push_stable",
+                   "product_versions": [
+                       "fedora-26"
+                   ],
+                   "rules": [
+                       {
+                           "test_case_name": "dist.abicheck",
+                           "rule": "PassingTestCaseRule"
+                       },
+                       {
+                           "test_case_name": "dist.rpmdeplint",
+                           "rule": "PassingTestCaseRule"
+                       },
+                       {
+                           "test_case_name": "dist.upgradepath",
+                           "rule": "PassingTestCaseRule"
+                       }
+                   ]
+               }
+           ]
+       }
+
+    :statuscode 200: Currently loaded policies are returned.
+    """
+    policies = [policy.to_json() for policy in current_app.config['policies']]
+    resp = jsonify({'policies': policies})
+    resp = insert_headers(resp)
+    resp.status_code = 200
+    return resp
+
+
 @api.route('/decision', methods=['OPTIONS'])
 def make_decision_options():
     """ Handles the OPTIONS requests to the /decision endpoint. """
