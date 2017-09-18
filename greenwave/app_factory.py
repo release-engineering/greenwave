@@ -6,6 +6,7 @@ from greenwave.logger import init_logging
 from greenwave.api_v1 import api
 from greenwave.utils import json_error, load_config
 
+from dogpile.cache import make_region
 from requests import ConnectionError, Timeout
 from werkzeug.exceptions import default_exceptions
 
@@ -16,16 +17,23 @@ def create_app(config_obj=None):
     app.config.update(load_config(config_obj))
     if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':
         raise Warning("You need to change the app.secret_key value for production")
+
     # register error handlers
     for code in default_exceptions.iterkeys():
         app.register_error_handler(code, json_error)
     app.register_error_handler(ConnectionError, json_error)
     app.register_error_handler(Timeout, json_error)
+
     # initialize logging
     init_logging(app)
+
     # register blueprints
     app.register_blueprint(api, url_prefix="/api/v1.0")
     app.add_url_rule('/healthcheck', view_func=healthcheck)
+
+    # Initialize the cache.
+    app.cache = make_region().configure(**app.config['CACHE'])
+
     return app
 
 
