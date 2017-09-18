@@ -1,37 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-import json
+import dogpile.cache
 
-from flask import current_app
+# Our globally available cache region.  Gets initialized in app_factory.
+cache = dogpile.cache.make_region()
 
-
-def cache_key_generator(fn, arg):
-    """ Given a function and arguments, return a "cache key" for the value.
-
-    The returned cache key should uniquely identify the function and arguments
-    passed to it.
-    """
-    return "|".join([
-        fn.__module__,
-        fn.__name__,
-        json.dumps(arg)
-    ]).encode('utf-8')
-
-
-def cached(fn):
-    """ Cache the given function.
-
-    This is a decorator.
-
-    The return value of the given function is cached in the ``cache`` object
-    associated with the flask ``current_app``.
-    """
-
-    def wrapper(arg):
-        key = cache_key_generator(fn, arg)
-        creator = lambda: fn(arg)
-        return current_app.cache.get_or_create(key, creator)
-    wrapper.__module__ = fn.__module__
-    wrapper.__name__ = fn.__name__
-    wrapper.__doc__ = fn.__doc__
-    return wrapper
+# Provide a convenient alias for the key generator we want to use
+key_generator = dogpile.cache.util.function_key_generator

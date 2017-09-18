@@ -9,12 +9,12 @@ waiverdb, etc..).
 import requests
 from flask import current_app
 
-from greenwave.cache import cached
+from greenwave.cache import cache, key_generator
 
 requests_session = requests.Session()
 
 
-@cached
+@cache.cache_on_arguments(function_key_generator=key_generator)
 def retrieve_results(item):
     """ Retrieve cached results from resultsdb for a given item. """
     # XXX make this more efficient than just fetching everything

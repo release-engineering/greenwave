@@ -4,9 +4,9 @@
 from flask import Flask
 from greenwave.logger import init_logging
 from greenwave.api_v1 import api
+from greenwave.cache import cache
 from greenwave.utils import json_error, load_config
 
-from dogpile.cache import make_region
 from requests import ConnectionError, Timeout
 from werkzeug.exceptions import default_exceptions
 
@@ -32,7 +32,8 @@ def create_app(config_obj=None):
     app.add_url_rule('/healthcheck', view_func=healthcheck)
 
     # Initialize the cache.
-    app.cache = make_region().configure(**app.config['CACHE'])
+    if not cache.is_configured:
+        cache.configure(**app.config['CACHE'])
 
     return app
 
