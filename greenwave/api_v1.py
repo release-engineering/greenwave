@@ -14,7 +14,24 @@ requests_session = requests.Session()
 
 @api.route('/version', methods=['GET'])
 def version():
-    """ Returns the current running version. """
+    """ Returns the current running version.
+
+    **Sample response**:
+
+    .. sourcecode:: http
+
+       HTTP/1.0 200
+       Content-Length: 228
+       Content-Type: application/json
+       Date: Thu, 16 Mar 2017 17:42:04 GMT
+       Server: Werkzeug/0.12.1 Python/2.7.13
+
+       {
+           'version': '1.2.3'
+       }
+
+    :statuscode 200: Currently running greenwave software version is returned.
+    """
     resp = jsonify({'version': __version__})
     resp = insert_headers(resp)
     resp.status_code = 200
