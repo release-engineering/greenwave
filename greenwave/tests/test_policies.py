@@ -38,7 +38,7 @@ def test_invalid_payload():
     test_app = app.test_client()
     output = test_app.post('/api/v1.0/decision', data='not a json')
     assert output.status_code == 415
-    assert output.data == '{\n  "message": "No JSON payload in request"\n}\n'
+    assert "No JSON payload in request" in output.data
 
 
 def test_missing_content_type():
@@ -49,7 +49,7 @@ def test_missing_content_type():
         data=json.dumps({"subject": "foo"}),
     )
     assert output.status_code == 415
-    assert output.data == '{\n  "message": "No JSON payload in request"\n}\n'
+    assert "No JSON payload in request" in output.data
 
 
 def test_missing_product_version():
@@ -58,10 +58,10 @@ def test_missing_product_version():
     output = test_app.post(
         '/api/v1.0/decision',
         data=json.dumps({"subject": "foo"}),
-        headers={"content-type": "application/json"}
+        content_type='application/json'
     )
     assert output.status_code == 400
-    assert output.data == '{\n  "message": "Missing required product version"\n}\n'
+    assert "Missing required product version" in output.data
 
 
 def test_missing_decision_context():
@@ -70,10 +70,10 @@ def test_missing_decision_context():
     output = test_app.post(
         '/api/v1.0/decision',
         data=json.dumps({"subject": "foo", "product_version": "f26"}),
-        headers={"content-type": "application/json"}
+        content_type='application/json'
     )
     assert output.status_code == 400
-    assert output.data == '{\n  "message": "Missing required decision context"\n}\n'
+    assert "Missing required decision context" in output.data
 
 
 def test_missing_subject():
@@ -85,10 +85,10 @@ def test_missing_subject():
             "decision_context": "bodhi_push_stable",
             "product_version": "f26"
         }),
-        headers={"content-type": "application/json"}
+        content_type='application/json'
     )
     assert output.status_code == 400
-    assert output.data == '{\n  "message": "Missing required subject"\n}\n'
+    assert "Missing required subject" in output.data
 
 
 def test_invalid_subect_list():
@@ -101,10 +101,10 @@ def test_invalid_subect_list():
             "product_version": "f26",
             "subject": "foo",
         }),
-        headers={"content-type": "application/json"}
+        content_type='application/json'
     )
     assert output.status_code == 400
-    assert output.data == '{\n  "message": "Invalid subject, must be a list of items"\n}\n'
+    assert "Invalid subject, must be a list of items" in output.data
 
 
 def test_invalid_subect_list_content():
@@ -117,10 +117,10 @@ def test_invalid_subect_list_content():
             "product_version": "fedora-26",
             "subject": ["foo"],
         }),
-        headers={"content-type": "application/json"}
+        content_type='application/json'
     )
     assert output.status_code == 400
-    assert output.data == '{\n  "message": "Invalid subject, must be a list of dicts"\n}\n'
+    assert "Invalid subject, must be a list of dicts" in output.data
 
 
 def test_invalid_product_version():
@@ -133,11 +133,11 @@ def test_invalid_product_version():
             "product_version": "f26",
             "subject": ["foo"],
         }),
-        headers={"content-type": "application/json"}
+        content_type='application/json'
     )
     assert output.status_code == 404
-    assert output.data == '{\n  "message": "Cannot find any applicable '\
-        'policies for f26 and bodhi_update_push_stable"\n}\n'
+    assert "Cannot find any applicable policies " \
+        "for f26 and bodhi_update_push_stable" in output.data
 
 
 def test_invalid_decision_context():
@@ -150,11 +150,11 @@ def test_invalid_decision_context():
             "product_version": "fedora-26",
             "subject": ["foo"],
         }),
-        headers={"content-type": "application/json"}
+        content_type='application/json'
     )
     assert output.status_code == 404
-    assert output.data == '{\n  "message": "Cannot find any applicable '\
-        'policies for fedora-26 and bodhi_update_push"\n}\n'
+    assert "Cannot find any applicable policies " \
+        "for fedora-26 and bodhi_update_push" in output.data
 
 
 def test_misconfigured_policies(tmpdir):
