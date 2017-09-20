@@ -89,11 +89,11 @@ def test_inspect_policies(requests_session, greenwave_server):
                              headers={'Content-Type': 'application/json'})
     assert r.status_code == 200
     body = r.json()
-    assert len(body['policies']) == 3
-    policy = body['policies'][0]
-    assert policy['id'] == 'taskotron_release_critical_tasks'
-    assert policy['decision_context'] == 'bodhi_update_push_stable'
-    assert policy['product_versions'] == ['fedora-26']
+    policies = body['policies']
+    assert len(policies) == 3
+    assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
+    assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
+    assert any(p['product_versions'] == ['fedora-26'] for p in policies)
     expected_rules = [
         {'rule': 'PassingTestCaseRule',
          'test_case_name': 'dist.abicheck'},
@@ -101,7 +101,7 @@ def test_inspect_policies(requests_session, greenwave_server):
          'test_case_name': 'dist.rpmdeplint'},
         {'rule': 'PassingTestCaseRule',
          'test_case_name': 'dist.upgradepath'}]
-    assert policy['rules'] == expected_rules
+    assert any(p['rules'] == expected_rules for p in policies)
 
 
 def test_cannot_make_decision_without_product_version(requests_session, greenwave_server):
