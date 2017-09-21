@@ -15,6 +15,8 @@ class Config(object):
     WAIVERDB_API_URL = 'https://waiverdb.fedoraproject.org/api/v1.0'
     REQUESTS_TIMEOUT = (6.1, 15)
     POLICIES_DIR = '/etc/greenwave/policies'
+    # By default, don't cache anything.
+    CACHE = {'backend': 'dogpile.cache.null'}
 
 
 class ProductionConfig(Config):

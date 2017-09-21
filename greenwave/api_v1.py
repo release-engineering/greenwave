@@ -5,6 +5,7 @@ from flask import Blueprint, request, current_app, jsonify
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
 from greenwave import __version__
 from greenwave.policies import summarize_answers
+from greenwave.resources import retrieve_results, retrieve_waivers
 from greenwave.utils import insert_headers
 
 api = (Blueprint('api_v1', __name__))
@@ -187,24 +188,10 @@ def make_decision():
     if not subjects:
         raise BadRequest('Invalid subject, must be a list of dicts')
     answers = []
-    timeout = current_app.config['REQUESTS_TIMEOUT']
     for item in subjects:
-        # XXX make this more efficient than just fetching everything
-        params = item.copy()
-        params.update({'limit': '1000'})
-        response = requests_session.get(
-            current_app.config['RESULTSDB_API_URL'] + '/results',
-            params=params, timeout=timeout)
-        response.raise_for_status()
-        results = response.json()['data']
+        results = retrieve_results(item)
         if results:
-            response = requests_session.get(
-                current_app.config['WAIVERDB_API_URL'] + '/waivers/',
-                params={'product_version': product_version,
-                        'result_id': ','.join(str(result['id']) for result in results)},
-                timeout=timeout)
-            response.raise_for_status()
-            waivers = response.json()['data']
+            waivers = retrieve_waivers(product_version, results)
         else:
             waivers = []
         for policy in applicable_policies:
