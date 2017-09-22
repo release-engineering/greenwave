@@ -82,7 +82,16 @@ def waiverdb_server(request):
 @pytest.fixture(scope='session')
 def greenwave_server(request):
     app = greenwave.app_factory.create_app('greenwave.config.TestingConfig')
-    server = WSGIServerThread(app, init_func=lambda: None, port=5005)
+    server = WSGIServerThread(app, init_func=lambda: None, port=app.config['PORT'])
+    server.start()
+    request.addfinalizer(server.stop)
+    return server
+
+
+@pytest.fixture(scope='session')
+def cached_greenwave_server(request):
+    app = greenwave.app_factory.create_app('greenwave.config.CachedTestingConfig')
+    server = WSGIServerThread(app, init_func=lambda: None, port=app.config['PORT'])
     server.start()
     request.addfinalizer(server.stop)
     return server
