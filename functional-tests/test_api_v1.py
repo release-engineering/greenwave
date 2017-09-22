@@ -457,3 +457,43 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
     ]
     assert res_data['policies_satisified'] is False
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+
+
+def test_cached_false_positive(requests_session, cached_greenwave_server, testdatabuilder):
+    """ Test that caching without invalidation produces false positives.
+
+    This just tests that our caching works in the first place.
+    - Check a decision, it passes.
+    - Insert a failing result.
+    - Check the decision again, it passes
+
+    (but it shouldn't) which means caching works.
+    """
+    nvr = testdatabuilder.unique_nvr()
+    for testcase_name in all_rpmdiff_testcase_names:
+        testdatabuilder.create_result(item=nvr,
+                                      testcase_name=testcase_name,
+                                      outcome='PASSED')
+    data = {
+        'decision_context': 'errata_newfile_to_qe',
+        'product_version': 'rhel-7',
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
+    }
+    r = requests_session.post(cached_greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisified'] is True
+
+    # Now, insert a *failing* result.  The cache should return the old results
+    # that exclude the failing one (erroneously).
+    testdatabuilder.create_result(item=nvr,
+                                  testcase_name=testcase_name,
+                                  outcome='FAILED')
+    r = requests_session.post(cached_greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisified'] is True
