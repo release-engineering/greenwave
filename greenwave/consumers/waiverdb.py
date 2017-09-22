@@ -65,6 +65,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         product_version = msg['product_version']
         config = load_config()
         timeout = config['REQUESTS_TIMEOUT']
+        # Get the waived result to figure out the item
         response = requests_session.get(
             config['RESULTSDB_API_URL'] + '/results/%d' % result_id,
             timeout=timeout)
@@ -83,12 +84,27 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                         self.fedmsg_config['greenwave_api_url'] + '/decision',
                         headers={'Content-Type': 'application/json'},
                         data=json.dumps(data))
-                    msg = response.json()
-                    msg.update({
-                        'subject': [item],
-                        'decision_context': policy.decision_context,
-                        'product_version': product_version,
+                    decision = response.json()
+
+                    # get old decision
+                    data.update({
+                        'ignore_waiver': [msg['id']],
                     })
-                    log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
-                              'greenwave.decision.update')
-                    fedmsg.publish(topic='greenwave.decision.update', msg=msg)
+                    response = requests_session.post(
+                        self.fedmsg_config['greenwave_api_url'] + '/decision',
+                        headers={'Content-Type': 'application/json'},
+                        data=json.dumps(data))
+                    response.raise_for_status()
+                    old_decision = response.json()
+
+                    if decision != old_decision:
+                        msg = decision
+                        decision.update({
+                            'subject': [item],
+                            'decision_context': policy.decision_context,
+                            'product_version': product_version,
+                            'previous': old_decision,
+                        })
+                        log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
+                                  'greenwave.decision.update')
+                        fedmsg.publish(topic='greenwave.decision.update', msg=msg)

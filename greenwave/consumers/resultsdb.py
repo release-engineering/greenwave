@@ -81,12 +81,25 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                     headers={'Content-Type': 'application/json'},
                     data=json.dumps(data))
                 response.raise_for_status()
-                msg = response.json()
-                msg.update({
-                    'subject': [task],
-                    'decision_context': policy.decision_context,
-                    'product_version': product_version,
+                decision = response.json()
+                # get old decision
+                data.update({
+                    'ignore_result': [msg['result']['id']],
                 })
-                log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
-                          'greenwave.decision.update')
-                fedmsg.publish(topic='greenwave.decision.update', msg=msg)
+                response = requests_session.post(
+                    self.fedmsg_config['greenwave_api_url'] + '/decision',
+                    headers={'Content-Type': 'application/json'},
+                    data=json.dumps(data))
+                response.raise_for_status()
+                old_decision = response.json()
+                if decision != old_decision:
+                    msg = decision
+                    decision.update({
+                        'subject': [task],
+                        'decision_context': policy.decision_context,
+                        'product_version': product_version,
+                        'previous': old_decision,
+                    })
+                    log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
+                              'greenwave.decision.update')
+                    fedmsg.publish(topic='greenwave.decision.update', msg=msg)

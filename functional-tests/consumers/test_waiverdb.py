@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import mock
+import json
 
 from greenwave.consumers import waiverdb
 
@@ -14,8 +15,8 @@ TASKTRON_RELEASE_CRITICAL_TASKS = [
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.waiverdb.fedmsg.publish')
-def test_consume_new_result(
-        mock_fedmsg, load_config, greenwave_server, testdatabuilder, monkeypatch):
+def test_consume_new_waiver(
+        mock_fedmsg, load_config, requests_session, greenwave_server, testdatabuilder, monkeypatch):
     monkeypatch.setenv('TEST', 'true')
     load_config.return_value = {'greenwave_api_url': greenwave_server.url + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
@@ -27,10 +28,11 @@ def test_consume_new_result(
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    testdatabuilder.create_waiver(result_id=result['id'], product_version='fedora-26')
+    waiver = testdatabuilder.create_waiver(result_id=result['id'], product_version='fedora-26')
     message = {
         'topic': 'waiver.new',
         "msg": {
+            "id": waiver['id'],
             "comment": "Because I said so",
             "username": "foo",
             "waived": "true",
@@ -44,6 +46,20 @@ def test_consume_new_result(
     handler = waiverdb.WaiverDBHandler(hub)
     assert handler.topic == ['topic_prefix.environment.waiver.new']
     handler.consume(message)
+
+    # get old decision
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject': [{'item': [nvr], 'type': ['koji_build']}],
+        'ignore_waiver': [waiver['id']]
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    old_decision = r.json()
+
     msg = {
         'policies_satisified': True,
         'decision_context': 'bodhi_update_push_stable',
@@ -56,7 +72,8 @@ def test_consume_new_result(
                 'type': ['koji_build']
             }
         ],
-        'applicable_policies': ['taskotron_release_critical_tasks']
+        'applicable_policies': ['taskotron_release_critical_tasks'],
+        'previous': old_decision,
     }
     mock_fedmsg.assert_called_once_with(
         topic='greenwave.decision.update', msg=msg)

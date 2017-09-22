@@ -197,6 +197,7 @@ def make_decision():
     answers = []
     for item in subjects:
         results = retrieve_results(item)
+        results = [r for r in results if r['id'] not in ignore_results]
         if results:
             waivers = retrieve_waivers(product_version, results)
         else:
