@@ -367,3 +367,93 @@ def test_multiple_results_in_a_subject(
         },
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+
+
+def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
+    """
+    This tests that a result can be ignored when making the decision.
+    """
+    nvr = testdatabuilder.unique_nvr()
+    result = testdatabuilder.create_result(
+        item=nvr,
+        testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+        outcome='PASSED')
+    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
+        testdatabuilder.create_result(item=nvr,
+                                      testcase_name=testcase_name,
+                                      outcome='PASSED')
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisified'] is True
+    # Ignore one passing result
+    data.update({
+        'ignore_result': [result['id']]
+    })
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    expected_unsatisfied_requirements = [
+        {
+            'item': {'item': nvr, 'type': 'koji_build'},
+            'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
+            'type': 'test-result-missing'
+        },
+    ]
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisified'] is False
+    assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+
+
+def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
+    """
+    This tests that a waiver can be ignored when making the decision.
+    """
+    nvr = testdatabuilder.unique_nvr()
+    result = testdatabuilder.create_result(item=nvr,
+                                           testcase_name=all_rpmdiff_testcase_names[0],
+                                           outcome='FAILED')
+    waiver = testdatabuilder.create_waiver(result_id=result['id'], product_version='rhel-7')
+    # The rest passed
+    for testcase_name in all_rpmdiff_testcase_names[1:]:
+        testdatabuilder.create_result(item=nvr,
+                                      testcase_name=testcase_name,
+                                      outcome='PASSED')
+    data = {
+        'decision_context': 'errata_newfile_to_qe',
+        'product_version': 'rhel-7',
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisified'] is True
+    # Ignore the waiver
+    data.update({
+        'ignore_waiver': [waiver['id']]
+    })
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    expected_unsatisfied_requirements = [
+        {
+            'item': {'item': nvr, 'type': 'koji_build'},
+            'result_id': result['id'],
+            'testcase': all_rpmdiff_testcase_names[0],
+            'type': 'test-result-failed'
+        },
+    ]
+    assert res_data['policies_satisified'] is False
+    assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements

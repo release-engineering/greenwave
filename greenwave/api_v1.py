@@ -159,6 +159,10 @@ def make_decision():
     :jsonparam list subject: A list of items about which the caller is requesting a decision
         used for querying ResultsDB. Each item contains one or more key-value pairs of 'data' key
         in ResultsDB API. For example, [{"type": "koji_build", "item": "xscreensaver-5.37-3.fc27"}].
+    :jsonparam list ignore_result: A list of result ids that will be ignored when making
+        the decision.
+    :jsonparam list ignore_waiver: A list of waiver ids that will be ignored when making
+        the decision.
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
     """
@@ -174,17 +178,20 @@ def make_decision():
             raise BadRequest('Missing required subject')
     else:
         raise UnsupportedMediaType('No JSON payload in request')
-    if not isinstance(request.get_json()['subject'], list):
+    data = request.get_json()
+    if not isinstance(data['subject'], list):
         raise BadRequest('Invalid subject, must be a list of items')
-    product_version = request.get_json()['product_version']
-    decision_context = request.get_json()['decision_context']
+    product_version = data['product_version']
+    decision_context = data['decision_context']
+    ignore_results = data.get('ignore_result', [])
+    ignore_waivers = data.get('ignore_waiver', [])
     applicable_policies = [policy for policy in current_app.config['policies']
                            if policy.applies_to(decision_context, product_version)]
     if not applicable_policies:
         raise NotFound(
             'Cannot find any applicable policies for %s and %s' % (
                 product_version, decision_context))
-    subjects = [item for item in request.get_json()['subject'] if isinstance(item, dict)]
+    subjects = [item for item in data['subject'] if isinstance(item, dict)]
     if not subjects:
         raise BadRequest('Invalid subject, must be a list of dicts')
     answers = []
@@ -194,6 +201,7 @@ def make_decision():
             waivers = retrieve_waivers(product_version, results)
         else:
             waivers = []
+        waivers = [w for w in waivers if w['id'] not in ignore_waivers]
         for policy in applicable_policies:
             answers.extend(policy.check(item, results, waivers))
     res = {
