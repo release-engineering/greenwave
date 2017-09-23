@@ -94,7 +94,11 @@ def cached_greenwave_server(request):
     server = WSGIServerThread(app, init_func=lambda: None, port=app.config['PORT'])
     server.start()
     request.addfinalizer(server.stop)
-    return server
+    try:
+        yield server
+    finally:
+        # Remove the cache file so the next test can start afresh.
+        os.remove(app.config['CACHE']['arguments']['filename'])
 
 
 @pytest.fixture(scope='session')

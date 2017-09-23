@@ -128,5 +128,10 @@ config = dict(
     routing_nitpicky=False,
 
     # Greenwave API url
-    greenwave_api_url='https://greenwave.domain.local/api/v1.0'
+    greenwave_api_url='https://greenwave.domain.local/api/v1.0',
+
+    # In production, these details should match the details of the frontend's
+    # CACHE configuration, so that the backend and frontend can manipulate the
+    # same shared store.
+    greenwave_cache={'backend': 'dogpile.cache.null'},
 )

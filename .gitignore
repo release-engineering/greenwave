@@ -24,3 +24,4 @@ conf/settings.py
 .cache
 coverage.xml
 htmlcov
+greenwave-test-cache.dbm*
