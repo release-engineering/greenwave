@@ -121,3 +121,41 @@ def test_consume_new_result_with_real_cache(
     response = r.json()
     # Ensure it is failing -- as it should be.
     assert not response['policies_satisified'], pprint.pformat(response)
+
+
+def test_consume_new_result_with_no_preexisting_cache(
+        requests_session, cached_greenwave_server, testdatabuilder, monkeypatch):
+    """ Ensure that invalidating an unknown value is sane. """
+    monkeypatch.setenv('TEST', 'true')
+    nvr = testdatabuilder.unique_nvr()
+    result = testdatabuilder.create_result(
+        item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
+    message = {
+        'topic': 'taskotron.result.new',
+        'msg': {
+            'result': {
+                'id': result['id'],
+                'outcome': 'PASSED'
+            },
+            'task': {
+                'item': nvr,
+                'type': 'koji_build',
+                'name': 'dist.rpmdeplint'
+            }
+        }
+    }
+    hub = mock.MagicMock()
+    hub.config = {
+        'environment': 'environment',
+        'topic_prefix': 'topic_prefix',
+        'greenwave_cache': {'backend': 'dogpile.cache.memory'},
+    }
+    handler = cache.CacheInvalidatorExtraordinaire(hub)
+    handler.cache.delete = mock.MagicMock()
+    assert handler.topic == [
+        'topic_prefix.environment.taskotron.result.new',
+        # Not ready to handle waiverdb yet.
+        #'topic_prefix.environment.waiver.new',
+    ]
+    handler.consume(message)
+    handler.cache.delete.assert_not_called()
