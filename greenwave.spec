@@ -27,6 +27,7 @@ BuildRequires:  python-requests
 BuildRequires:  systemd
 BuildRequires:  PyYAML
 BuildRequires:  python-dogpile-cache
+BuildRequires:  fedmsg
 BuildArch:      noarch
 %if 0%{?fedora} || 0%{?rhel} > 7
 Requires:  python2-flask
@@ -37,6 +38,7 @@ Requires:  python-requests
 %endif
 Requires:  PyYAML
 Requires:  python-dogpile-cache
+Requires:  fedmsg
 
 %description
 Greenwave is a service for gating on automated tests by querying ResultsDB and
