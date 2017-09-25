@@ -48,8 +48,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         ]
         self.fedmsg_config = fedmsg.config.load_config()
         super(ResultsDBHandler, self).__init__(hub, *args, **kwargs)
-        log.info('Greenwave resultsdb handler listening on:\n'
-                 '%s' % self.topic)
+        log.info('Greenwave resultsdb handler listening on: %s', self.topic)
 
     def consume(self, message):
         """
@@ -58,7 +57,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         Args:
             message (munch.Munch): A fedmsg about a new result.
         """
-        log.debug('Processing message "{0}"'.format(message))
+        log.debug('Processing message "%s"', message)
         msg = message['msg']
         task = msg['task']
         testcase = task['name']

@@ -49,8 +49,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         self.fedmsg_config = fedmsg.config.load_config()
 
         super(WaiverDBHandler, self).__init__(hub, *args, **kwargs)
-        log.info('Greenwave waiverdb handler listening on:\n'
-                 '%s' % self.topic)
+        log.info('Greenwave waiverdb handler listening on: %s', self.topic)
 
     def consume(self, message):
         """
@@ -59,7 +58,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         Args:
             message (munch.Munch): A fedmsg about a new waiver.
         """
-        log.debug('Processing message "{0}"'.format(message))
+        log.debug('Processing message "%s"', message)
         msg = message['msg']
         result_id = msg['result_id']
         product_version = msg['product_version']
