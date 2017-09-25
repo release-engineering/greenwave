@@ -9,11 +9,16 @@ and if the new result causes the decision to change it will publish a message
 to the message bus about the newly satisfied/unsatisfied policy.
 """
 
-import logging
-import requests
+import copy
 import json
-import fedmsg.consumers
+import logging
 
+import dogpile.cache
+import fedmsg.consumers
+import requests
+
+import greenwave.cache
+import greenwave.resources
 from greenwave.utils import load_config
 
 requests_session = requests.Session()
@@ -47,18 +52,34 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             prefix + '.' + env + '.taskotron.result.new',
         ]
         self.fedmsg_config = fedmsg.config.load_config()
+
         super(ResultsDBHandler, self).__init__(hub, *args, **kwargs)
+
+        # Initialize the cache.
+        self.cache = dogpile.cache.make_region()
+        self.cache.configure(**hub.config['greenwave_cache'])
+
         log.info('Greenwave resultsdb handler listening on: %s', self.topic)
 
     def consume(self, message):
+        """
+        Process the given message and take action.
+
+        Args:
+            message (munch.Munch): A fedmsg about a new result.
+        """
+        log.debug('Processing message "%s"', message)
+        self._invalidate_cache(message)
+        self._publish_decision_changes(message)
+
+    def _publish_decision_changes(self, message):
         """
         Process the given message and publish a message if the decision is changed.
 
         Args:
             message (munch.Munch): A fedmsg about a new result.
         """
-        log.debug('Processing message "%s"', message)
-        msg = message['msg']
+        msg = copy.deepcopy(message['msg'])
         task = msg['task']
         testcase = task['name']
         del task['name']
@@ -102,3 +123,23 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                     log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
                               'greenwave.decision.update')
                     fedmsg.publish(topic='greenwave.decision.update', msg=msg)
+
+    def _invalidate_cache(self, message):
+        """
+        Process the given message and delete cache keys as necessary.
+
+        Args:
+            message (munch.Munch): A fedmsg about a new result or waiver.
+        """
+        msg = copy.deepcopy(message['msg'])
+        task = msg['task']
+        del task['name']
+        # here, task is {"item": "nodejs-ansi-black-0.1.1-1.fc28", "type": "koji_build" }
+        namespace = None
+        fn = greenwave.resources.retrieve_results
+        key = greenwave.cache.key_generator(namespace, fn)(task)
+        if not self.cache.get(key):
+            log.debug("No cache value found for %r" % key)
+        else:
+            log.debug("Invalidating cache for %r" % key)
+            self.cache.delete(key)
