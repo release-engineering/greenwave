@@ -6,7 +6,7 @@ from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
 from greenwave import __version__
 from greenwave.policies import summarize_answers
 from greenwave.resources import retrieve_results, retrieve_waivers
-from greenwave.utils import insert_headers
+from greenwave.utils import insert_headers, jsonp
 
 api = (Blueprint('api_v1', __name__))
 
@@ -14,6 +14,7 @@ requests_session = requests.Session()
 
 
 @api.route('/version', methods=['GET'])
+@jsonp
 def version():
     """ Returns the current running version.
 
@@ -40,6 +41,7 @@ def version():
 
 
 @api.route('/policies', methods=['GET'])
+@jsonp
 def get_policies():
     """ Returns all currently loaded policies.
 
@@ -89,6 +91,7 @@ def get_policies():
 
 
 @api.route('/decision', methods=['OPTIONS'])
+@jsonp
 def make_decision_options():
     """ Handles the OPTIONS requests to the /decision endpoint. """
     resp = current_app.make_default_options_response()
@@ -96,6 +99,7 @@ def make_decision_options():
 
 
 @api.route('/decision', methods=['POST'])
+@jsonp
 def make_decision():
     """
     Make a decision after evaluating all applicable policies based on test
