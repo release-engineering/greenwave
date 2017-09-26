@@ -139,7 +139,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         fn = greenwave.resources.retrieve_results
         key = greenwave.cache.key_generator(namespace, fn)(task)
         if not self.cache.get(key):
-            log.debug("No cache value found for %r" % key)
+            log.debug("No cache value found for %r", key)
         else:
-            log.debug("Invalidating cache for %r" % key)
+            log.debug("Invalidating cache for %r", key)
             self.cache.delete(key)
