@@ -7,6 +7,7 @@ waiverdb, etc..).
 """
 
 import requests
+import json
 from flask import current_app
 
 from greenwave.cache import cached
@@ -31,10 +32,14 @@ def retrieve_results(item):
 # NOTE - not cached, for now.
 def retrieve_waivers(product_version, results):
     timeout = current_app.config['REQUESTS_TIMEOUT']
-    response = requests_session.get(
-        current_app.config['WAIVERDB_API_URL'] + '/waivers/',
-        params={'product_version': product_version,
-                'result_id': ','.join(str(result['id']) for result in results)},
+    data = {
+        'product_version': product_version,
+        'result_ids': [result['id'] for result in results],
+    }
+    response = requests_session.post(
+        current_app.config['WAIVERDB_API_URL'] + '/waivers/+by-result-ids',
+        headers={'Content-Type': 'application/json'},
+        data=json.dumps(data),
         timeout=timeout)
     response.raise_for_status()
     return response.json()['data']
