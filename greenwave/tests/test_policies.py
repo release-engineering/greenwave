@@ -198,7 +198,7 @@ def test_version_endpoint():
         headers={"content-type": "application/json"}
     )
     assert output.status_code == 200
-    assert output.data == '{\n  "version": "%s"\n}\n' % __version__
+    assert '"version": "%s"' % __version__ in output.data
 
 
 def test_version_endpoint_jsonp():
@@ -209,4 +209,5 @@ def test_version_endpoint_jsonp():
         headers={"content-type": "application/json"}
     )
     assert output.status_code == 200
-    assert output.data == 'bac123({\n  "version": "%s"\n}\n);' % __version__
+    assert 'bac123' in output.data
+    assert '"version": "%s"' % __version__ in output.data
