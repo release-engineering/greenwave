@@ -17,6 +17,7 @@ gating points in a software delivery pipeline, based on test results stored in
 
    api
    contributing
+   release-notes
 
 
 Indices and tables
