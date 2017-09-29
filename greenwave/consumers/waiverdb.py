@@ -70,7 +70,10 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
             timeout=timeout)
         response.raise_for_status()
         testcase = response.json()['testcase']['name']
-        item = response.json()['data']
+        # In ResultsDB, 'data' is key -> list of strings.
+        # But in Greenwave, we only deal in key -> string.
+        # This is... iffy and might need cleaning up?
+        item = {k: v[0] for k, v in response.json()['data'].items()}
         for policy in config['policies']:
             for rule in policy.rules:
                 if rule.test_case_name == testcase:
