@@ -75,6 +75,7 @@ py.test greenwave/tests/
 %{python2_sitelib}/%{name}*.egg-info
 %{_unitdir}/%{name}.service
 %{_unitdir}/%{name}.socket
+%{_sysconfdir}/fedmsg.d/*
 
 %post
 %systemd_post %{name}.service

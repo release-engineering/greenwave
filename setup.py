@@ -93,4 +93,12 @@ setup(
     install_requires=get_requirements(),
     tests_require=get_requirements(requirements_file='dev-requirements.txt'),
     test_suite='greenwave.tests',
+    entry_points="""\
+    [moksha.consumer]
+    resultsdb = greenwave.consumers.resultsdb:ResultsDBHandler
+    waiverdb = greenwave.consumers.waiverdb:WaiverDBHandler
+    """,
+    data_files=[('/etc/fedmsg.d/', ['fedmsg.d/resultsdb.py',
+                                    'fedmsg.d/waiverdb.py'])
+    ]
 )
