@@ -99,6 +99,5 @@ setup(
     waiverdb = greenwave.consumers.waiverdb:WaiverDBHandler
     """,
     data_files=[('/etc/fedmsg.d/', ['fedmsg.d/resultsdb.py',
-                                    'fedmsg.d/waiverdb.py'])
-    ]
+                                    'fedmsg.d/waiverdb.py'])]
 )
