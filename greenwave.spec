@@ -1,8 +1,8 @@
 
-%global upstream_version 0.2
+%global upstream_version 0.3
 
 Name:           greenwave
-Version:        0.2
+Version:        0.3
 Release:        1%{?dist}
 Summary:        Service for gating on automated tests
 License:        GPLv2+
