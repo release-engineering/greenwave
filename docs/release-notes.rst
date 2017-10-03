@@ -9,8 +9,8 @@ Released 03 Oct 2017.
 
 A number of issues have been resolved in this release:
 
-* Fixed the waiverdb consumer test in `PR#89`_ to use the correct value for
-  ``subject`` so that it is consistent with the other tests.
+* Fixed the waiverdb consumer in `PR#89`_ to use the correct value for
+  ``subject``.
 * Shipped the fedmsg configuration files.
 
 .. _PR#89: https://pagure.io/greenwave/pull-request/89
