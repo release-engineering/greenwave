@@ -51,7 +51,7 @@ def test_consume_new_waiver(
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject': [{'item': [nvr], 'type': ['koji_build']}],
+        'subject': [{'item': nvr, 'type': 'koji_build'}],
         'ignore_waiver': [waiver['id']]
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
@@ -59,6 +59,7 @@ def test_consume_new_waiver(
                               data=json.dumps(data))
     assert r.status_code == 200
     old_decision = r.json()
+    assert old_decision['summary'] == '1 of 3 required tests failed'
 
     msg = {
         'policies_satisified': True,
@@ -68,8 +69,8 @@ def test_consume_new_waiver(
         'product_version': 'fedora-26',
         'subject': [
             {
-                'item': [nvr],
-                'type': ['koji_build']
+                'item': nvr,
+                'type': 'koji_build'
             }
         ],
         'applicable_policies': ['taskotron_release_critical_tasks'],
