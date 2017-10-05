@@ -7,6 +7,7 @@ id: "1"
 product_versions:
   - rhel-7
 decision_context: errata_newfile_to_qe
+blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.abi_symbols}
   - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.binary_stripping}
@@ -86,4 +87,5 @@ product_versions:
   - cdk-2
   - devstudio-2
 decision_context: errata_newfile_to_qe
+blacklist: []
 rules: []

@@ -179,6 +179,12 @@ class Policy(yaml.YAMLObject):
                 product_version in self.product_versions)
 
     def check(self, item, results, waivers):
+        # If an item is about a package and it is in the blacklist, return RuleSatisfied()
+        for package in self.blacklist:
+            if (item.get('type') == 'koji_build' and
+                    item.get('item') and
+                    item['item'].rsplit('-', 2)[0] == package):
+                return [RuleSatisfied() for rule in self.rules]
         return [rule.check(item, results, waivers) for rule in self.rules]
 
     def __repr__(self):
@@ -192,4 +198,5 @@ class Policy(yaml.YAMLObject):
             'product_versions': self.product_versions,
             'decision_context': self.decision_context,
             'rules': [rule.to_json() for rule in self.rules],
+            'blacklist': self.blacklist,
         }

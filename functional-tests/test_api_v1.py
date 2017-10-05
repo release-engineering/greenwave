@@ -90,13 +90,16 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 3
+    assert len(policies) == 4
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)
     expected_rules = [
         {'rule': 'PassingTestCaseRule',
          'test_case_name': 'dist.abicheck'},
+    ]
+    assert any(p['rules'] == expected_rules for p in policies)
+    expected_rules = [
         {'rule': 'PassingTestCaseRule',
          'test_case_name': 'dist.rpmdeplint'},
         {'rule': 'PassingTestCaseRule',
@@ -319,7 +322,8 @@ def test_bodhi_push_update_stable_policy(
     assert r.status_code == 200
     res_data = r.json()
     assert res_data['policies_satisified'] is True
-    assert res_data['applicable_policies'] == ['taskotron_release_critical_tasks']
+    assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
     expected_summary = 'all required tests passed'
     assert res_data['summary'] == expected_summary
     assert res_data['unsatisfied_requirements'] == []
@@ -356,7 +360,8 @@ def test_multiple_results_in_a_subject(
     res_data = r.json()
     # The failed result should be taken into account.
     assert res_data['policies_satisified'] is False
-    assert res_data['applicable_policies'] == ['taskotron_release_critical_tasks']
+    assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
     assert res_data['summary'] == '1 of 3 required tests failed'
     expected_unsatisfied_requirements = [
         {
@@ -496,4 +501,31 @@ def test_cached_false_positive(requests_session, cached_greenwave_server, testda
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
+    assert res_data['policies_satisified'] is True
+
+
+def test_blacklist(requests_session, greenwave_server, testdatabuilder):
+    """
+    Test that packages on the blacklist will be excluded when applying the policy.
+    """
+    nvr = 'firefox-1.0-1.el7'
+    testdatabuilder.create_result(item=nvr,
+                                  testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                  outcome='FAILED')
+    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
+        testdatabuilder.create_result(item=nvr,
+                                      testcase_name=testcase_name,
+                                      outcome='PASSED')
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject': [{'item': nvr, 'type': 'koji_build'}]
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    # the failed test result of dist.abicheck should be ignored and thus the policy
+    # is satisfied.
     assert res_data['policies_satisified'] is True

@@ -73,7 +73,8 @@ def test_consume_new_waiver(
                 'type': 'koji_build'
             }
         ],
-        'applicable_policies': ['taskotron_release_critical_tasks'],
+        'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
+                                'taskotron_release_critical_tasks'],
         'previous': old_decision,
     }
     mock_fedmsg.assert_called_once_with(

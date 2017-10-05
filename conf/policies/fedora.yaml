@@ -5,11 +5,29 @@
 # Tasktron release-critical tasks rule
 #   https://github.com/fedora-infra/fmn/blob/develop/fmn/rules/taskotron.py#L5
 --- !Policy
+id: "taskotron_release_critical_tasks_with_blacklist"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable
+blacklist:
+  # see the excluded list for dist.abicheck 
+  # https://infrastructure.fedoraproject.org/cgit/ansible.git/tree/roles/taskotron/taskotron-trigger/templates/trigger_rules.yml.j2#n17
+  - firefox
+  - thunderbird
+  - kernel
+  - kdelibs
+  - kdepim
+  - qt
+  - mariadb
+  - java-1.8.0-openjdk-libreoffice
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.abicheck}
+--- !Policy
 id: "taskotron_release_critical_tasks"
 product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable
+blacklist: []
 rules:
-  - !PassingTestCaseRule {test_case_name: dist.abicheck}
-  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
-  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint, blacklist: []}
+  - !PassingTestCaseRule {test_case_name: dist.upgradepath, blacklist: []}
