@@ -123,12 +123,17 @@ class TestDataBuilder(object):
     def unique_nvr(self):
         return 'glibc-1.0-{}.el7'.format(self._counter.next())
 
-    def create_result(self, item, testcase_name, outcome):
+    def unique_compose_id(self):
+        return 'Fedora-9000-19700101.n.{}'.format(self._counter.next())
+
+    def create_result(self, item, testcase_name, outcome, scenario=None):
         data = {
             'testcase': {'name': testcase_name},
             'data': {'item': item, 'type': 'koji_build'},
             'outcome': outcome,
         }
+        if scenario:
+            data['data']['scenario'] = scenario
         response = self.requests_session.post(
             self.resultsdb_url + 'api/v2.0/results',
             headers={'Content-Type': 'application/json'},

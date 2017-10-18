@@ -31,3 +31,12 @@ blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
   - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+--- !Policy
+id: "openqa_important_stuff_for_rawhide"
+product_versions:
+  - fedora-rawhide
+decision_context: rawhide_compose_sync_to_mirrors
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: compose.install_no_user, scenario: scenario1}
+  - !PassingTestCaseRule {test_case_name: compose.install_no_user, scenario: scenario2}

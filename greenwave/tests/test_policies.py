@@ -190,6 +190,20 @@ rules:
     assert 'Policies are not configured properly' in str(excinfo.value)
 
 
+def test_passing_testcasename_with_scenario(tmpdir):
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: "rawhide_compose_sync_to_mirrors"
+product_versions:
+  - fedora-rawhide
+decision_context: rawhide_compose_sync_to_mirrors
+rules:
+  - !PassingTestCaseRule {test_case_name: compose.install_default_upload, scenario: somescenario}
+        """)
+    load_policies(tmpdir.strpath)
+
+
 def test_version_endpoint():
     app = create_app('greenwave.config.TestingConfig')
     test_app = app.test_client()

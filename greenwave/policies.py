@@ -147,6 +147,11 @@ class PassingTestCaseRule(Rule):
 
     def check(self, item, results, waivers):
         matching_results = [r for r in results if r['testcase']['name'] == self.test_case_name]
+
+        # Rules may optionally specify a scenario to limit applicability.
+        if self._scenario:
+            matching_results = [r for r in matching_results if self.scenario in r['data'].get('scenario', [])]
+
         if not matching_results:
             return TestResultMissing(item, self.test_case_name)
         # If we find multiple matching results, we always use the first one which
@@ -160,13 +165,18 @@ class PassingTestCaseRule(Rule):
             return RuleSatisfied()
         return TestResultFailed(item, self.test_case_name, matching_result['id'])
 
+    @property
+    def _scenario(self):
+        return getattr(self, 'scenario', None)
+
     def __repr__(self):
-        return "%s(test_case_name=%r)" % (self.__class__.__name__, self.test_case_name)
+        return "%s(test_case_name=%r, scenario=%r)" % (self.__class__.__name__, self.test_case_name, self._scenario)
 
     def to_json(self):
         return {
             'rule': self.__class__.__name__,
             'test_case_name': self.test_case_name,
+            'scenario': self._scenario,
         }
 
 
