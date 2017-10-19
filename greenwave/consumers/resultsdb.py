@@ -68,6 +68,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         Args:
             message (munch.Munch): A fedmsg about a new result.
         """
+        message = message.get('body', message)
         log.debug('Processing message "%s"', message)
         self._invalidate_cache(message)
         self._publish_decision_changes(message)
