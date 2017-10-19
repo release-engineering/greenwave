@@ -29,5 +29,5 @@ product_versions:
 decision_context: bodhi_update_push_stable
 blacklist: []
 rules:
-  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint, blacklist: []}
-  - !PassingTestCaseRule {test_case_name: dist.upgradepath, blacklist: []}
+  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
+  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
