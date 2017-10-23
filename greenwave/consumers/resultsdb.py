@@ -56,7 +56,8 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         super(ResultsDBHandler, self).__init__(hub, *args, **kwargs)
 
         # Initialize the cache.
-        self.cache = dogpile.cache.make_region()
+        self.cache = dogpile.cache.make_region(
+            key_mangler=dogpile.cache.util.sha1_mangle_key)
         self.cache.configure(**hub.config['greenwave_cache'])
 
         log.info('Greenwave resultsdb handler listening on: %s', self.topic)

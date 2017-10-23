@@ -7,6 +7,7 @@ from greenwave.api_v1 import api
 from greenwave.utils import json_error, load_config
 
 from dogpile.cache import make_region
+from dogpile.cache.util import sha1_mangle_key
 from requests import ConnectionError, Timeout
 from werkzeug.exceptions import default_exceptions
 
@@ -32,7 +33,7 @@ def create_app(config_obj=None):
     app.add_url_rule('/healthcheck', view_func=healthcheck)
 
     # Initialize the cache.
-    app.cache = make_region()
+    app.cache = make_region(key_mangler=sha1_mangle_key)
     app.cache.configure(**app.config['CACHE'])
 
     return app
