@@ -150,7 +150,8 @@ class PassingTestCaseRule(Rule):
 
         # Rules may optionally specify a scenario to limit applicability.
         if self._scenario:
-            matching_results = [r for r in matching_results if self.scenario in r['data'].get('scenario', [])]
+            matching_results = [r for r in matching_results if self.scenario in
+                                r['data'].get('scenario', [])]
 
         if not matching_results:
             return TestResultMissing(item, self.test_case_name)
@@ -170,7 +171,8 @@ class PassingTestCaseRule(Rule):
         return getattr(self, 'scenario', None)
 
     def __repr__(self):
-        return "%s(test_case_name=%r, scenario=%r)" % (self.__class__.__name__, self.test_case_name, self._scenario)
+        return "%s(test_case_name=%r, scenario=%r)" % (
+            self.__class__.__name__, self.test_case_name, self._scenario)
 
     def to_json(self):
         return {

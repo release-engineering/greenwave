@@ -429,7 +429,8 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
 
-def test_make_a_decison_on_passed_result_with_scenario(requests_session, greenwave_server, testdatabuilder):
+def test_make_a_decison_on_passed_result_with_scenario(
+        requests_session, greenwave_server, testdatabuilder):
     """
     If we require two scenarios to pass, and both pass, then we pass.
     """
@@ -456,7 +457,8 @@ def test_make_a_decison_on_passed_result_with_scenario(requests_session, greenwa
     assert res_data['summary'] == expected_summary
 
 
-def test_make_a_decison_on_failing_result_with_scenario(requests_session, greenwave_server, testdatabuilder):
+def test_make_a_decison_on_failing_result_with_scenario(
+        requests_session, greenwave_server, testdatabuilder):
     """
     If we require two scenarios to pass, and one is failing, then we fail.
     """
@@ -465,14 +467,14 @@ def test_make_a_decison_on_failing_result_with_scenario(requests_session, greenw
     for testcase_name in OPENQA_TASKS:
         # Scenario 1 passes..
         testdatabuilder.create_result(item=compose_id,
-                                        testcase_name=testcase_name,
-                                        scenario='scenario1',
-                                        outcome='PASSED')
+                                      testcase_name=testcase_name,
+                                      scenario='scenario1',
+                                      outcome='PASSED')
         # But scenario 2 fails!
         testdatabuilder.create_result(item=compose_id,
-                                        testcase_name=testcase_name,
-                                        scenario='scenario2',
-                                        outcome='FAILED')
+                                      testcase_name=testcase_name,
+                                      scenario='scenario2',
+                                      outcome='FAILED')
     data = {
         'decision_context': 'rawhide_compose_sync_to_mirrors',
         'product_version': 'fedora-rawhide',
