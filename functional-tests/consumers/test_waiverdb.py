@@ -30,15 +30,17 @@ def test_consume_new_waiver(
                                       outcome='PASSED')
     waiver = testdatabuilder.create_waiver(result_id=result['id'], product_version='fedora-26')
     message = {
-        'topic': 'waiver.new',
-        "msg": {
-            "id": waiver['id'],
-            "comment": "Because I said so",
-            "username": "foo",
-            "waived": "true",
-            "timestamp": "2017-08-10T17:42:04.209638",
-            "product_version": "fedora-26",
-            "result_id": result['id'],
+        'body': {
+            'topic': 'waiver.new',
+            "msg": {
+                "id": waiver['id'],
+                "comment": "Because I said so",
+                "username": "foo",
+                "waived": "true",
+                "timestamp": "2017-08-10T17:42:04.209638",
+                "product_version": "fedora-26",
+                "result_id": result['id'],
+            }
         }
     }
     hub = mock.MagicMock()

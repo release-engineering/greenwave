@@ -20,16 +20,18 @@ def test_consume_new_result(
                                            testcase_name='dist.rpmdeplint',
                                            outcome='PASSED')
     message = {
-        'topic': 'taskotron.result.new',
-        'msg': {
-            'result': {
-                'id': result['id'],
-                'outcome': 'PASSED'
-            },
-            'task': {
-                'item': nvr,
-                'type': 'koji_build',
-                'name': 'dist.rpmdeplint'
+        'body': {
+            'topic': 'taskotron.result.new',
+            'msg': {
+                'result': {
+                    'id': result['id'],
+                    'outcome': 'PASSED'
+                },
+                'task': {
+                    'item': nvr,
+                    'type': 'koji_build',
+                    'name': 'dist.rpmdeplint'
+                }
             }
         }
     }
@@ -110,16 +112,18 @@ def test_no_message_for_unchanged_decision(
         testcase_name='dist.rpmdeplint',
         outcome='PASSED')
     message = {
-        'topic': 'taskotron.result.new',
-        'msg': {
-            'result': {
-                'id': new_result['id'],
-                'outcome': 'PASSED'
-            },
-            'task': {
-                'item': nvr,
-                'type': 'koji_build',
-                'name': 'dist.rpmdeplint'
+        'body': {
+            'topic': 'taskotron.result.new',
+            'msg': {
+                'result': {
+                    'id': new_result['id'],
+                    'outcome': 'PASSED'
+                },
+                'task': {
+                    'item': nvr,
+                    'type': 'koji_build',
+                    'name': 'dist.rpmdeplint'
+                }
             }
         }
     }
@@ -149,16 +153,18 @@ def test_invalidate_new_result_with_mocked_cache(
     result = testdatabuilder.create_result(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
     message = {
-        'topic': 'taskotron.result.new',
-        'msg': {
-            'result': {
-                'id': result['id'],
-                'outcome': 'PASSED'
-            },
-            'task': {
-                'item': nvr,
-                'type': 'koji_build',
-                'name': 'dist.rpmdeplint'
+        'body': {
+            'topic': 'taskotron.result.new',
+            'msg': {
+                'result': {
+                    'id': result['id'],
+                    'outcome': 'PASSED'
+                },
+                'task': {
+                    'item': nvr,
+                    'type': 'koji_build',
+                    'name': 'dist.rpmdeplint'
+                }
             }
         }
     }
@@ -221,16 +227,18 @@ def test_invalidate_new_result_with_real_cache(
 
     # Now, handle a message about the new failing result
     message = {
-        u'topic': u'taskotron.result.new',
-        u'msg': {
-            u'result': {
-                u'id': u'whatever',
-                u'outcome': u'doesn\'t matter',
-            },
-            u'task': {
-                u'item': nvr.decode('utf-8'),
-                u'type': u'koji_build',
-                u'name': u'dist.rpmdeplint'
+        'body': {
+            u'topic': u'taskotron.result.new',
+            u'msg': {
+                u'result': {
+                    u'id': u'whatever',
+                    u'outcome': u'doesn\'t matter',
+                },
+                u'task': {
+                    u'item': nvr.decode('utf-8'),
+                    u'type': u'koji_build',
+                    u'name': u'dist.rpmdeplint'
+                }
             }
         }
     }
@@ -272,16 +280,18 @@ def test_invalidate_new_result_with_no_preexisting_cache(
     result = testdatabuilder.create_result(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
     message = {
-        'topic': 'taskotron.result.new',
-        'msg': {
-            'result': {
-                'id': result['id'],
-                'outcome': 'PASSED'
-            },
-            'task': {
-                'item': nvr,
-                'type': 'koji_build',
-                'name': 'dist.rpmdeplint'
+        'body': {
+            'topic': 'taskotron.result.new',
+            'msg': {
+                'result': {
+                    'id': result['id'],
+                    'outcome': 'PASSED'
+                },
+                'task': {
+                    'item': nvr,
+                    'type': 'koji_build',
+                    'name': 'dist.rpmdeplint'
+                }
             }
         }
     }

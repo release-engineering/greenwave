@@ -58,6 +58,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         Args:
             message (munch.Munch): A fedmsg about a new waiver.
         """
+        message = message.get('body', message)
         log.debug('Processing message "%s"', message)
         msg = message['msg']
         result_id = msg['result_id']
