@@ -80,4 +80,4 @@ def test_consume_new_waiver(
         'previous': old_decision,
     }
     mock_fedmsg.assert_called_once_with(
-        topic='greenwave.decision.update', msg=msg)
+        topic='decision.update', msg=msg)
