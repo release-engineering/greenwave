@@ -64,7 +64,7 @@ def test_consume_new_waiver(
     assert old_decision['summary'] == '1 of 3 required tests failed'
 
     msg = {
-        'policies_satisified': True,
+        'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_stable',
         'unsatisfied_requirements': [],
         'summary': 'all required tests passed',

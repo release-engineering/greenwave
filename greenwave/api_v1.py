@@ -137,7 +137,7 @@ def make_decision():
        Server: Werkzeug/0.12.1 Python/2.7.13
 
        {
-           "policies_satisified": false,
+           "policies_satisfied": false,
            "summary": "2 of 15 required tests failed",
            "applicable_policies": ["1"],
            "unsatisfied_requirements": [
@@ -210,7 +210,7 @@ def make_decision():
         for policy in applicable_policies:
             answers.extend(policy.check(item, results, waivers))
     res = {
-        'policies_satisified': all(answer.is_satisfied for answer in answers),
+        'policies_satisfied': all(answer.is_satisfied for answer in answers),
         'summary': summarize_answers(answers),
         'applicable_policies': [policy.id for policy in applicable_policies],
         'unsatisfied_requirements': [answer.to_json() for answer in answers

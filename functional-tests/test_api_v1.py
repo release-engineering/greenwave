@@ -198,7 +198,7 @@ def test_make_a_decison_on_passed_result(requests_session, greenwave_server, tes
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['1']
     expected_summary = 'all required tests passed'
     assert res_data['summary'] == expected_summary
@@ -227,7 +227,7 @@ def test_make_a_decison_on_failed_result_with_waiver(
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['1']
     expected_summary = 'all required tests passed'
     assert res_data['summary'] == expected_summary
@@ -248,7 +248,7 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is False
+    assert res_data['policies_satisfied'] is False
     assert res_data['applicable_policies'] == ['1']
     expected_summary = '1 of 71 required tests failed'
     assert res_data['summary'] == expected_summary
@@ -281,7 +281,7 @@ def test_make_a_decison_on_no_results(requests_session, greenwave_server, testda
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is False
+    assert res_data['policies_satisfied'] is False
     assert res_data['applicable_policies'] == ['1']
     expected_summary = 'no test results found'
     assert res_data['summary'] == expected_summary
@@ -308,7 +308,7 @@ def test_unrestricted_policy_is_always_satisfied(
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['errata-unrestricted']
     expected_summary = 'no tests are required'
     assert res_data['summary'] == expected_summary
@@ -332,7 +332,7 @@ def test_bodhi_push_update_stable_policy(
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
     expected_summary = 'all required tests passed'
@@ -370,7 +370,7 @@ def test_multiple_results_in_a_subject(
     assert r.status_code == 200
     res_data = r.json()
     # The failed result should be taken into account.
-    assert res_data['policies_satisified'] is False
+    assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
     assert res_data['summary'] == '1 of 3 required tests failed'
@@ -408,7 +408,7 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True
     # Ignore one passing result
     data.update({
         'ignore_result': [result['id']]
@@ -425,7 +425,7 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
     ]
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is False
+    assert res_data['policies_satisfied'] is False
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
 
@@ -451,7 +451,7 @@ def test_make_a_decison_on_passed_result_with_scenario(
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['openqa_important_stuff_for_rawhide']
     expected_summary = 'all required tests passed'
     assert res_data['summary'] == expected_summary
@@ -485,7 +485,7 @@ def test_make_a_decison_on_failing_result_with_scenario(
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is False
+    assert res_data['policies_satisfied'] is False
     assert res_data['applicable_policies'] == ['openqa_important_stuff_for_rawhide']
     expected_summary = '1 of 2 required tests failed'
     assert res_data['summary'] == expected_summary
@@ -515,7 +515,7 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True
     # Ignore the waiver
     data.update({
         'ignore_waiver': [waiver['id']]
@@ -533,7 +533,7 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
             'type': 'test-result-failed'
         },
     ]
-    assert res_data['policies_satisified'] is False
+    assert res_data['policies_satisfied'] is False
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
 
@@ -562,7 +562,7 @@ def test_cached_false_positive(requests_session, cached_greenwave_server, testda
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True
 
     # Now, insert a *failing* result.  The cache should return the old results
     # that exclude the failing one (erroneously).
@@ -574,7 +574,7 @@ def test_cached_false_positive(requests_session, cached_greenwave_server, testda
                               data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True
 
 
 def test_blacklist(requests_session, greenwave_server, testdatabuilder):
@@ -601,4 +601,4 @@ def test_blacklist(requests_session, greenwave_server, testdatabuilder):
     res_data = r.json()
     # the failed test result of dist.abicheck should be ignored and thus the policy
     # is satisfied.
-    assert res_data['policies_satisified'] is True
+    assert res_data['policies_satisfied'] is True

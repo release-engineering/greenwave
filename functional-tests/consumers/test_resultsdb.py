@@ -59,7 +59,7 @@ def test_consume_new_result(
     old_decision = r.json()
 
     msg = {
-        'policies_satisified': False,
+        'policies_satisfied': False,
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
         'unsatisfied_requirements': [
@@ -211,7 +211,7 @@ def test_invalidate_new_result_with_real_cache(
     assert r.status_code == 200
     response = r.json()
     # Ensure it is passing...
-    assert response['policies_satisified'], pprint.pformat(response)
+    assert response['policies_satisfied'], pprint.pformat(response)
 
     # Now, insert a new result and ensure that caching has made it such that
     # even though the new result fails, our decision still passes (bad)
@@ -223,7 +223,7 @@ def test_invalidate_new_result_with_real_cache(
     assert r.status_code == 200
     response = r.json()
     # Ensure it is passing...  BUT IT SHOULDN'T BE!
-    assert response['policies_satisified'], pprint.pformat(response)
+    assert response['policies_satisfied'], pprint.pformat(response)
 
     # Now, handle a message about the new failing result
     message = {
@@ -265,7 +265,7 @@ def test_invalidate_new_result_with_real_cache(
     assert r.status_code == 200
     response = r.json()
     # Ensure it is failing -- as it should be.
-    assert not response['policies_satisified'], pprint.pformat(response)
+    assert not response['policies_satisfied'], pprint.pformat(response)
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
