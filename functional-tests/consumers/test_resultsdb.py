@@ -92,7 +92,7 @@ def test_consume_new_result(
         'previous': old_decision,
     }
     mock_fedmsg.assert_called_once_with(
-        topic='greenwave.decision.update', msg=msg)
+        topic='decision.update', msg=msg)
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')

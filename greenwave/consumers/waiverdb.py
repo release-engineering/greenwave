@@ -110,4 +110,4 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                         })
                         log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
                                   'greenwave.decision.update')
-                        fedmsg.publish(topic='greenwave.decision.update', msg=msg)
+                        fedmsg.publish(topic='decision.update', msg=msg)
