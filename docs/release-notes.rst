@@ -2,6 +2,26 @@
 Release Notes
 =============
 
+Greenwave 0.4
+=============
+
+Released 25 Oct 2017.
+
+A number of improvements and bug fixes are included in this release:
+
+* Policies are allowed to opt out of a list of packages. See `PR#91`_.
+
+* Greenwave now supports using 'scenario' in the policy rules. See `PR#96`_. 
+
+* Fixed for message extractions in the message consumers. See `PR#97`_.
+
+* Configured cache with the SHA1 mangler. See `PR#98`_. 
+
+.. _PR#91: https://pagure.io/greenwave/pull-request/91
+.. _PR#96: https://pagure.io/greenwave/pull-request/96
+.. _PR#97: https://pagure.io/greenwave/pull-request/97
+.. _PR#98: https://pagure.io/greenwave/pull-request/98
+
 Greenwave 0.3
 =============
 
