@@ -23,6 +23,14 @@ blacklist:
 rules:
   - !PassingTestCaseRule {test_case_name: dist.abicheck}
 --- !Policy
+id: "taskotron_release_critical_tasks_for_testing"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_testing
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
+--- !Policy
 id: "taskotron_release_critical_tasks"
 product_versions:
   - fedora-26

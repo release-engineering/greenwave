@@ -98,7 +98,7 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 5
+    assert len(policies) == 6
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)

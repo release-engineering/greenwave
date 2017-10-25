@@ -57,8 +57,9 @@ def test_consume_new_result(
                               data=json.dumps(data))
     assert r.status_code == 200
     old_decision = r.json()
-
-    msg = {
+    # should have two messages published as we have two decision contexts applicable to
+    # this subject.
+    first_msg = {
         'policies_satisfied': False,
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
@@ -91,8 +92,35 @@ def test_consume_new_result(
                                 'taskotron_release_critical_tasks'],
         'previous': old_decision,
     }
-    mock_fedmsg.assert_called_once_with(
-        topic='decision.update', msg=msg)
+    mock_fedmsg.assert_any_call(topic='decision.update', msg=first_msg)
+    # get the old decision for the second policy
+    data = {
+        'decision_context': 'bodhi_update_push_testing',
+        'product_version': 'fedora-26',
+        'subject': [{'item': nvr, 'type': 'koji_build'}],
+        'ignore_result': [result['id']]
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    old_decision = r.json()
+    second_msg = {
+        'policies_satisfied': True,
+        'decision_context': 'bodhi_update_push_testing',
+        'product_version': 'fedora-26',
+        'unsatisfied_requirements': [],
+        'summary': 'all required tests passed',
+        'subject': [
+            {
+                'item': nvr,
+                'type': 'koji_build'
+            }
+        ],
+        'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
+        'previous': old_decision,
+    }
+    mock_fedmsg.assert_any_call(topic='decision.update', msg=second_msg)
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
