@@ -9,6 +9,7 @@ and if the new result causes the decision to change it will publish a message
 to the message bus about the newly satisfied/unsatisfied policy.
 """
 
+import collections
 import copy
 import json
 import logging
@@ -86,15 +87,27 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         testcase = task['name']
         del task['name']
         config = load_config()
-        applicable_policies = []
+
+        # Build a set of all policies which might apply to this new results
+        applicable_policies = set()
         for policy in config['policies']:
             for rule in policy.rules:
                 if rule.test_case_name == testcase:
-                    applicable_policies.append(policy)
+                    applicable_policies.add(policy)
+
+        # Given all of our applicable policies, build a map of all decision
+        # context we know about, and which product versions they relate to.
+        decision_contexts = collections.defaultdict(set)
         for policy in applicable_policies:
-            for product_version in policy.product_versions:
+            versions = set(policy.product_versions)
+            decision_contexts[policy.decision_context].update(versions)
+
+        # For every context X version combination, ask greenwave if this new
+        # result pushes any decisions over a threshold.
+        for decision_context, product_versions in decision_contexts.items():
+            for product_version in product_versions:
                 data = {
-                    'decision_context': policy.decision_context,
+                    'decision_context': decision_context,
                     'product_version': product_version,
                     'subject': [task],
                 }
@@ -118,7 +131,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                     msg = decision
                     decision.update({
                         'subject': [task],
-                        'decision_context': policy.decision_context,
+                        'decision_context': decision_context,
                         'product_version': product_version,
                         'previous': old_decision,
                     })

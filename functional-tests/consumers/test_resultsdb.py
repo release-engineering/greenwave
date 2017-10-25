@@ -103,10 +103,11 @@ def test_no_message_for_unchanged_decision(
     monkeypatch.setenv('TEST', 'true')
     load_config.return_value = {'greenwave_api_url': greenwave_server.url + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
+    # One result gets the decision in a certain state.
     testdatabuilder.create_result(item=nvr,
                                   testcase_name='dist.rpmdeplint',
                                   outcome='PASSED')
-    # create another new result for dist.rpmdeplint which passed again.
+    # Recording a new version of the same result shouldn't change our decision at all.
     new_result = testdatabuilder.create_result(
         item=nvr,
         testcase_name='dist.rpmdeplint',
