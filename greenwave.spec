@@ -14,6 +14,7 @@ BuildRequires:  python2-devel
 BuildRequires:  python2-setuptools
 BuildRequires:  python2-sphinx
 BuildRequires:  python-sphinxcontrib-httpdomain
+BuildRequires:  python-sphinxcontrib-issuetracker
 BuildRequires:  python2-flask
 BuildRequires:  python2-pytest
 BuildRequires:  python2-requests
