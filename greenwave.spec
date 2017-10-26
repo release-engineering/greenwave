@@ -51,7 +51,7 @@ WaiverDB.
 %build
 %py2_build
 %if 0%{?fedora}
-make -C docs html text
+make -C docs SPHINXOPTS= html text
 %endif
 
 %install
