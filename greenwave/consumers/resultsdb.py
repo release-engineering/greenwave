@@ -128,16 +128,15 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 response.raise_for_status()
                 old_decision = response.json()
                 if decision != old_decision:
-                    msg = decision
                     decision.update({
                         'subject': [task],
                         'decision_context': decision_context,
                         'product_version': product_version,
                         'previous': old_decision,
                     })
-                    log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
+                    log.debug('Emitted a fedmsg, %r, on the "%s" topic', decision,
                               'greenwave.decision.update')
-                    fedmsg.publish(topic='decision.update', msg=msg)
+                    fedmsg.publish(topic='decision.update', msg=decision)
 
     def _invalidate_cache(self, message):
         """
