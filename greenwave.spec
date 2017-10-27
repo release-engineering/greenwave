@@ -14,6 +14,7 @@ BuildRequires:  python2-devel
 BuildRequires:  python2-setuptools
 BuildRequires:  python2-sphinx
 BuildRequires:  python-sphinxcontrib-httpdomain
+BuildRequires:  python-sphinxcontrib-issuetracker
 BuildRequires:  python2-flask
 BuildRequires:  python2-pytest
 BuildRequires:  python2-requests
@@ -50,7 +51,7 @@ WaiverDB.
 %build
 %py2_build
 %if 0%{?fedora}
-make -C docs html text
+make -C docs SPHINXOPTS= html text
 %endif
 
 %install

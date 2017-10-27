@@ -20,7 +20,7 @@ def version():
 
     **Sample response**:
 
-    .. sourcecode:: http
+    .. sourcecode:: none
 
        HTTP/1.0 200
        Content-Length: 228
@@ -47,7 +47,7 @@ def get_policies():
 
     **Sample response**:
 
-    .. sourcecode:: http
+    .. sourcecode:: none
 
        HTTP/1.0 200
        Content-Length: 228
@@ -128,7 +128,7 @@ def make_decision():
 
     **Sample response**:
 
-    .. sourcecode:: http
+    .. sourcecode:: none
 
        HTTP/1.0 200
        Content-Length: 228
