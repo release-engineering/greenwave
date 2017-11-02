@@ -47,15 +47,17 @@ class TestResultMissing(RuleNotSatisfied):
     ResultsDB with a matching item and test case name).
     """
 
-    def __init__(self, item, test_case_name):
+    def __init__(self, item, test_case_name, scenario):
         self.item = item
         self.test_case_name = test_case_name
+        self.scenario = scenario
 
     def to_json(self):
         return {
             'type': 'test-result-missing',
             'item': self.item,
             'testcase': self.test_case_name,
+            'scenario': self.scenario,
         }
 
 
@@ -65,9 +67,10 @@ class TestResultFailed(RuleNotSatisfied):
     not ``PASSED`` or ``INFO``) and no corresponding waiver was found.
     """
 
-    def __init__(self, item, test_case_name, result_id):
+    def __init__(self, item, test_case_name, scenario, result_id):
         self.item = item
         self.test_case_name = test_case_name
+        self.scenario = scenario
         self.result_id = result_id
 
     def to_json(self):
@@ -75,6 +78,7 @@ class TestResultFailed(RuleNotSatisfied):
             'type': 'test-result-failed',
             'item': self.item,
             'testcase': self.test_case_name,
+            'scenario': self.scenario,
             'result_id': self.result_id,
         }
 
@@ -154,7 +158,7 @@ class PassingTestCaseRule(Rule):
                                 r['data'].get('scenario', [])]
 
         if not matching_results:
-            return TestResultMissing(item, self.test_case_name)
+            return TestResultMissing(item, self.test_case_name, self._scenario)
         # If we find multiple matching results, we always use the first one which
         # will be the latest chronologically, because ResultsDB always returns
         # results ordered by `submit_time` descending.
@@ -164,7 +168,7 @@ class PassingTestCaseRule(Rule):
         # XXX limit who is allowed to waive
         if any(w['result_id'] == matching_result['id'] and w['waived'] for w in waivers):
             return RuleSatisfied()
-        return TestResultFailed(item, self.test_case_name, matching_result['id'])
+        return TestResultFailed(item, self.test_case_name, self._scenario, matching_result['id'])
 
     @property
     def _scenario(self):

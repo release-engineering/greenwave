@@ -13,14 +13,14 @@ from greenwave.utils import load_policies
 def test_summarize_answers():
     assert summarize_answers([RuleSatisfied()]) == \
         'all required tests passed'
-    assert summarize_answers([TestResultFailed('item', 'test', 'id'), RuleSatisfied()]) == \
+    assert summarize_answers([TestResultFailed('item', 'test', None, 'id'), RuleSatisfied()]) == \
         '1 of 2 required tests failed'
-    assert summarize_answers([TestResultMissing('item', 'test')]) == \
+    assert summarize_answers([TestResultMissing('item', 'test', None)]) == \
         'no test results found'
-    assert summarize_answers([TestResultMissing('item', 'test'),
-                              TestResultFailed('item', 'test', 'id')]) == \
+    assert summarize_answers([TestResultMissing('item', 'test', None),
+                              TestResultFailed('item', 'test', None, 'id')]) == \
         '1 of 2 required tests failed'
-    assert summarize_answers([TestResultMissing('item', 'test'), RuleSatisfied()]) == \
+    assert summarize_answers([TestResultMissing('item', 'test', None), RuleSatisfied()]) == \
         '1 of 2 required tests not found'
 
 

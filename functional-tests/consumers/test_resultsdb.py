@@ -70,7 +70,8 @@ def test_consume_new_result(
                     'item': nvr,
                     'type': 'koji_build'
                 },
-                'type': 'test-result-missing'
+                'type': 'test-result-missing',
+                'scenario': None,
             },
             {
                 'testcase': 'dist.upgradepath',
@@ -78,7 +79,8 @@ def test_consume_new_result(
                     'item': nvr,
                     'type': 'koji_build'
                 },
-                'type': 'test-result-missing'
+                'type': 'test-result-missing',
+                'scenario': None,
             }
         ],
         'summary': '2 of 3 required tests not found',

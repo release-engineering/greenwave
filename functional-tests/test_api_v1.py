@@ -257,13 +257,15 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
             'item': {'item': nvr, 'type': 'koji_build'},
             'result_id': result['id'],
             'testcase': 'dist.rpmdiff.comparison.xml_validity',
+            'scenario': None,
             'type': 'test-result-failed'
         },
     ] + [
         {
             'item': {'item': nvr, 'type': 'koji_build'},
             'testcase': name,
-            'type': 'test-result-missing'
+            'type': 'test-result-missing',
+            'scenario': None,
         } for name in all_rpmdiff_testcase_names if name != 'dist.rpmdiff.comparison.xml_validity'
     ]
     assert sorted(res_data['unsatisfied_requirements']) == sorted(expected_unsatisfied_requirements)
@@ -289,7 +291,8 @@ def test_make_a_decison_on_no_results(requests_session, greenwave_server, testda
         {
             'item': {'item': nvr, 'type': 'koji_build'},
             'testcase': name,
-            'type': 'test-result-missing'
+            'type': 'test-result-missing',
+            'scenario': None,
         } for name in all_rpmdiff_testcase_names
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
@@ -379,7 +382,8 @@ def test_multiple_results_in_a_subject(
             'item': {'item': nvr, 'type': 'koji_build'},
             'result_id': result['id'],
             'testcase': 'dist.abicheck',
-            'type': 'test-result-failed'
+            'type': 'test-result-failed',
+            'scenario': None,
         },
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
@@ -420,7 +424,8 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
         {
             'item': {'item': nvr, 'type': 'koji_build'},
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
-            'type': 'test-result-missing'
+            'type': 'test-result-missing',
+            'scenario': None,
         },
     ]
     assert r.status_code == 200
@@ -530,7 +535,8 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
             'item': {'item': nvr, 'type': 'koji_build'},
             'result_id': result['id'],
             'testcase': all_rpmdiff_testcase_names[0],
-            'type': 'test-result-failed'
+            'type': 'test-result-failed',
+            'scenario': None,
         },
     ]
     assert res_data['policies_satisfied'] is False
