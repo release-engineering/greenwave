@@ -61,27 +61,17 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         message = message.get('body', message)
         log.debug('Processing message "%s"', message)
         msg = message['msg']
-        result_id = msg['result_id']
+
         product_version = msg['product_version']
         config = load_config()
-        timeout = config['REQUESTS_TIMEOUT']
-        # Get the waived result to figure out the item
-        response = requests_session.get(
-            config['RESULTSDB_API_URL'] + '/results/%d' % result_id,
-            timeout=timeout)
-        response.raise_for_status()
-        testcase = response.json()['testcase']['name']
-        # In ResultsDB, 'data' is key -> list of strings.
-        # But in Greenwave, we only deal in key -> string.
-        # This is... iffy and might need cleaning up?
-        item = {k: v[0] for k, v in response.json()['data'].items()}
+        testcase = msg['result_testcase']
         for policy in config['policies']:
             for rule in policy.rules:
                 if rule.test_case_name == testcase:
                     data = {
                         'decision_context': policy.decision_context,
                         'product_version': product_version,
-                        'subject': [item],
+                        'subject': msg['result_subject']
                     }
                     response = requests_session.post(
                         self.fedmsg_config['greenwave_api_url'] + '/decision',
@@ -101,9 +91,12 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                     old_decision = response.json()
 
                     if decision != old_decision:
+                        subject = [dict((str(k), str(v)) for k, v in item.items())
+                                   for item in msg['result_subject']]
                         msg = decision
                         decision.update({
-                            'subject': [item],
+                            'subject': subject,
+                            'result_testcase': testcase,
                             'decision_context': policy.decision_context,
                             'product_version': product_version,
                             'previous': old_decision,

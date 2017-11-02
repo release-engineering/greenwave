@@ -190,6 +190,7 @@ def test_make_a_decison_on_passed_result(requests_session, greenwave_server, tes
         'product_version': 'rhel-7',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
+
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
@@ -208,7 +209,9 @@ def test_make_a_decison_on_failed_result_with_waiver(
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name=all_rpmdiff_testcase_names[0],
                                            outcome='FAILED')
-    testdatabuilder.create_waiver(result_id=result['id'], product_version='rhel-7')
+    waiver = testdatabuilder.create_waiver(result={ # noqa
+        "subject": dict([(key, value[0]) for key, value in result['data'].items()]),
+        "testcase": all_rpmdiff_testcase_names[0]}, product_version='rhel-7')
     # The rest passed
     for testcase_name in all_rpmdiff_testcase_names[1:]:
         testdatabuilder.create_result(item=nvr,
@@ -512,7 +515,9 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name=all_rpmdiff_testcase_names[0],
                                            outcome='FAILED')
-    waiver = testdatabuilder.create_waiver(result_id=result['id'], product_version='rhel-7')
+    waiver = testdatabuilder.create_waiver(result={
+        "subject": dict([(key, value[0]) for key, value in result['data'].items()]),
+        "testcase": all_rpmdiff_testcase_names[0]}, product_version='rhel-7')
     # The rest passed
     for testcase_name in all_rpmdiff_testcase_names[1:]:
         testdatabuilder.create_result(item=nvr,
@@ -523,21 +528,21 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
         'product_version': 'rhel-7',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
-                              headers={'Content-Type': 'application/json'},
-                              data=json.dumps(data))
-    assert r.status_code == 200
-    res_data = r.json()
+    r_ = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                               headers={'Content-Type': 'application/json'},
+                               data=json.dumps(data))
+    assert r_.status_code == 200
+    res_data = r_.json()
     assert res_data['policies_satisfied'] is True
     # Ignore the waiver
     data.update({
         'ignore_waiver': [waiver['id']]
     })
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
-                              headers={'Content-Type': 'application/json'},
-                              data=json.dumps(data))
-    assert r.status_code == 200
-    res_data = r.json()
+    r_ = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                               headers={'Content-Type': 'application/json'},
+                               data=json.dumps(data))
+    assert r_.status_code == 200
+    res_data = r_.json()
     expected_unsatisfied_requirements = [
         {
             'item': {'item': nvr, 'type': 'koji_build'},

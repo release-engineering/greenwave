@@ -199,13 +199,12 @@ def make_decision():
     if not subjects:
         raise BadRequest('Invalid subject, must be a list of dicts')
     answers = []
+
     for item in subjects:
         results = retrieve_results(item)
         results = [r for r in results if r['id'] not in ignore_results]
-        if results:
-            waivers = retrieve_waivers(product_version, results)
-        else:
-            waivers = []
+
+        waivers = retrieve_waivers(product_version, item)
         waivers = [w for w in waivers if w['id'] not in ignore_waivers]
         for policy in applicable_policies:
             answers.extend(policy.check(item, results, waivers))

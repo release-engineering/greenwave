@@ -28,7 +28,10 @@ def test_consume_new_waiver(
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    waiver = testdatabuilder.create_waiver(result_id=result['id'], product_version='fedora-26')
+    testcase = str(result['testcase']['name'])
+    waiver = testdatabuilder.create_waiver(result={
+        "subject": dict([(str(key), str(value[0])) for key, value in result['data'].items()]),
+        "testcase": testcase}, product_version='fedora-26')
     message = {
         'body': {
             'topic': 'waiver.new',
@@ -39,7 +42,8 @@ def test_consume_new_waiver(
                 "waived": "true",
                 "timestamp": "2017-08-10T17:42:04.209638",
                 "product_version": "fedora-26",
-                "result_id": result['id'],
+                "result_testcase": waiver['result_testcase'],
+                "result_subject": [waiver['result_subject']]
             }
         }
     }
@@ -64,10 +68,11 @@ def test_consume_new_waiver(
     assert old_decision['summary'] == '1 of 3 required tests failed'
 
     msg = {
+        'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
+                                'taskotron_release_critical_tasks'],
         'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_stable',
-        'unsatisfied_requirements': [],
-        'summary': 'all required tests passed',
+        'previous': old_decision,
         'product_version': 'fedora-26',
         'subject': [
             {
@@ -75,9 +80,9 @@ def test_consume_new_waiver(
                 'type': 'koji_build'
             }
         ],
-        'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
-                                'taskotron_release_critical_tasks'],
-        'previous': old_decision,
+        'unsatisfied_requirements': [],
+        'summary': 'all required tests passed',
+        'result_testcase': testcase,
     }
     mock_fedmsg.assert_called_once_with(
         topic='decision.update', msg=msg)

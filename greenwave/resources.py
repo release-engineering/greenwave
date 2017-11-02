@@ -30,14 +30,14 @@ def retrieve_results(item):
 
 
 # NOTE - not cached, for now.
-def retrieve_waivers(product_version, results):
+def retrieve_waivers(product_version, item):
     timeout = current_app.config['REQUESTS_TIMEOUT']
     data = {
         'product_version': product_version,
-        'result_ids': [result['id'] for result in results],
+        'results': [{"subject": item}]
     }
     response = requests_session.post(
-        current_app.config['WAIVERDB_API_URL'] + '/waivers/+by-result-ids',
+        current_app.config['WAIVERDB_API_URL'] + '/waivers/+by-subjects-and-testcases',
         headers={'Content-Type': 'application/json'},
         data=json.dumps(data),
         timeout=timeout)
