@@ -83,9 +83,6 @@ TASKTRON_RELEASE_CRITICAL_TASKS = [
     'dist.upgradepath',
 ]
 
-OPENQA_TASKS = [
-    'compose.install_no_user',
-]
 OPENQA_SCENARIOS = [
     'scenario1',
     'scenario2',
@@ -440,12 +437,13 @@ def test_make_a_decison_on_passed_result_with_scenario(
     If we require two scenarios to pass, and both pass, then we pass.
     """
     compose_id = testdatabuilder.unique_compose_id()
-    for testcase_name in OPENQA_TASKS:
-        for scenario in OPENQA_SCENARIOS:
-            testdatabuilder.create_result(item=compose_id,
-                                          testcase_name=testcase_name,
-                                          scenario=scenario,
-                                          outcome='PASSED')
+    testcase_name = 'compose.install_no_user'
+    for scenario in OPENQA_SCENARIOS:
+        testdatabuilder.create_result(
+            item=compose_id,
+            testcase_name=testcase_name,
+            scenario=scenario,
+            outcome='PASSED')
     data = {
         'decision_context': 'rawhide_compose_sync_to_mirrors',
         'product_version': 'fedora-rawhide',
@@ -469,17 +467,19 @@ def test_make_a_decison_on_failing_result_with_scenario(
     """
 
     compose_id = testdatabuilder.unique_compose_id()
-    for testcase_name in OPENQA_TASKS:
-        # Scenario 1 passes..
-        testdatabuilder.create_result(item=compose_id,
-                                      testcase_name=testcase_name,
-                                      scenario='scenario1',
-                                      outcome='PASSED')
-        # But scenario 2 fails!
-        testdatabuilder.create_result(item=compose_id,
-                                      testcase_name=testcase_name,
-                                      scenario='scenario2',
-                                      outcome='FAILED')
+    testcase_name = 'compose.install_no_user'
+    # Scenario 1 passes..
+    testdatabuilder.create_result(
+        item=compose_id,
+        testcase_name=testcase_name,
+        scenario='scenario1',
+        outcome='PASSED')
+    # But scenario 2 fails!
+    result = testdatabuilder.create_result(
+        item=compose_id,
+        testcase_name=testcase_name,
+        scenario='scenario2',
+        outcome='FAILED')
     data = {
         'decision_context': 'rawhide_compose_sync_to_mirrors',
         'product_version': 'fedora-rawhide',
@@ -494,6 +494,14 @@ def test_make_a_decison_on_failing_result_with_scenario(
     assert res_data['applicable_policies'] == ['openqa_important_stuff_for_rawhide']
     expected_summary = '1 of 2 required tests failed'
     assert res_data['summary'] == expected_summary
+    expected_unsatisfied_requirements = [{
+        u'item': {u'item': compose_id},
+        u'result_id': result['id'],
+        u'testcase': testcase_name,
+        u'type': u'test-result-failed',
+        u'scenario': u'scenario2',
+    }]
+    assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
 
 def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
