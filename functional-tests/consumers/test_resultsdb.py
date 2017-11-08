@@ -341,3 +341,70 @@ def test_invalidate_new_result_with_no_preexisting_cache(
     ]
     handler.consume(message)
     handler.cache.delete.assert_not_called()
+
+
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+def test_consume_compose_id_result(
+        mock_fedmsg, load_config, requests_session, greenwave_server,
+        testdatabuilder, monkeypatch):
+    monkeypatch.setenv('TEST', 'true')
+    load_config.return_value = {'greenwave_api_url': greenwave_server.url + 'api/v1.0'}
+    compose_id = testdatabuilder.unique_compose_id()
+    result = testdatabuilder.create_compose_result(
+        compose_id=compose_id,
+        testcase_name='compose.install_no_user',
+        outcome='PASSED')
+    message = {
+        'body': {
+            'topic': 'taskotron.result.new',
+            'msg': {
+                'result': {
+                    'id': result['id'],
+                    'outcome': 'PASSED'
+                },
+                'task': {
+                    "productmd.compose.id": "Fedora-Rawhide-20171108.n.0",
+                    "name": "compose.install_no_user",
+                },
+            }
+        }
+    }
+    hub = mock.MagicMock()
+    hub.config = {
+        'environment': 'environment',
+        'topic_prefix': 'topic_prefix',
+        'greenwave_cache': {'backend': 'dogpile.cache.null'},
+    }
+    handler = resultsdb.ResultsDBHandler(hub)
+    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler.consume(message)
+
+    # get old decision
+    data = {
+        'decision_context': 'rawhide_compose_sync_to_mirrors',
+        'product_version': 'fedora-rawhide',
+        'subject': [{'productmd.compose.id': compose_id}],
+        'ignore_result': [result['id']]
+    }
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    old_decision = r.json()
+    msg = {
+        'policies_satisfied': False,
+        'decision_context': 'rawhide_compose_sync_to_mirrors',
+        'product_version': 'fedora-rawhide',
+        'unsatisfied_requirements': [
+        ],
+        'summary': '2 of 3 required tests not found',
+        'subject': [
+            {
+                'productmd.compose.id': compose_id,
+            }
+        ],
+        'applicable_policies': ['blahblah'],
+        'previous': old_decision,
+    }
+    mock_fedmsg.assert_any_call(topic='decision.update', msg=msg)

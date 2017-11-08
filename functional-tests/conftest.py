@@ -126,6 +126,21 @@ class TestDataBuilder(object):
     def unique_compose_id(self):
         return 'Fedora-9000-19700101.n.{}'.format(self._counter.next())
 
+    def create_compose_result(self, compose_id, testcase_name, outcome, scenario=None):
+        data = {
+            'testcase': {'name': testcase_name},
+            'data': {'productmd.compose.id': compose_id},
+            'outcome': outcome,
+        }
+        if scenario:
+            data['data']['scenario'] = scenario
+        response = self.requests_session.post(
+            self.resultsdb_url + 'api/v2.0/results',
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps(data))
+        response.raise_for_status()
+        return response.json()
+
     def create_result(self, item, testcase_name, outcome, scenario=None):
         data = {
             'testcase': {'name': testcase_name},
