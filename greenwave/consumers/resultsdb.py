@@ -10,7 +10,6 @@ to the message bus about the newly satisfied/unsatisfied policy.
 """
 
 import collections
-import copy
 import json
 import logging
 
@@ -63,6 +62,22 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         log.info('Greenwave resultsdb handler listening on: %s', self.topic)
 
+    def announcement_subjects(self, config, message):
+        """ Yields subjects for announcement consideration from the message.
+
+        Args:
+            config (dict): The greenwave configuration.
+            message (munch.Munch): A fedmsg about a new result.
+        """
+
+        task = message['msg']['task']
+        announcement_keys = [
+            set(keys) for keys in config['ANNOUNCEMENT_SUBJECT_KEYS']
+        ]
+        for keys in announcement_keys:
+            if keys.issubset(task.keys()):
+                yield dict([(key.decode('utf-8'), task[key].decode('utf-8')) for key in keys])
+
     def consume(self, message):
         """
         Process the given message and take action.
@@ -72,21 +87,24 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         """
         message = message.get('body', message)
         log.debug('Processing message "%s"', message)
-        self._invalidate_cache(message)
-        self._publish_decision_changes(message)
+        config = load_config()
+        testcase = message['msg']['task']['name']
+        result_id = message['msg']['result']['id']
+        for subject in self.announcement_subjects(config, message):
+            log.debug('Considering subject "%s"', subject)
+            self._invalidate_cache(subject)
+            self._publish_decision_changes(config, subject, result_id, testcase)
 
-    def _publish_decision_changes(self, message):
+    def _publish_decision_changes(self, config, subject, result_id, testcase):
         """
-        Process the given message and publish a message if the decision is changed.
+        Process the given subject and publish a message if the decision is changed.
 
         Args:
-            message (munch.Munch): A fedmsg about a new result.
+            config (dict): The greenwave configuration.
+            subject (munch.Munch): A subject argument, used to query greenwave.
+            result_id (int): A result ID to ignore for comparison.
+            testcase (munch.Munch): The name of a testcase to consider.
         """
-        msg = copy.deepcopy(message['msg'])
-        task = msg['task']
-        testcase = task['name']
-        del task['name']
-        config = load_config()
 
         # Build a set of all policies which might apply to this new results
         applicable_policies = set()
@@ -109,7 +127,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 data = {
                     'decision_context': decision_context,
                     'product_version': product_version,
-                    'subject': [task],
+                    'subject': [subject],
                 }
                 response = requests_session.post(
                     self.fedmsg_config['greenwave_api_url'] + '/decision',
@@ -119,7 +137,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 decision = response.json()
                 # get old decision
                 data.update({
-                    'ignore_result': [msg['result']['id']],
+                    'ignore_result': [result_id],
                 })
                 response = requests_session.post(
                     self.fedmsg_config['greenwave_api_url'] + '/decision',
@@ -129,7 +147,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 old_decision = response.json()
                 if decision != old_decision:
                     decision.update({
-                        'subject': [task],
+                        'subject': [subject],
                         'decision_context': decision_context,
                         'product_version': product_version,
                         'previous': old_decision,
@@ -138,20 +156,16 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                               'greenwave.decision.update')
                     fedmsg.publish(topic='decision.update', msg=decision)
 
-    def _invalidate_cache(self, message):
+    def _invalidate_cache(self, subject):
         """
-        Process the given message and delete cache keys as necessary.
+        Process the given subject and delete cache keys as necessary.
 
         Args:
-            message (munch.Munch): A fedmsg about a new result or waiver.
+            subject (munch.Munch): A subject argument, used to query greenwave.
         """
-        msg = copy.deepcopy(message['msg'])
-        task = msg['task']
-        del task['name']
-        # here, task is {"item": "nodejs-ansi-black-0.1.1-1.fc28", "type": "koji_build" }
         namespace = None
         fn = greenwave.resources.retrieve_results
-        key = greenwave.cache.key_generator(namespace, fn)(task)
+        key = greenwave.cache.key_generator(namespace, fn)(subject)
         if not self.cache.get(key):
             log.debug("No cache value found for %r", key)
         else:

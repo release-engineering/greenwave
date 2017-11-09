@@ -214,7 +214,7 @@ def test_invalidate_new_result_with_mocked_cache(
     ]
     handler.consume(message)
     expected = ("greenwave.resources:retrieve_results|"
-                "{'item': '%s', 'type': 'koji_build'}" % nvr)
+                "{u'item': u'%s', u'type': u'koji_build'}" % nvr)
     handler.cache.delete.assert_called_once_with(expected)
 
 
@@ -354,6 +354,7 @@ def test_consume_compose_id_result(
     result = testdatabuilder.create_compose_result(
         compose_id=compose_id,
         testcase_name='compose.install_no_user',
+        scenario='scenario1',
         outcome='PASSED')
     message = {
         'body': {
@@ -364,7 +365,7 @@ def test_consume_compose_id_result(
                     'outcome': 'PASSED'
                 },
                 'task': {
-                    "productmd.compose.id": "Fedora-Rawhide-20171108.n.0",
+                    "productmd.compose.id": compose_id,
                     "name": "compose.install_no_user",
                 },
             }
@@ -393,18 +394,35 @@ def test_consume_compose_id_result(
     assert r.status_code == 200
     old_decision = r.json()
     msg = {
-        'policies_satisfied': False,
-        'decision_context': 'rawhide_compose_sync_to_mirrors',
+        u'applicable_policies': [u'openqa_important_stuff_for_rawhide'],
+        u'decision_context': u'rawhide_compose_sync_to_mirrors',
+        u'policies_satisfied': False,
         'product_version': 'fedora-rawhide',
-        'unsatisfied_requirements': [
-        ],
-        'summary': '2 of 3 required tests not found',
-        'subject': [
-            {
-                'productmd.compose.id': compose_id,
-            }
-        ],
-        'applicable_policies': ['blahblah'],
-        'previous': old_decision,
+        'subject': [{u'productmd.compose.id': 'Fedora-9000-19700101.n.18'}],
+        u'summary': u'1 of 2 required tests not found',
+        'previous': {
+            u'applicable_policies': [u'openqa_important_stuff_for_rawhide'],
+            u'policies_satisfied': False,
+            u'summary': u'no test results found',
+            u'unsatisfied_requirements': [
+                {u'item': {
+                    u'productmd.compose.id': compose_id},
+                    u'scenario': u'scenario1',
+                    u'testcase': u'compose.install_no_user',
+                    u'type': u'test-result-missing'},
+                {u'item': {
+                    u'productmd.compose.id': compose_id},
+                    u'scenario': u'scenario2',
+                    u'testcase': u'compose.install_no_user',
+                    u'type': u'test-result-missing'},
+            ]
+        },
+        u'unsatisfied_requirements': [{
+            u'item': {u'productmd.compose.id': compose_id},
+            u'scenario': u'scenario2',
+            u'testcase': u'compose.install_no_user',
+            u'type': u'test-result-missing'}
+        ]
     }
+
     mock_fedmsg.assert_any_call(topic='decision.update', msg=msg)
