@@ -398,25 +398,9 @@ def test_consume_compose_id_result(
         u'decision_context': u'rawhide_compose_sync_to_mirrors',
         u'policies_satisfied': False,
         'product_version': 'fedora-rawhide',
-        'subject': [{u'productmd.compose.id': 'Fedora-9000-19700101.n.18'}],
+        'subject': [{u'productmd.compose.id': compose_id}],
         u'summary': u'1 of 2 required tests not found',
-        'previous': {
-            u'applicable_policies': [u'openqa_important_stuff_for_rawhide'],
-            u'policies_satisfied': False,
-            u'summary': u'no test results found',
-            u'unsatisfied_requirements': [
-                {u'item': {
-                    u'productmd.compose.id': compose_id},
-                    u'scenario': u'scenario1',
-                    u'testcase': u'compose.install_no_user',
-                    u'type': u'test-result-missing'},
-                {u'item': {
-                    u'productmd.compose.id': compose_id},
-                    u'scenario': u'scenario2',
-                    u'testcase': u'compose.install_no_user',
-                    u'type': u'test-result-missing'},
-            ]
-        },
+        'previous': old_decision,
         u'unsatisfied_requirements': [{
             u'item': {u'productmd.compose.id': compose_id},
             u'scenario': u'scenario2',
