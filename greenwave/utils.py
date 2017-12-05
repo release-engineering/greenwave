@@ -77,7 +77,7 @@ def load_config(config_obj=None):
         if config_file:
             config.from_pyfile(config_file)
         if os.environ.get('SECRET_KEY'):
-            app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
+            config['SECRET_KEY'] = os.environ['SECRET_KEY']
     config['policies'] = load_policies(config['POLICIES_DIR'])
     return config
 
