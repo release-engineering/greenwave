@@ -6,6 +6,7 @@ waiverdb, etc..).
 
 """
 
+import pdb
 import requests
 import json
 from flask import current_app
@@ -34,7 +35,7 @@ def retrieve_waivers(product_version, item):
     timeout = current_app.config['REQUESTS_TIMEOUT']
     data = {
         'product_version': product_version,
-        'results': [{"subject": item}]
+        'results': [{'subject': item}]
     }
     response = requests_session.post(
         current_app.config['WAIVERDB_API_URL'] + '/waivers/+by-subjects-and-testcases',
@@ -42,4 +43,5 @@ def retrieve_waivers(product_version, item):
         data=json.dumps(data),
         timeout=timeout)
     response.raise_for_status()
+    #pdb.set_trace()
     return response.json()['data']
