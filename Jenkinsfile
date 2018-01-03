@@ -68,6 +68,14 @@ node('fedora') {
                 """
                 archiveArtifacts artifacts: 'mock-result/f25/**'
             },
+            'F26': {
+                sh """
+                mkdir -p mock-result/f26
+                flock /etc/mock/fedora-26-x86_64.cfg \
+                /usr/bin/mock --resultdir=mock-result/f26 --no-cleanup-after -r fedora-26-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
+                """
+                archiveArtifacts artifacts: 'mock-result/f26/**'
+            },
         )
     }
     stage('Invoke Rpmlint') {
@@ -78,9 +86,40 @@ node('fedora') {
             'F25': {
                 sh 'rpmlint -f rpmlint-config.py mock-result/f25/*.rpm'
             },
+            'F26': {
+                sh 'rpmlint -f rpmlint-config.py mock-result/f26/*.rpm'
+            },
         )
     }
     /* XXX: run functional tests in OpenShift when UpShift is ready */
+}
+node('docker') {
+    checkout scm
+    stage('Build Docker container') {
+        unarchive mapping: ['mock-result/f26/': '.']
+        def f26_rpm = findFiles(glob: 'mock-result/f26/**/*.noarch.rpm')[0]
+        def appversion = sh(returnStdout: true, script: """
+            rpm2cpio ${f26_rpm} | \
+            cpio --quiet --extract --to-stdout ./usr/lib/python2.7/site-packages/greenwave\\*.egg-info/PKG-INFO | \
+            awk '/^Version: / {print \$2}'
+        """).trim()
+        /* Git builds will have a version like 0.3.2.dev1+git.3abbb08 following
+         * the rules in PEP440. But Docker does not let us have + in the tag
+         * name, so let's munge it here. */
+        appversion = appversion.replace('+', '-')
+        docker.withRegistry(
+                'https://docker-registry.engineering.redhat.com/',
+                'docker-registry-factory2-builder-sa-credentials') {
+            /* Note that the docker.build step has some magic to guess the
+             * Dockerfile used, which will break if the build directory (here ".")
+             * is not the final argument in the string. */
+            def image = docker.build "factory2/greenwave:${appversion}", "--build-arg greenwave_rpm=$f26_rpm ."
+            image.push()
+        }
+        /* Save container version for later steps (this is ugly but I can't find anything better...) */
+        writeFile file: 'appversion', text: appversion
+        archiveArtifacts artifacts: 'appversion'
+    }
 }
 } catch (e) {
     if (ownership.job.ownershipEnabled) {
