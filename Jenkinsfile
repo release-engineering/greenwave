@@ -7,7 +7,7 @@ try { // massive try{} catch{} around the entire build for failure notifications
 node('fedora') {
     checkout scm
     sh 'sudo dnf -y builddep greenwave.spec'
-    sh 'sudo dnf -y install python2-flake8 pylint python2-sphinx python-sphinxcontrib-httpdomain'
+    sh 'sudo dnf -y install python2-flake8 python2-pylint python2-sphinx python-sphinxcontrib-httpdomain'
     stage('Invoke Flake8') {
         sh 'flake8'
     }
