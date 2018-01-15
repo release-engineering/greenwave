@@ -13,6 +13,7 @@ ARG cacert_url=undefined
 COPY $greenwave_rpm /tmp
 RUN dnf -y install \
     python-gunicorn \
+    python-memcached \
     /tmp/$(basename $greenwave_rpm) \
     && dnf -y clean all
 RUN if [ "$cacert_url" != "undefined" ]; then \
