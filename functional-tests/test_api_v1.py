@@ -442,15 +442,15 @@ def test_make_a_decison_on_passed_result_with_scenario(
     compose_id = testdatabuilder.unique_compose_id()
     testcase_name = 'compose.install_no_user'
     for scenario in OPENQA_SCENARIOS:
-        testdatabuilder.create_result(
-            item=compose_id,
+        testdatabuilder.create_compose_result(
+            compose_id=compose_id,
             testcase_name=testcase_name,
             scenario=scenario,
             outcome='PASSED')
     data = {
         'decision_context': 'rawhide_compose_sync_to_mirrors',
         'product_version': 'fedora-rawhide',
-        'subject': [{'item': compose_id}],
+        'subject': [{'productmd.compose.id': compose_id}],
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -472,21 +472,21 @@ def test_make_a_decison_on_failing_result_with_scenario(
     compose_id = testdatabuilder.unique_compose_id()
     testcase_name = 'compose.install_no_user'
     # Scenario 1 passes..
-    testdatabuilder.create_result(
-        item=compose_id,
+    testdatabuilder.create_compose_result(
+        compose_id=compose_id,
         testcase_name=testcase_name,
         scenario='scenario1',
         outcome='PASSED')
     # But scenario 2 fails!
-    result = testdatabuilder.create_result(
-        item=compose_id,
+    result = testdatabuilder.create_compose_result(
+        compose_id=compose_id,
         testcase_name=testcase_name,
         scenario='scenario2',
         outcome='FAILED')
     data = {
         'decision_context': 'rawhide_compose_sync_to_mirrors',
         'product_version': 'fedora-rawhide',
-        'subject': [{'item': compose_id}],
+        'subject': [{'productmd.compose.id': compose_id}],
     }
     r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -498,7 +498,7 @@ def test_make_a_decison_on_failing_result_with_scenario(
     expected_summary = '1 of 2 required tests failed'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [{
-        u'item': {u'item': compose_id},
+        u'item': {u'productmd.compose.id': compose_id},
         u'result_id': result['id'],
         u'testcase': testcase_name,
         u'type': u'test-result-failed',
