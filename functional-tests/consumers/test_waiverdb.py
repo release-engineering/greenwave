@@ -42,8 +42,8 @@ def test_consume_new_waiver(
                 "waived": "true",
                 "timestamp": "2017-08-10T17:42:04.209638",
                 "product_version": "fedora-26",
-                "result_testcase": waiver['result_testcase'],
-                "result_subject": [waiver['result_subject']]
+                "testcase": waiver['testcase'],
+                "subject": [waiver['subject']]
             }
         }
     }
@@ -82,7 +82,7 @@ def test_consume_new_waiver(
         ],
         'unsatisfied_requirements': [],
         'summary': 'all required tests passed',
-        'result_testcase': testcase,
+        'testcase': testcase,
     }
     mock_fedmsg.assert_called_once_with(
         topic='decision.update', msg=msg)

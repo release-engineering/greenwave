@@ -64,14 +64,14 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         product_version = msg['product_version']
         config = load_config()
-        testcase = msg['result_testcase']
+        testcase = msg['testcase']
         for policy in config['policies']:
             for rule in policy.rules:
                 if rule.test_case_name == testcase:
                     data = {
                         'decision_context': policy.decision_context,
                         'product_version': product_version,
-                        'subject': msg['result_subject']
+                        'subject': msg['subject']
                     }
                     response = requests_session.post(
                         self.fedmsg_config['greenwave_api_url'] + '/decision',
@@ -92,11 +92,11 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
                     if decision != old_decision:
                         subject = [dict((str(k), str(v)) for k, v in item.items())
-                                   for item in msg['result_subject']]
+                                   for item in msg['subject']]
                         msg = decision
                         decision.update({
                             'subject': subject,
-                            'result_testcase': testcase,
+                            'testcase': testcase,
                             'decision_context': policy.decision_context,
                             'product_version': product_version,
                             'previous': old_decision,

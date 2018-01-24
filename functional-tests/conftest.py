@@ -158,8 +158,8 @@ class TestDataBuilder(object):
 
     def create_waiver(self, result, product_version, waived=True):
         data = {
-            'result_subject': result['subject'],
-            'result_testcase': result['testcase'],
+            'subject': result['subject'],
+            'testcase': result['testcase'],
             'product_version': product_version,
             'waived': waived,
         }

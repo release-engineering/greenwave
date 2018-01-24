@@ -166,9 +166,9 @@ class PassingTestCaseRule(Rule):
         if matching_result['outcome'] in ['PASSED', 'INFO']:
             return RuleSatisfied()
         # XXX limit who is allowed to waive
-        if any(w['result_subject'] == dict([(key, value[0])
+        if any(w['subject'] == dict([(key, value[0])
                for key, value in matching_result['data'].items()]) and
-               w['result_testcase'] == matching_result['testcase']['name'] and
+               w['testcase'] == matching_result['testcase']['name'] and
                w['waived'] for w in waivers):
             return RuleSatisfied()
         return TestResultFailed(item, self.test_case_name, self._scenario, matching_result['id'])
