@@ -5,7 +5,9 @@ After=network.target
 
 [Service]
 EnvironmentFile=-/etc/sysconfig/greenwave
-ExecStart=/usr/bin/gunicorn --bind unix:/run/greenwave/socket \
+ExecStart=/usr/bin/gunicorn \
+        --workers 8 \
+        --bind unix:/run/greenwave/socket \
         greenwave.wsgi:app
 
 [Install]
