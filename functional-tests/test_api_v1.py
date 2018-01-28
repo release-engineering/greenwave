@@ -202,6 +202,50 @@ def test_make_a_decison_on_passed_result(requests_session, greenwave_server, tes
     assert res_data['summary'] == expected_summary
 
 
+def test_make_a_decison_with_verbose_flag(requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    for testcase_name in all_rpmdiff_testcase_names:
+        testdatabuilder.create_result(item=nvr,
+                                      testcase_name=testcase_name,
+                                      outcome='PASSED')
+    data = {
+        'decision_context': 'errata_newfile_to_qe',
+        'product_version': 'rhel-7',
+        'subject': [{'item': nvr, 'type': 'koji_build'}],
+        'verbose': True,
+    }
+
+    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    expected_result = {
+        u'data': {
+            u'item': [u'glibc-1.0-2.el7'],
+            u'type': [u'koji_build']
+        },
+        u'groups': [],
+        u'href': u'http://localhost:5001/api/v2.0/results/72',
+        u'id': 72,
+        u'note': None,
+        u'outcome': u'PASSED',
+        u'ref_url': None,
+        #u'submit_time': u'2018-01-28T12:55:54.641139',
+        u'testcase': {
+            u'href': u'http://localhost:5001/api/v2.0/testcases/dist.rpmdiff.analysis.abi_symbols',
+            u'name': u'dist.rpmdiff.analysis.abi_symbols',
+            u'ref_url': None,
+        }
+    }
+
+    assert len(res_data['results']) == len(all_rpmdiff_testcase_names)
+    del res_data['results'][-1]['submit_time']
+    assert res_data['results'][-1] == expected_result
+    expected_waivers = []
+    assert res_data['waivers'] == expected_waivers
+
+
 def test_make_a_decison_on_failed_result_with_waiver(
         requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()

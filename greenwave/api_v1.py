@@ -122,7 +122,8 @@ def make_decision():
        {
            "decision_context": "bodhi_update_push_stable",
            "product_version": "fedora-26",
-           "subject": [{"item": "glibc-1.0-1.f26", "type": "koji_build"}]
+           "subject": [{"item": "glibc-1.0-1.f26", "type": "koji_build"}],
+           "verbose": True
        }
 
 
@@ -153,7 +154,42 @@ def make_decision():
                    'testcase': 'dist.rpmlint',
                    'type': 'test-result-missing'
                }
-           ]
+           ],
+           "results": [
+               {
+                 'data': {
+                   'arch': [ 'i386' ],
+                   'item': [ 'cross-gcc-7.0.1-0.3.fc26' ],
+                   'scenario': [ 'i386' ],
+                   'type': [ 'koji_build' ]
+                 },
+                 'groups': [ '05078932-67a1-11e7-b290-5254008e42f6' ],
+                 'href': 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/results/123',
+                 'id': 123,
+                 'note': null,
+                 'outcome': 'FAILED',
+                 'ref_url': 'https://taskotron.fedoraproject.org/artifacts/all/05078932-67a1-11e7-b290-5254008e42f6/task_output/cross-gcc-7.0.1-0.3.fc26.i386.log',
+                 'submit_time': '2017-07-13T08:15:14.474984',
+                 'testcase': {
+                   'href': 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/testcases/dist.depcheck',
+                   'name': 'dist.depcheck',
+                   'ref_url': 'https://fedoraproject.org/wiki/Taskotron/Tasks/depcheck'
+                 }
+               }
+           ],
+           "waivers": [
+               {
+                 'username': 'ralph',
+                 'comment': 'This is fine.',
+                 'product_version': 'fedora-27',
+                 'waived': true,
+                 'timestamp': '2018-01-23T18:02:04.630122',
+                 'proxied_by': null,
+                 'subject': [{'item': 'cross-gcc-7.0.1-0.3.fc26', 'type': 'koji_build'}],
+                 'testcase': 'dist.rpmlint',
+                 'id': 1
+               }
+           ],
        }
 
     :jsonparam string product_version: The product version string used for querying WaiverDB.
@@ -163,6 +199,7 @@ def make_decision():
     :jsonparam list subject: A list of items about which the caller is requesting a decision
         used for querying ResultsDB. Each item contains one or more key-value pairs of 'data' key
         in ResultsDB API. For example, [{"type": "koji_build", "item": "xscreensaver-5.37-3.fc27"}].
+    :jsonparam bool verbose: A flag to return additional information.
     :jsonparam list ignore_result: A list of result ids that will be ignored when making
         the decision.
     :jsonparam list ignore_waiver: A list of waiver ids that will be ignored when making
@@ -187,6 +224,9 @@ def make_decision():
         raise BadRequest('Invalid subject, must be a list of items')
     product_version = data['product_version']
     decision_context = data['decision_context']
+    verbose = data.get('verbose', False)
+    if not isinstance(verbose, bool):
+        raise BadRequest('Invalid verbose flag, must be a bool')
     ignore_results = data.get('ignore_result', [])
     ignore_waivers = data.get('ignore_waiver', [])
     applicable_policies = [policy for policy in current_app.config['policies']
@@ -200,14 +240,19 @@ def make_decision():
         raise BadRequest('Invalid subject, must be a list of dicts')
     answers = []
 
+    all_results, all_waivers = [], []
     for item in subjects:
         results = retrieve_results(item)
         results = [r for r in results if r['id'] not in ignore_results]
+        all_results.extend(results)
 
         waivers = retrieve_waivers(product_version, item)
         waivers = [w for w in waivers if w['id'] not in ignore_waivers]
+        all_waivers.extend(waivers)
+
         for policy in applicable_policies:
             answers.extend(policy.check(item, results, waivers))
+
     res = {
         'policies_satisfied': all(answer.is_satisfied for answer in answers),
         'summary': summarize_answers(answers),
@@ -215,6 +260,11 @@ def make_decision():
         'unsatisfied_requirements': [answer.to_json() for answer in answers
                                      if not answer.is_satisfied],
     }
+    if verbose:
+        res.update({
+            'results': all_results,
+            'waivers': all_waivers,
+        })
     resp = jsonify(res)
     resp = insert_headers(resp)
     resp.status_code = 200
