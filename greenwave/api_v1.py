@@ -206,7 +206,7 @@ def make_decision():
         the decision.
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
-    """
+    """  # noqa: E501
     if request.get_json():
         if ('product_version' not in request.get_json() or
                 not request.get_json()['product_version']):
