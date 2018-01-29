@@ -123,7 +123,7 @@ def make_decision():
            "decision_context": "bodhi_update_push_stable",
            "product_version": "fedora-26",
            "subject": [{"item": "glibc-1.0-1.f26", "type": "koji_build"}],
-           "verbose": True
+           "verbose": true
        }
 
 
