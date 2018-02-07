@@ -80,7 +80,6 @@ node('fedora') {
             },
         )
     }
-    /* XXX: run functional tests in OpenShift when UpShift is ready */
 }
 node('docker') {
     checkout scm
@@ -108,6 +107,22 @@ node('docker') {
         /* Save container version for later steps (this is ugly but I can't find anything better...) */
         writeFile file: 'appversion', text: appversion
         archiveArtifacts artifacts: 'appversion'
+    }
+}
+
+/* XXX: run functional tests in OpenShift when UpShift is ready */
+
+node('docker') {
+    checkout scm
+    stage('Tag container with "latest", for dev and stage.') {
+        unarchive mapping: ['appversion': 'appversion']
+        def appversion = readFile('appversion').trim()
+        docker.withRegistry(
+                'https://docker-registry.engineering.redhat.com/',
+                'docker-registry-factory2-builder-sa-credentials') {
+            def image = docker.image("factory2/greenwave:${appversion}")
+            image.push('latest')
+        }
     }
 }
 } catch (e) {
