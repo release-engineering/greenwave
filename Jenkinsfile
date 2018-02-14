@@ -114,7 +114,7 @@ node('docker') {
 
 node('docker') {
     checkout scm
-    stage('Tag "latest".) {
+    stage('Tag "latest".') {
         unarchive mapping: ['appversion': 'appversion']
         def appversion = readFile('appversion').trim()
         docker.withRegistry(
