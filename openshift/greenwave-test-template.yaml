@@ -1,0 +1,250 @@
+# Template to produce a new test environment in OpenShift.
+#
+# To create an environment from the template, process and apply it:
+#   oc process -f openshift/greenwave-test-template.yaml -p TEST_ID=123 | oc apply -f -
+# To clean up the environment, use a selector on the environment label:
+#   oc delete all -l environment=test-123
+# Or use the app label to delete things related to greenwave:
+#   oc delete all -l app=greenwave
+
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: greenwave-test-template
+parameters:
+- name: TEST_ID
+  displayName: Test id
+  description: Short unique identifier for this test run (e.g. Jenkins job number)
+  required: true
+- name: GREENWAVE_IMAGE
+  displayName: Greenwave container image
+  description: Image to be used for Greenwave deployement
+  value: 172.30.1.1:5000/myproject/greenwave:latest
+  required: true
+- name: GREENWAVE_SECRET_KEY
+  displayName: Secret Key for Greenwave
+  generate: expression
+  from: "[\\w]{32}"
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: "greenwave-test-${TEST_ID}-policies"
+    labels:
+      app: greenwave
+      environment: "test-${TEST_ID}"
+  data:
+    redhat.yaml: |-
+      # Mimic the default Errata rule used for RHEL-7 https://errata.devel.redhat.com/workflow_rules/1
+      # In Errata, in order to transition to QE state, an advisory must complete rpmdiff test.
+      # A completed rpmdiff test could be some dist.rpmdiff.* testcases in ResultsDB and all the
+      # tests need to be passed.
+      --- !Policy
+      id: "1"
+      product_versions:
+        - rhel-7
+      decision_context: errata_newfile_to_qe
+      blacklist: []
+      rules:
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.abi_symbols}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.binary_stripping}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.build_log}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.desktop_file_sanity}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.elflint}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.empty_payload}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.execshield}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.file_list}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.file_permissions}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.file_sizes}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.ipv6}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.java_byte_code}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.manpage_integrity}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.metadata}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.ownership}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.patches}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.pathnames}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.politics}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.rpath}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.rpm_changelog}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.rpm_config_doc_files}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.rpm_requires_provides}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.rpm_scripts}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.rpm_triggers}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.shell_syntax}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.specfile_checks}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.symlinks}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.upstream_source}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.virus_scan}
+        - !PassingTestCaseRule {test_case_name: dist.rpmdiff.analysis.xml_validity}
+      # Errata Tool "Unrestricted" rule set
+      --- !Policy
+      id: "errata-unrestricted"
+      product_versions:
+        - cdk-2
+        - devstudio-2
+      decision_context: errata_newfile_to_qe
+      blacklist: []
+      rules: []
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: "greenwave-test-${TEST_ID}-config"
+    labels:
+      environment: "test-${TEST_ID}"
+      app: greenwave
+  stringData:
+    settings.py: |-
+      SECRET_KEY = '${GREENWAVE_SECRET_KEY}'
+      HOST= '0.0.0.0'
+      PORT = 8080
+      DEBUG = False
+      POLICIES_DIR = '/etc/policies/'
+      WAIVERDB_API_URL = 'http://waiverdb-test-${TEST_ID}-web:8080/api/v1.0'
+      RESULTSDB_API_URL = 'http://resultsdb-test-${TEST_ID}-internal-api:5001/api/v2.0'
+      CACHE = {
+          #'backend': "dogpile.cache.null",
+          'backend': "dogpile.cache.memcached",
+          'expiration_time': 3600, # 3600 is 1 hour
+          'arguments': {
+              'url': 'greenwave-test-${TEST_ID}-memcached:11211',
+              'distributed_lock': True
+          }
+      }
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: "greenwave-test-${TEST_ID}-memcached"
+    labels:
+      app: greenwave
+      service: memcached
+      environment: "test-${TEST_ID}"
+  spec:
+    selector:
+      app: greenwave
+      service: memcached
+      environment: "test-${TEST_ID}"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: greenwave
+          service: memcached
+          environment: "test-${TEST_ID}"
+      spec:
+        containers:
+        - image: docker.io/modularitycontainers/memcached
+          imagePullPolicy: Always
+          name: memcached
+          resources:
+            limits:
+              memory: 384Mi
+    triggers:
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: "greenwave-test-${TEST_ID}-memcached"
+    labels:
+      app: greenwave
+      service: memcached
+      environment: "test-${TEST_ID}"
+  spec:
+    ports:
+    - name: memcached
+      port: 11211
+      protocol: TCP
+      targetPort: 11211
+    selector:
+      service: memcached
+      environment: "test-${TEST_ID}"
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: "greenwave-test-${TEST_ID}-web"
+    labels:
+      app: greenwave
+      service: web
+      environment: "test-${TEST_ID}"
+  spec:
+    replicas: 2
+    selector:
+      app: greenwave
+      service: web
+      environment: "test-${TEST_ID}"
+    template:
+      metadata:
+        labels:
+          app: greenwave
+          service: web
+          environment: "test-${TEST_ID}"
+      spec:
+        containers:
+        - name: web
+          image: "${GREENWAVE_IMAGE}"
+          ports:
+          - containerPort: 8080
+          livenessProbe:
+            timeoutSeconds: 1
+            initialDelaySeconds: 30
+            httpGet:
+              path: /healthcheck
+              port: 8080
+          readinessProbe:
+            timeoutSeconds: 1
+            initialDelaySeconds: 5
+            httpGet:
+              path: /healthcheck
+              port: 8080
+          volumeMounts:
+          - mountPath: /etc/policies
+            name: policies-volume
+            readOnly: true
+          - mountPath: /etc/greenwave
+            name: config-volume
+            readOnly: true
+          resources:
+            limits:
+              memory: 384Mi
+        volumes:
+        - name: policies-volume
+          configMap:
+            name: "greenwave-test-${TEST_ID}-policies"
+        - name: config-volume
+          secret:
+            secretName: "greenwave-test-${TEST_ID}-config"
+    triggers:
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: "greenwave-test-${TEST_ID}-web"
+    labels:
+      app: greenwave
+      service: web
+      environment: "test-${TEST_ID}"
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      service: web
+      environment: "test-${TEST_ID}"
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: "greenwave-test-${TEST_ID}-web"
+    labels:
+      environment: "test-${TEST_ID}"
+      app: greenwave
+  spec:
+    port:
+      targetPort: web
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      termination: edge
+    to:
+      kind: Service
+      name: "greenwave-test-${TEST_ID}-web"
