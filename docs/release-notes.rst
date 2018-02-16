@@ -2,6 +2,23 @@
 Release Notes
 =============
 
+Greenwave 0.6
+=============
+
+Released 16 Feb 2018.
+
+A number of issues have been resolved in this release:
+
+* Added logo on the README page.
+
+* Changed Greenwave for submission of waiver in Waiverdb, not anymore with the
+  result_id, but with subject/testcase.
+
+* Introduced a verbose flag that returns all of the results and waivers associated
+  with the subject of a decision.
+
+* Improvements for running in an OpenShift environment.
+
 Greenwave 0.5
 =============
 
