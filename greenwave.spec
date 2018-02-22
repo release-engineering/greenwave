@@ -10,35 +10,51 @@ URL:            https://pagure.io/greenwave
 Source0:        https://files.pythonhosted.org/packages/source/g/%{name}/%{name}-%{upstream_version}.tar.gz
 
 BuildRequires:  python2-devel
+%{?systemd_requires}
+BuildRequires:  systemd
 %if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires:  python2-setuptools
 BuildRequires:  python2-sphinx
-BuildRequires:  python-sphinxcontrib-httpdomain
+BuildRequires:  python2-sphinxcontrib-httpdomain
+%if 0%{?fedora} >= 27
+BuildRequires:  python2-sphinxcontrib-issuetracker
+%else # old name
 BuildRequires:  python-sphinxcontrib-issuetracker
+%endif
 BuildRequires:  python2-flask
 BuildRequires:  python2-pytest
 BuildRequires:  python2-requests
+%if 0%{?fedora} >= 28
+BuildRequires:  python2-pyyaml
+%else # old name
+BuildRequires:  PyYAML
+%endif
+BuildRequires:  python2-dogpile-cache
 %else # EPEL7 uses python- naming
 BuildRequires:  python-setuptools
 BuildRequires:  python-flask
 BuildRequires:  pytest
 BuildRequires:  python-requests
-%endif
-%{?systemd_requires}
-BuildRequires:  systemd
 BuildRequires:  PyYAML
 BuildRequires:  python-dogpile-cache
+%endif
 BuildRequires:  fedmsg
 BuildArch:      noarch
 %if 0%{?fedora} || 0%{?rhel} > 7
 Requires:  python2-flask
 Requires:  python2-requests
+%if 0%{?fedora} >= 28
+Requires:  python2-pyyaml
+%else # old name
+Requires:  PyYAML
+%endif
+Requires:  python2-dogpile-cache
 %else # EPEL7 uses python- naming
 Requires:  python-flask
 Requires:  python-requests
-%endif
 Requires:  PyYAML
 Requires:  python-dogpile-cache
+%endif
 Requires:  fedmsg
 
 %description
