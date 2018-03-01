@@ -80,7 +80,7 @@ install -m0644 \
 
 %check
 export PYTHONPATH=%{buildroot}/%{python2_sitelib}
-TEST=true py.test greenwave/tests/
+TEST=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example py.test greenwave/tests/
 
 %files
 %license COPYING
