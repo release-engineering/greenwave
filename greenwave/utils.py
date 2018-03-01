@@ -59,25 +59,21 @@ def load_config(config_obj=None):
     :param str config_obj: An config object. For example, greenwave.config.DevelopmentConfig.
     :return: A dict of Greenwave configuration.
     """
+    # Load default config, then override that with a config file
     config = Config(__name__)
-    if config_obj:
-        config.from_object(config_obj)
+    default_config_file = os.getcwd() + '/conf/settings.py'
+    if os.getenv('DEV') == 'true':
+        default_config_obj = 'greenwave.config.DevelopmentConfig'
+    elif os.getenv('TEST') == 'true':
+        default_config_obj = 'greenwave.config.TestingConfig'
     else:
-        # Load default config, then override that with a config file
-        default_config_file = None
-        if os.getenv('DEV') == 'true':
-            default_config_obj = 'greenwave.config.DevelopmentConfig'
-        elif os.getenv('TEST') == 'true':
-            default_config_obj = 'greenwave.config.TestingConfig'
-        else:
-            default_config_obj = 'greenwave.config.ProductionConfig'
-            default_config_file = '/etc/greenwave/settings.py'
-        config.from_object(default_config_obj)
-        config_file = os.environ.get('GREENWAVE_CONFIG', default_config_file)
-        if config_file:
-            config.from_pyfile(config_file)
-        if os.environ.get('SECRET_KEY'):
-            config['SECRET_KEY'] = os.environ['SECRET_KEY']
+        default_config_obj = 'greenwave.config.ProductionConfig'
+        default_config_file = '/etc/greenwave/settings.py'
+    config.from_object(default_config_obj)
+    config_file = os.environ.get('GREENWAVE_CONFIG', default_config_file)
+    config.from_pyfile(config_file)
+    if os.environ.get('SECRET_KEY'):
+        config['SECRET_KEY'] = os.environ['SECRET_KEY']
     config['policies'] = load_policies(config['POLICIES_DIR'])
     return config
 

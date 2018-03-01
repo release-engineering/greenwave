@@ -25,7 +25,7 @@ Install the project:
 
 Run the server:
 
-    $ python run-dev-server.py
+    $ DEV=true python run-dev-server.py
 
 The server is now running at <http://localhost:5005> and API calls can be sent to
 <http://localhost:5005/api/v1.0>.
@@ -41,7 +41,7 @@ values in `greenwave/config.py`.
 You can run the unit tests, which live in the `greenwave.tests` package, with
 the following command:
 
-    $ py.test greenwave/tests/
+    $ TEST=true py.test greenwave/tests/
 
 To test against all supported versions of Python, you can use tox::
 
@@ -55,7 +55,7 @@ The functional tests will start their own copy of the
 send HTTP requests to them. If you have a git checkout of all three projects, 
 you can run the functional tests like this (adjust the paths as appropriate):
 
-    $ PYTHONPATH=../resultsdb:../waiverdb:. py.test functional-tests/
+    $ TEST=true PYTHONPATH=../resultsdb:../waiverdb:. py.test functional-tests/
 
 ## Building the docs
 
