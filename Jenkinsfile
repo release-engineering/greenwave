@@ -16,8 +16,7 @@ node('fedora') {
         sh 'pylint-2 --reports=n greenwave'
     }
     stage('Build Docs') {
-        sh 'cp conf/settings.py.example conf/settings.py'
-        sh 'DEV=true make -C docs html'
+        sh 'DEV=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example make -C docs html'
         archiveArtifacts artifacts: 'docs/_build/html/**'
     }
     /* Can't use GIT_BRANCH because of this issue https://issues.jenkins-ci.org/browse/JENKINS-35230 */
