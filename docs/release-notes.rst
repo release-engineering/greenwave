@@ -2,6 +2,17 @@
 Release Notes
 =============
 
+Greenwave 0.6.1
+===============
+
+Released 1 Mar 2018.
+
+* Fixed an bug related to waiving the absence of results.
+  https://pagure.io/greenwave/pull-request/134
+
+* Allow subscribing to configurable message bus topics.
+  https://pagure.io/greenwave/pull-request/132
+
 Greenwave 0.6
 =============
 
