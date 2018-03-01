@@ -67,7 +67,7 @@ WaiverDB.
 %build
 %py2_build
 %if 0%{?fedora}
-make -C docs SPHINXOPTS= html text
+DEV=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example make -C docs SPHINXOPTS= html text
 %endif
 
 %install
@@ -80,7 +80,7 @@ install -m0644 \
 
 %check
 export PYTHONPATH=%{buildroot}/%{python2_sitelib}
-py.test greenwave/tests/
+TEST=true py.test greenwave/tests/
 
 %files
 %license COPYING
