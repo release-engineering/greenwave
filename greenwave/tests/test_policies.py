@@ -6,7 +6,12 @@ import pytest
 
 from greenwave import __version__
 from greenwave.app_factory import create_app
-from greenwave.policies import summarize_answers, RuleSatisfied, TestResultMissing, TestResultFailed
+from greenwave.policies import (
+    summarize_answers,
+    RuleSatisfied,
+    TestResultMissing,
+    TestResultFailed,
+)
 from greenwave.utils import load_policies
 
 
@@ -22,6 +27,34 @@ def test_summarize_answers():
         '1 of 2 required tests failed'
     assert summarize_answers([TestResultMissing('item', 'test', None), RuleSatisfied()]) == \
         '1 of 2 required tests not found'
+
+
+def test_waive_absence_of_result(tmpdir):
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: "rawhide_compose_sync_to_mirrors"
+product_versions:
+  - fedora-rawhide
+decision_context: rawhide_compose_sync_to_mirrors
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: sometest}
+        """)
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+
+    # Ensure that absence of a result is failure.
+    item, results, waivers = {}, [], []
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultMissing)
+
+    # But also that waiving the absence works.
+    waivers = [{'testcase': 'sometest', 'waived': True}]
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], RuleSatisfied)
 
 
 def test_load_policies():

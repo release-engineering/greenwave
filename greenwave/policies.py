@@ -150,21 +150,31 @@ class PassingTestCaseRule(Rule):
     yaml_loader = yaml.SafeLoader
 
     def check(self, item, results, waivers):
-        matching_results = [r for r in results if r['testcase']['name'] == self.test_case_name]
+        matching_results = [
+            r for r in results if r['testcase']['name'] == self.test_case_name]
+        matching_waivers = [
+            w for w in waivers if (w['testcase'] == self.test_case_name and w['waived'] is True)]
 
         # Rules may optionally specify a scenario to limit applicability.
         if self._scenario:
             matching_results = [r for r in matching_results if self.scenario in
                                 r['data'].get('scenario', [])]
 
+        # Investigate the absence of results first.
         if not matching_results:
-            return TestResultMissing(item, self.test_case_name, self._scenario)
+            if not matching_waivers:
+                return TestResultMissing(item, self.test_case_name, self._scenario)
+            else:
+                # The result is absent, but the absence is waived.
+                return RuleSatisfied()
+
         # If we find multiple matching results, we always use the first one which
         # will be the latest chronologically, because ResultsDB always returns
         # results ordered by `submit_time` descending.
         matching_result = matching_results[0]
         if matching_result['outcome'] in ['PASSED', 'INFO']:
             return RuleSatisfied()
+
         # XXX limit who is allowed to waive
         if any(w['subject'] == dict([(key, value[0])
                for key, value in matching_result['data'].items()]) and
