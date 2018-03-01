@@ -3,6 +3,7 @@
 */
 
 try { // massive try{} catch{} around the entire build for failure notifications
+    timestamps {
 
 node('fedora') {
     checkout scm
@@ -125,6 +126,8 @@ node('docker') {
         }
     }
 }
+
+    }
 } catch (e) {
     if (ownership.job.ownershipEnabled) {
         mail to: ownership.job.primaryOwnerEmail,
