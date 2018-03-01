@@ -199,6 +199,55 @@ class PassingTestCaseRule(Rule):
         }
 
 
+class FedoraAtomicCi(Rule):
+    """
+    This rule requires that the value of the specified field is part of a
+    specified list.
+    """
+    yaml_tag = u'!FedoraAtomicCi'
+    yaml_loader = yaml.SafeLoader
+
+    def __init__(self, test_case_name, repos):
+        self.test_case_name = test_case_name
+        self.repos = repos
+
+    def check(self, item, results, waivers):
+        """ Check that the request satisfies the requirement of the Fedora
+        Atomic CI pipeline.
+
+        If the request (item) corresponds to a request for Fedora Atomic CI
+        results request and if it is the case, check that the package for
+        which this request is, is in the allowed list.
+        If it is, then proceed as usual using the specified test_case_name.
+        If the package is not in the list, then consider this requirement
+        moot and satisfied.
+
+        """
+
+        if 'original_spec_nvr' not in item:
+            return RuleSatisfied()
+
+        nvr = item['original_spec_nvr']
+        pkg_name = nvr.rsplit('-', 2)[0]
+        if pkg_name not in self.repos:
+            return RuleSatisfied()
+
+        rule = PassingTestCaseRule()
+        rule.test_case_name = self.test_case_name
+        return rule.check(item, results, waivers)
+
+    def __repr__(self):
+        return "%s(test_case_name=%s, repos=%r)" % (
+            self.__class__.__name__, self.test_case_name, self.repos)
+
+    def to_json(self):
+        return {
+            'rule': self.__class__.__name__,
+            'test_case_name': self.test_case_name,
+            'repos': self.repos,
+        }
+
+
 class Policy(yaml.YAMLObject):
     yaml_tag = u'!Policy'
     yaml_loader = yaml.SafeLoader
