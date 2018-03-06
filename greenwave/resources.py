@@ -22,9 +22,10 @@ def retrieve_results(item):
     params = item.copy()
     params.update({'limit': '1000'})
     timeout = current_app.config['REQUESTS_TIMEOUT']
+    verify = current_app.config['REQUESTS_VERIFY']
     response = requests_session.get(
         current_app.config['RESULTSDB_API_URL'] + '/results',
-        params=params, timeout=timeout)
+        params=params, verify=verify, timeout=timeout)
     response.raise_for_status()
     return response.json()['data']
 
@@ -32,6 +33,7 @@ def retrieve_results(item):
 # NOTE - not cached, for now.
 def retrieve_waivers(product_version, item):
     timeout = current_app.config['REQUESTS_TIMEOUT']
+    verify = current_app.config['REQUESTS_VERIFY']
     data = {
         'product_version': product_version,
         'results': [{"subject": item}]
@@ -40,6 +42,7 @@ def retrieve_waivers(product_version, item):
         current_app.config['WAIVERDB_API_URL'] + '/waivers/+by-subjects-and-testcases',
         headers={'Content-Type': 'application/json'},
         data=json.dumps(data),
+        verify=verify,
         timeout=timeout)
     response.raise_for_status()
     return response.json()['data']
