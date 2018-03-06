@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-import requests
 from flask import Blueprint, request, current_app, jsonify
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
 from greenwave import __version__
@@ -9,8 +8,6 @@ from greenwave.resources import retrieve_results, retrieve_waivers
 from greenwave.utils import insert_headers, jsonp
 
 api = (Blueprint('api_v1', __name__))
-
-requests_session = requests.Session()
 
 
 @api.route('/version', methods=['GET'])
