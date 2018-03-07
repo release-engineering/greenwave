@@ -111,6 +111,8 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             for rule in policy.rules:
                 if rule.test_case_name == testcase:
                     applicable_policies.add(policy)
+        log.debug("messaging: found %i applicable policies of %i for testcase %r" % (
+            len(applicable_policies), len(config['policies']), testcase))
 
         # Given all of our applicable policies, build a map of all decision
         # context we know about, and which product versions they relate to.
@@ -118,6 +120,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         for policy in applicable_policies:
             versions = set(policy.product_versions)
             decision_contexts[policy.decision_context].update(versions)
+        log.debug("messaging: found %i decision contexts" % len(decision_contexts))
 
         # For every context X version combination, ask greenwave if this new
         # result pushes any decisions over a threshold.
