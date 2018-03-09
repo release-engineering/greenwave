@@ -1,4 +1,4 @@
-FROM fedora:26
+FROM fedora:27
 LABEL \
     name="Greenwave application" \
     vendor="Greenwave developers" \
@@ -12,10 +12,12 @@ ARG cacert_url=undefined
 
 COPY $greenwave_rpm /tmp
 RUN dnf -y install \
-    python-gunicorn \
+    python2-gunicorn \
     python-memcached \
     /tmp/$(basename $greenwave_rpm) \
-    && dnf -y clean all
+    && dnf -y clean all \
+    && rm -rf /tmp/*
+
 RUN if [ "$cacert_url" != "undefined" ]; then \
         cd /etc/pki/ca-trust/source/anchors \
         && curl -O --insecure $cacert_url \
