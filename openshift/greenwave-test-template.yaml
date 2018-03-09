@@ -105,7 +105,8 @@ objects:
       CACHE = {
           #'backend': "dogpile.cache.null",
           'backend': "dogpile.cache.memcached",
-          'expiration_time': 3600, # 3600 is 1 hour
+          'expiration_time': 1, # 1 is 1 second, keep to see that memcached
+                                # service is working
           'arguments': {
               'url': 'greenwave-test-${TEST_ID}-memcached:11211',
               'distributed_lock': True
