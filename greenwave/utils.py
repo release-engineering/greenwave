@@ -76,17 +76,17 @@ def load_config(config_obj=None):
     else:
         default_config_file = '/etc/greenwave/settings.py'
 
-    log.debug("config: Loading config from %r" % config_obj)
+    log.debug("config: Loading config from %r", config_obj)
     config.from_object(config_obj)
 
     config_file = os.environ.get('GREENWAVE_CONFIG', default_config_file)
-    log.debug("config: Extending config with %r" % config_file)
+    log.debug("config: Extending config with %r", config_file)
     config.from_pyfile(config_file)
 
     if os.environ.get('SECRET_KEY'):
         config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
-    log.debug("config: Loading policies from %r" % config['POLICIES_DIR'])
+    log.debug("config: Loading policies from %r", config['POLICIES_DIR'])
     config['policies'] = load_policies(config['POLICIES_DIR'])
 
     return config
