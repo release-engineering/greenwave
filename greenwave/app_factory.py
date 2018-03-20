@@ -20,7 +20,7 @@ def create_app(config_obj=None):
         raise Warning("You need to change the app.secret_key value for production")
 
     # register error handlers
-    for code in default_exceptions.iterkeys():
+    for code in default_exceptions.keys():
         app.register_error_handler(code, json_error)
     app.register_error_handler(ConnectionError, json_error)
     app.register_error_handler(Timeout, json_error)
