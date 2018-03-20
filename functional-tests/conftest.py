@@ -14,6 +14,10 @@ import waiverdb.app
 import greenwave.app_factory
 
 
+# It's all local, and so should be fast enough.
+TEST_HTTP_TIMEOUT = int(os.environ.get('TEST_HTTP_TIMEOUT', 2))
+
+
 class WSGIServerThread(threading.Thread):
 
     def __init__(self, application, init_func, port):
@@ -137,6 +141,7 @@ class TestDataBuilder(object):
         response = self.requests_session.post(
             self.resultsdb_url + 'api/v2.0/results',
             headers={'Content-Type': 'application/json'},
+            timeout=TEST_HTTP_TIMEOUT,
             data=json.dumps(data))
         response.raise_for_status()
         return response.json()
@@ -152,6 +157,7 @@ class TestDataBuilder(object):
         response = self.requests_session.post(
             self.resultsdb_url + 'api/v2.0/results',
             headers={'Content-Type': 'application/json'},
+            timeout=TEST_HTTP_TIMEOUT,
             data=json.dumps(data))
         response.raise_for_status()
         return response.json()
@@ -169,6 +175,7 @@ class TestDataBuilder(object):
             self.waiverdb_url + 'api/v1.0/waivers/',
             auth=('dummy', 'dummy'),
             headers={'Content-Type': 'application/json'},
+            timeout=TEST_HTTP_TIMEOUT,
             data=json.dumps(data))
         response.raise_for_status()
         return response.json()
