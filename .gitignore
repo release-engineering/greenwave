@@ -25,3 +25,4 @@ conf/settings.py
 coverage.xml
 htmlcov
 greenwave-test-cache.dbm*
+.pytest_cache
