@@ -199,35 +199,34 @@ class PassingTestCaseRule(Rule):
         }
 
 
-class FedoraAtomicCi(Rule):
+class PackageSpecificRule(Rule):
     """
-    This rule requires that the value of the specified field is part of a
-    specified list.
+    This rule only applies itself to results which are for its configured
+    list of packages (called "repos").
+
+    This intermediary class should be considered abstract, and not used directly.
     """
-    yaml_tag = u'!FedoraAtomicCi'
-    yaml_loader = yaml.SafeLoader
 
     def __init__(self, test_case_name, repos):
         self.test_case_name = test_case_name
         self.repos = repos
 
     def check(self, item, results, waivers):
-        """ Check that the request satisfies the requirement of the Fedora
-        Atomic CI pipeline.
+        """ Check that the item passes testcase for the given results, but
+        only if the item is an instance of a package name configured for
+        this rule (specified by "repos").
 
-        If the request (item) corresponds to a request for Fedora Atomic CI
-        results request and if it is the case, check that the package for
-        which this request is, is in the allowed list.
-        If it is, then proceed as usual using the specified test_case_name.
-        If the package is not in the list, then consider this requirement
-        moot and satisfied.
+        Items which do not bear the "nvr_key" for this rule are considered
+        satisfied (ignored).
 
+        Items whose package names (extracted from their NVR) do not appear
+        in the "repos" list of this rule are considered satisfied (ignored).
         """
 
-        if 'original_spec_nvr' not in item:
+        if self.nvr_key not in item:
             return RuleSatisfied()
 
-        nvr = item['original_spec_nvr']
+        nvr = item[self.nvr_key]
         pkg_name = nvr.rsplit('-', 2)[0]
         if pkg_name not in self.repos:
             return RuleSatisfied()
@@ -245,7 +244,20 @@ class FedoraAtomicCi(Rule):
             'rule': self.__class__.__name__,
             'test_case_name': self.test_case_name,
             'repos': self.repos,
+            'nvr_key': self.nvr_key,
         }
+
+
+class FedoraAtomicCi(PackageSpecificRule):
+    yaml_tag = u'!FedoraAtomicCi'
+    yaml_loader = yaml.SafeLoader
+    nvr_key = 'original_spec_nvr'
+
+
+class PackageSpecificBuild(PackageSpecificRule):
+    yaml_tag = u'!PackageSpecificBuild'
+    yaml_loader = yaml.SafeLoader
+    nvr_key = 'item'
 
 
 class Policy(yaml.YAMLObject):

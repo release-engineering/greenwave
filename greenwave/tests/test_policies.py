@@ -57,6 +57,74 @@ rules:
     assert isinstance(decision[0], RuleSatisfied)
 
 
+def test_package_specific_rule(tmpdir):
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: "some_policy"
+product_versions:
+  - rhel-9000
+decision_context: compose_gate
+blacklist: []
+rules:
+  - !PackageSpecificBuild {test_case_name: sometest, repos: [nethack]}
+        """)
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+
+    # Ensure that we fail with no results
+    item = {'item': 'nethack-1.2.3-1.el9000', 'type': 'koji_build'}
+    results, waivers = [], []
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultMissing)
+
+    # That a matching, failing result can fail
+    results = [{
+        'id': 123,
+        'item': 'nethack-1.2.3-1.el9000',
+        'testcase': {'name': 'sometest'},
+        'outcome': 'FAILED',
+    }]
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultFailed)
+
+    # That a matching, passing result can pass
+    results = [{
+        'id': 123,
+        'item': 'nethack-1.2.3-1.el9000',
+        'testcase': {'name': 'sometest'},
+        'outcome': 'PASSED',
+    }]
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], RuleSatisfied)
+
+    # That a non-matching passing result is ignored.
+    item = {'item': 'foobar-1.2.3-1.el9000', 'type': 'koji_build'}
+    results = [{
+        'id': 123,
+        'item': 'foobar-1.2.3-1.el9000',
+        'testcase': {'name': 'sometest'},
+        'outcome': 'PASSED',
+    }]
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], RuleSatisfied)
+
+    # That a non-matching failing result is ignored.
+    results = [{
+        'id': 123,
+        'item': 'foobar-1.2.3-1.el9000',
+        'testcase': {'name': 'sometest'},
+        'outcome': 'FAILED',
+    }]
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], RuleSatisfied)  # ooooh.
+
+
 def test_load_policies():
     app = create_app('greenwave.config.TestingConfig')
     assert len(app.config['policies']) > 0
