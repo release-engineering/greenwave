@@ -232,6 +232,7 @@ class PackageSpecificRule(Rule):
             return RuleSatisfied()
 
         rule = PassingTestCaseRule()
+        # pylint: disable=attribute-defined-outside-init
         rule.test_case_name = self.test_case_name
         return rule.check(item, results, waivers)
 
