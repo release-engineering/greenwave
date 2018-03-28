@@ -44,7 +44,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         prefix = hub.config.get('topic_prefix')
         env = hub.config.get('environment')
         suffix = hub.config.get('waiverdb_topic_suffix', 'waiver.new')
-        self.topic = '.'.join([prefix, env, suffix])
+        self.topic = ['.'.join([prefix, env, suffix])]
         self.fedmsg_config = fedmsg.config.load_config()
 
         super(WaiverDBHandler, self).__init__(hub, *args, **kwargs)

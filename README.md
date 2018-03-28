@@ -52,10 +52,14 @@ There are also functional tests in the `functional-tests` directory.
 The functional tests will start their own copy of the
 [ResultsDB](https://pagure.io/taskotron/resultsdb),
 [WaiverDB](https://pagure.io/waiverdb), and Greenwave applications and then 
-send HTTP requests to them. If you have a git checkout of all three projects, 
-you can run the functional tests like this (adjust the paths as appropriate):
+send HTTP requests to them. You can run the functional tests like this:
 
-    $ TEST=true PYTHONPATH=../resultsdb:../waiverdb:. py.test functional-tests/
+    $ TEST=true PYTHONPATH=. py.test functional-tests/
+
+The functional tests assume you have ResultsDB and WaiverDB git checkouts in 
+`../resultsdb` and `../waiverdb` respectively. You can tell it to find them in 
+a different location by passing `RESULTSDB` or `WAIVERDB` environment 
+variables.
 
 ## Building the docs
 

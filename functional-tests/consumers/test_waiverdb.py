@@ -18,7 +18,7 @@ TASKTRON_RELEASE_CRITICAL_TASKS = [
 def test_consume_new_waiver(
         mock_fedmsg, load_config, requests_session, greenwave_server, testdatabuilder, monkeypatch):
     monkeypatch.setenv('TEST', 'true')
-    load_config.return_value = {'greenwave_api_url': greenwave_server.url + 'api/v1.0'}
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='dist.abicheck',
@@ -60,7 +60,7 @@ def test_consume_new_waiver(
         'subject': [{'item': nvr, 'type': 'koji_build'}],
         'ignore_waiver': [waiver['id']]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200

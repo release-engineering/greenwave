@@ -50,13 +50,3 @@ class TestingConfig(Config):
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'conf',
         'policies'
     )
-
-
-class CachedTestingConfig(TestingConfig):
-    PORT = 6005
-    # Cache in memory
-    CACHE = dict(
-        backend="dogpile.cache.dbm",
-        expiration_time=300,
-        arguments={"filename": "greenwave-test-cache.dbm"}
-    )

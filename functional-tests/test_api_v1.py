@@ -90,7 +90,7 @@ OPENQA_SCENARIOS = [
 
 
 def test_inspect_policies(requests_session, greenwave_server):
-    r = requests_session.get(greenwave_server.url + 'api/v1.0/policies',
+    r = requests_session.get(greenwave_server + 'api/v1.0/policies',
                              headers={'Content-Type': 'application/json'})
     assert r.status_code == 200
     body = r.json()
@@ -120,7 +120,7 @@ def test_cannot_make_decision_without_product_version(requests_session, greenwav
         'decision_context': 'errata_newfile_to_qe',
         'subject': [{'item': 'foo-1.0.0-1.el7', 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
@@ -132,7 +132,7 @@ def test_cannot_make_decision_without_decision_context(requests_session, greenwa
         'product_version': 'rhel-7',
         'subject': [{'item': 'foo-1.0.0-1.el7', 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
@@ -144,7 +144,7 @@ def test_cannot_make_decision_without_subject(requests_session, greenwave_server
         'decision_context': 'errata_newfile_to_qe',
         'product_version': 'rhel-7',
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
@@ -157,7 +157,7 @@ def test_cannot_make_decision_with_invalid_subject(requests_session, greenwave_s
         'product_version': 'rhel-7',
         'subject': ['foo-1.0.0-1.el7'],
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
@@ -170,7 +170,7 @@ def test_404_for_inapplicable_policies(requests_session, greenwave_server):
         'product_version': 'rhel-7',
         'subject': [{'item': 'foo-1.0.0-1.el7', 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 404
@@ -191,7 +191,7 @@ def test_make_a_decison_on_passed_result(requests_session, greenwave_server, tes
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
 
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -215,7 +215,7 @@ def test_make_a_decison_with_verbose_flag(requests_session, greenwave_server, te
         'verbose': True,
     }
 
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -266,7 +266,7 @@ def test_make_a_decison_on_failed_result_with_waiver(
         'product_version': 'rhel-7',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -287,7 +287,7 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
         'product_version': 'rhel-7',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -322,7 +322,7 @@ def test_make_a_decison_on_no_results(requests_session, greenwave_server, testda
         'product_version': 'rhel-7',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -350,7 +350,7 @@ def test_unrestricted_policy_is_always_satisfied(
         'product_version': 'cdk-2',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -374,7 +374,7 @@ def test_bodhi_push_update_stable_policy(
         'product_version': 'fedora-26',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -411,7 +411,7 @@ def test_multiple_results_in_a_subject(
         'product_version': 'fedora-26',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -451,7 +451,7 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
         'product_version': 'fedora-26',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -461,7 +461,7 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
     data.update({
         'ignore_result': [result['id']]
     })
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     expected_unsatisfied_requirements = [
@@ -496,7 +496,7 @@ def test_make_a_decison_on_passed_result_with_scenario(
         'product_version': 'fedora-rawhide',
         'subject': [{'productmd.compose.id': compose_id}],
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -532,7 +532,7 @@ def test_make_a_decison_on_failing_result_with_scenario(
         'product_version': 'fedora-rawhide',
         'subject': [{'productmd.compose.id': compose_id}],
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -572,7 +572,7 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
         'product_version': 'rhel-7',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r_ = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r_ = requests_session.post(greenwave_server + 'api/v1.0/decision',
                                headers={'Content-Type': 'application/json'},
                                data=json.dumps(data))
     assert r_.status_code == 200
@@ -582,7 +582,7 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
     data.update({
         'ignore_waiver': [waiver['id']]
     })
-    r_ = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r_ = requests_session.post(greenwave_server + 'api/v1.0/decision',
                                headers={'Content-Type': 'application/json'},
                                data=json.dumps(data))
     assert r_.status_code == 200
@@ -600,7 +600,7 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
 
-def test_cached_false_positive(requests_session, cached_greenwave_server, testdatabuilder):
+def test_cached_false_positive(requests_session, greenwave_server, testdatabuilder):
     """ Test that caching without invalidation produces false positives.
 
     This just tests that our caching works in the first place.
@@ -620,7 +620,7 @@ def test_cached_false_positive(requests_session, cached_greenwave_server, testda
         'product_version': 'rhel-7',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(cached_greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -632,7 +632,7 @@ def test_cached_false_positive(requests_session, cached_greenwave_server, testda
     testdatabuilder.create_result(item=nvr,
                                   testcase_name=testcase_name,
                                   outcome='FAILED')
-    r = requests_session.post(cached_greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -657,7 +657,7 @@ def test_blacklist(requests_session, greenwave_server, testdatabuilder):
         'product_version': 'fedora-26',
         'subject': [{'item': nvr, 'type': 'koji_build'}]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200

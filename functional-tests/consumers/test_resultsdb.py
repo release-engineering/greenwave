@@ -4,7 +4,6 @@ import json
 import mock
 import pprint
 
-from greenwave.config import CachedTestingConfig
 from greenwave.consumers import resultsdb
 
 
@@ -14,7 +13,7 @@ def test_consume_new_result(
         mock_fedmsg, load_config, requests_session, greenwave_server,
         testdatabuilder, monkeypatch):
     monkeypatch.setenv('TEST', 'true')
-    load_config.return_value = {'greenwave_api_url': greenwave_server.url + 'api/v1.0'}
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='dist.rpmdeplint',
@@ -52,7 +51,7 @@ def test_consume_new_result(
         'subject': [{'item': nvr, 'type': 'koji_build'}],
         'ignore_result': [result['id']]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -102,7 +101,7 @@ def test_consume_new_result(
         'subject': [{'item': nvr, 'type': 'koji_build'}],
         'ignore_result': [result['id']]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200
@@ -131,7 +130,7 @@ def test_no_message_for_unchanged_decision(
         mock_fedmsg, load_config, requests_session, greenwave_server,
         testdatabuilder, monkeypatch):
     monkeypatch.setenv('TEST', 'true')
-    load_config.return_value = {'greenwave_api_url': greenwave_server.url + 'api/v1.0'}
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     # One result gets the decision in a certain state.
     testdatabuilder.create_result(item=nvr,
@@ -175,11 +174,11 @@ def test_no_message_for_unchanged_decision(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_mocked_cache(
-        mock_fedmsg, load_config, requests_session, cached_greenwave_server,
+        mock_fedmsg, load_config, requests_session, greenwave_server,
         testdatabuilder, monkeypatch):
     """ Consume a result, and ensure that `delete` is called. """
     monkeypatch.setenv('TEST', 'true')
-    load_config.return_value = {'greenwave_api_url': cached_greenwave_server.url + 'api/v1.0'}
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
@@ -221,10 +220,10 @@ def test_invalidate_new_result_with_mocked_cache(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_real_cache(
-        mock_fedmsg, load_config, requests_session, cached_greenwave_server,
-        testdatabuilder, monkeypatch):
+        mock_fedmsg, load_config, requests_session, greenwave_server,
+        testdatabuilder, monkeypatch, greenwave_cache_config):
     monkeypatch.setenv('TEST', 'true')
-    load_config.return_value = {'greenwave_api_url': cached_greenwave_server.url + 'api/v1.0'}
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     for testcase_name in ['dist.rpmdeplint', 'dist.upgradepath', 'dist.abicheck']:
         testdatabuilder.create_result(
@@ -236,7 +235,7 @@ def test_invalidate_new_result_with_real_cache(
         'product_version': 'fedora-26',
         'subject': [{'item': nvr, 'type': 'koji_build'}],
     }
-    r = requests_session.post(cached_greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(query))
     assert r.status_code == 200
@@ -248,7 +247,7 @@ def test_invalidate_new_result_with_real_cache(
     # even though the new result fails, our decision still passes (bad)
     testdatabuilder.create_result(
         item=nvr, testcase_name='dist.abicheck', outcome='FAILED')
-    r = requests_session.post(cached_greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(query))
     assert r.status_code == 200
@@ -277,7 +276,7 @@ def test_invalidate_new_result_with_real_cache(
     hub.config = {
         'environment': 'environment',
         'topic_prefix': 'topic_prefix',
-        'greenwave_cache': CachedTestingConfig().CACHE,
+        'greenwave_cache': greenwave_cache_config,
     }
     handler = resultsdb.ResultsDBHandler(hub)
     assert handler.topic == [
@@ -290,7 +289,7 @@ def test_invalidate_new_result_with_real_cache(
     # At this point, the invalidator should have invalidated the cache.  If we
     # ask again, the decision should be correct now.  It should be a stone cold
     # "no".
-    r = requests_session.post(cached_greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(query))
     assert r.status_code == 200
@@ -302,11 +301,11 @@ def test_invalidate_new_result_with_real_cache(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_no_preexisting_cache(
-        mock_fedmsg, load_config, requests_session, cached_greenwave_server,
+        mock_fedmsg, load_config, requests_session, greenwave_server,
         testdatabuilder, monkeypatch):
     """ Ensure that invalidating an unknown value is sane. """
     monkeypatch.setenv('TEST', 'true')
-    load_config.return_value = {'greenwave_api_url': cached_greenwave_server.url + 'api/v1.0'}
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
@@ -349,7 +348,7 @@ def test_consume_compose_id_result(
         mock_fedmsg, load_config, requests_session, greenwave_server,
         testdatabuilder, monkeypatch):
     monkeypatch.setenv('TEST', 'true')
-    load_config.return_value = {'greenwave_api_url': greenwave_server.url + 'api/v1.0'}
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     compose_id = testdatabuilder.unique_compose_id()
     result = testdatabuilder.create_compose_result(
         compose_id=compose_id,
@@ -388,7 +387,7 @@ def test_consume_compose_id_result(
         'subject': [{'productmd.compose.id': compose_id}],
         'ignore_result': [result['id']]
     }
-    r = requests_session.post(greenwave_server.url + 'api/v1.0/decision',
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 200

@@ -1,108 +1,169 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import os
+import time
+import textwrap
 import itertools
 import json
-import threading
+import logging
+import subprocess
 import socket
-import wsgiref.simple_server
 import pytest
 import requests
+from sqlalchemy import create_engine
 
-import waiverdb.config
-import waiverdb.app
-import greenwave.app_factory
+
+log = logging.getLogger(__name__)
 
 
 # It's all local, and so should be fast enough.
 TEST_HTTP_TIMEOUT = int(os.environ.get('TEST_HTTP_TIMEOUT', 2))
 
 
-class WSGIServerThread(threading.Thread):
-
-    def __init__(self, application, init_func, port):
-        self._server = wsgiref.simple_server.make_server('127.0.0.1', port, application)
-        self.init_func = init_func
-        name = '{}-server-thread'.format(application.name)
-        super(WSGIServerThread, self).__init__(name=name)
-
-    def run(self):
-        # We call the init_func *inside* our new thread, because when the
-        # application is using a SQLite in-memory database with SQLAlchemy
-        # each thread gets its own separate db. So initialising the database in
-        # the main thread would not work.
-        self.init_func()
-        self._server.serve_forever()
-
-    def stop(self):
-        self._server.shutdown()
-        self._server.socket.shutdown(socket.SHUT_RD)
-        self._server.server_close()
-        self.join()
-
-    @property
-    def url(self):
-        host, port = self._server.server_address
-        return 'http://{}:{}/'.format(host, port)
+def drop_and_create_database(dbname):
+    """
+    Drops (if exists) and re-creates the given database on the local Postgres instance.
+    """
+    engine = create_engine('postgresql+psycopg2:///template1')
+    with engine.connect() as connection:
+        connection.execution_options(isolation_level='AUTOCOMMIT')
+        connection.execute('DROP DATABASE IF EXISTS {}'.format(dbname))
+        connection.execute('CREATE DATABASE {}'.format(dbname))
+    engine.dispose()
 
 
+def wait_for_listen(port):
+    """
+    Waits until something is listening on the given TCP port.
+    """
+    for attempt in range(5):
+        try:
+            s = socket.create_connection(('127.0.0.1', port), timeout=1)
+            s.close()
+            return
+        except socket.error:
+            time.sleep(1)
+    raise RuntimeError('Gave up waiting for port %s' % port)
+
+
+@pytest.yield_fixture(scope='session')
+def resultsdb_server(tmpdir_factory):
+    if 'RESULTSDB_TEST_URL' in os.environ:
+        yield os.environ['RESULTSDB_TEST_URL']
+    else:
+        # Start ResultsDB as a subprocess
+        resultsdb_source = os.environ.get('RESULTSDB', '../resultsdb')
+        if not os.path.isdir(resultsdb_source):
+            raise RuntimeError('ResultsDB source tree %s does not exist' % resultsdb_source)
+        dbname = 'resultsdb_for_greenwave_functest'
+        # Write out a config
+        settings_file = tmpdir_factory.mktemp('resultsdb').join('settings.py')
+        settings_file.write(textwrap.dedent("""\
+            PORT = 5001
+            SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2:///%s'
+            DEBUG = False
+            """ % dbname))
+        env = dict(os.environ,
+                   PYTHONPATH=resultsdb_source,
+                   TEST='true',
+                   RESULTSDB_CONFIG=settings_file.strpath)
+        # Create and populate the database
+        drop_and_create_database(dbname)
+        subprocess.check_call(['python',
+                               os.path.join(resultsdb_source, 'run_cli.py'),
+                               'init_db'],
+                              env=env)
+        # Start server
+        p = subprocess.Popen(['python',
+                              os.path.join(resultsdb_source, 'runapp.py')],
+                             env=env)
+        log.debug('Started resultsdb server as pid %s', p.pid)
+        wait_for_listen(5001)
+        yield 'http://localhost:5001/'
+        log.debug('Terminating resultsdb server pid %s', p.pid)
+        p.terminate()
+        p.wait()
+
+
+@pytest.yield_fixture(scope='session')
+def waiverdb_server(tmpdir_factory):
+    if 'WAIVERDB_TEST_URL' in os.environ:
+        yield os.environ['WAIVERDB_TEST_URL']
+    else:
+        # Start WaiverDB as a subprocess
+        waiverdb_source = os.environ.get('WAIVERDB', '../waiverdb')
+        if not os.path.isdir(waiverdb_source):
+            raise RuntimeError('WaiverDB source tree %s does not exist' % waiverdb_source)
+        dbname = 'waiverdb_for_greenwave_functest'
+        # Write out a config
+        settings_file = tmpdir_factory.mktemp('waiverdb').join('settings.py')
+        settings_file.write(textwrap.dedent("""\
+            AUTH_METHOD = 'dummy'
+            DATABASE_URI = 'postgresql+psycopg2:///%s'
+            """ % dbname))
+        env = dict(os.environ,
+                   PYTHONPATH=waiverdb_source,
+                   TEST='true',
+                   WAIVERDB_CONFIG=settings_file.strpath)
+        # Create and populate the database
+        drop_and_create_database(dbname)
+        subprocess.check_call(['python3',
+                               os.path.join(waiverdb_source, 'waiverdb', 'manage.py'),
+                               'db', 'upgrade'],
+                              env=env)
+        # Start server
+        p = subprocess.Popen(['python3-gunicorn',
+                              '--bind=127.0.0.1:5004',
+                              '--access-logfile=-',
+                              'waiverdb.wsgi:app'],
+                             env=env)
+        log.debug('Started waiverdb server as pid %s', p.pid)
+        wait_for_listen(5004)
+        yield 'http://localhost:5004/'
+        log.debug('Terminating waiverdb server pid %s', p.pid)
+        p.terminate()
+        p.wait()
+
+
+# This is only a fixture because some tests want to point the fedmsg consumers
+# at the same cache that the server process is using.
+# I would like to refactor those tests to send real messages to real consumers,
+# so this becomes unnecessary.
 @pytest.fixture(scope='session')
-def resultsdb_server(request):
-    # Ideally ResultsDB would let us configure the app programmatically,
-    # instead of doing everything globally at import time...
-    os.environ['TEST'] = 'true'
-    import resultsdb
-    import resultsdb.cli
-    del os.environ['TEST']
-    app = resultsdb.app
-    server = WSGIServerThread(
-        app,
-        init_func=lambda: resultsdb.cli.initialize_db(destructive=True),
-        port=5001)
-    server.start()
-    request.addfinalizer(server.stop)
-    return server
+def greenwave_cache_config(tmpdir_factory):
+    cache_file = tmpdir_factory.mktemp('greenwave-cache').join('cache.dbm')
+    return {
+        'backend': 'dogpile.cache.dbm',
+        'expiration_time': 300,
+        'arguments': {'filename': cache_file.strpath},
+    }
 
 
-@pytest.fixture(scope='session')
-def waiverdb_server(request):
-    class WaiverdbTestingConfig(waiverdb.config.TestingConfig):
-        AUTH_METHOD = 'dummy'
-        # As a workaround for https://github.com/mitsuhiko/flask-sqlalchemy/pull/364
-        # WaiverDB patches flask_sqlalchemy.SignallingSession globally, which
-        # messes up ResultsDB. So let's just turn off the messaging support in
-        # WaiverDB entirely for now.
-        MESSAGE_BUS_PUBLISH = False
-    app = waiverdb.app.create_app(WaiverdbTestingConfig)
-    server = WSGIServerThread(
-        app,
-        init_func=lambda: waiverdb.app.init_db(app),
-        port=5004)
-    server.start()
-    request.addfinalizer(server.stop)
-    return server
-
-
-@pytest.fixture(scope='session')
-def greenwave_server(request):
-    app = greenwave.app_factory.create_app('greenwave.config.TestingConfig')
-    server = WSGIServerThread(app, init_func=lambda: None, port=app.config['PORT'])
-    server.start()
-    request.addfinalizer(server.stop)
-    return server
-
-
-@pytest.fixture(scope='session')
-def cached_greenwave_server(request):
-    app = greenwave.app_factory.create_app('greenwave.config.CachedTestingConfig')
-    server = WSGIServerThread(app, init_func=lambda: None, port=app.config['PORT'])
-    server.start()
-    request.addfinalizer(server.stop)
-    try:
-        yield server
-    finally:
-        # Remove the cache file so the next test can start afresh.
-        os.remove(app.config['CACHE']['arguments']['filename'])
+@pytest.yield_fixture(scope='session')
+def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server, greenwave_cache_config):
+    if 'GREENWAVE_TEST_URL' in os.environ:
+        yield os.environ['GREENWAVE_TEST_URL']
+    else:
+        # Start Greenwave as a subprocess
+        settings_file = tmpdir_factory.mktemp('greenwave').join('settings.py')
+        settings_file.write(textwrap.dedent("""\
+            CACHE = %r
+            """ % greenwave_cache_config))
+        env = dict(os.environ,
+                   PYTHONPATH='.',
+                   TEST='true',
+                   GREENWAVE_CONFIG=settings_file.strpath)
+        p = subprocess.Popen(['gunicorn',
+                              '--bind=127.0.0.1:5005',
+                              '--access-logfile=-',
+                              'greenwave.wsgi:app'],
+                             env=env)
+        log.debug('Started greenwave server as pid %s', p.pid)
+        wait_for_listen(5005)
+        yield 'http://localhost:5005/'
+        log.debug('Terminating greenwave server pid %s', p.pid)
+        p.terminate()
+        p.wait()
 
 
 @pytest.fixture(scope='session')
@@ -183,4 +244,4 @@ class TestDataBuilder(object):
 
 @pytest.fixture(scope='session')
 def testdatabuilder(requests_session, resultsdb_server, waiverdb_server):
-    return TestDataBuilder(requests_session, resultsdb_server.url, waiverdb_server.url)
+    return TestDataBuilder(requests_session, resultsdb_server, waiverdb_server)
