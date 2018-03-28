@@ -7,6 +7,8 @@ class Config(object):
     A GreenWave Flask configuration.
     """
     DEBUG = True
+    # We configure logging explicitly, turn off the Flask-supplied log handler.
+    LOGGER_HANDLER_POLICY = 'never'
     HOST = '0.0.0.0'
     PORT = 5005
     PRODUCTION = False
