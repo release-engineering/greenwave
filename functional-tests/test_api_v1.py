@@ -294,7 +294,7 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
     res_data = r.json()
     assert res_data['policies_satisfied'] is False
     assert res_data['applicable_policies'] == ['1']
-    expected_summary = '1 of 71 required tests failed'
+    expected_summary = '1 of 71 required tests failed, 70 results missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
@@ -329,7 +329,7 @@ def test_make_a_decison_on_no_results(requests_session, greenwave_server, testda
     res_data = r.json()
     assert res_data['policies_satisfied'] is False
     assert res_data['applicable_policies'] == ['1']
-    expected_summary = 'no test results found'
+    expected_summary = '71 of 71 required test results missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {

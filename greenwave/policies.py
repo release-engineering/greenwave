@@ -98,13 +98,14 @@ def summarize_answers(answers):
     if all(answer.is_satisfied for answer in answers):
         return 'all required tests passed'
     failure_count = len([answer for answer in answers if isinstance(answer, TestResultFailed)])
-    if failure_count:
-        return ('{} of {} required tests failed'.format(failure_count, len(answers)))
     missing_count = len([answer for answer in answers if isinstance(answer, TestResultMissing)])
-    if missing_count == len(answers):
-        return 'no test results found'
+    if failure_count and missing_count:
+        return '{} of {} required tests failed, {} result{} missing'.format(
+            failure_count, len(answers), missing_count, 's' if missing_count > 1 else '')
+    elif failure_count:
+        return '{} of {} required tests failed'.format(failure_count, len(answers))
     elif missing_count:
-        return '{} of {} required tests not found'.format(missing_count, len(answers))
+        return '{} of {} required test results missing'.format(missing_count, len(answers))
     return 'inexplicable result'
 
 

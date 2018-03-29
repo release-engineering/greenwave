@@ -21,12 +21,16 @@ def test_summarize_answers():
     assert summarize_answers([TestResultFailed('item', 'test', None, 'id'), RuleSatisfied()]) == \
         '1 of 2 required tests failed'
     assert summarize_answers([TestResultMissing('item', 'test', None)]) == \
-        'no test results found'
+        '1 of 1 required test results missing'
     assert summarize_answers([TestResultMissing('item', 'test', None),
                               TestResultFailed('item', 'test', None, 'id')]) == \
-        '1 of 2 required tests failed'
+        '1 of 2 required tests failed, 1 result missing'
+    assert summarize_answers([TestResultMissing('item', 'testa', None),
+                              TestResultMissing('item', 'testb', None),
+                              TestResultFailed('item', 'test', None, 'id')]) == \
+        '1 of 3 required tests failed, 2 results missing'
     assert summarize_answers([TestResultMissing('item', 'test', None), RuleSatisfied()]) == \
-        '1 of 2 required tests not found'
+        '1 of 2 required test results missing'
 
 
 def test_waive_absence_of_result(tmpdir):

@@ -83,7 +83,7 @@ def test_consume_new_result(
                 'scenario': None,
             }
         ],
-        'summary': '2 of 3 required tests not found',
+        'summary': '2 of 3 required test results missing',
         'subject': [
             {
                 'item': nvr,
@@ -399,7 +399,7 @@ def test_consume_compose_id_result(
         u'policies_satisfied': False,
         'product_version': 'fedora-rawhide',
         'subject': [{u'productmd.compose.id': compose_id}],
-        u'summary': u'1 of 2 required tests not found',
+        u'summary': u'1 of 2 required test results missing',
         'previous': old_decision,
         u'unsatisfied_requirements': [{
             u'item': {u'productmd.compose.id': compose_id},
