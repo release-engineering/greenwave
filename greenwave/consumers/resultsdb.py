@@ -49,7 +49,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         prefix = hub.config.get('topic_prefix')
         env = hub.config.get('environment')
         suffix = hub.config.get('resultsdb_topic_suffix', 'taskotron.result.new')
-        self.topic = '.'.join([prefix, env, suffix])
+        self.topic = ['.'.join([prefix, env, suffix])]
         self.fedmsg_config = fedmsg.config.load_config()
 
         super(ResultsDBHandler, self).__init__(hub, *args, **kwargs)
