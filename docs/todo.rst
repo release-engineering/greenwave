@@ -4,12 +4,6 @@ Roadmap
 This document describes some plans for the future of Greenwave. Items are 
 listed in approximate order of importance.
 
-Support for STOMP messaging
----------------------------
-
-Like WaiverDB, we want to use Greenwave in environments which have 
-a STOMP-compatible message bus (#107).
-
 Per-package policies
 --------------------
 
