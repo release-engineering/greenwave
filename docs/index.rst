@@ -16,7 +16,7 @@ gating points in a software delivery pipeline, based on test results stored in
    :caption: Contents:
 
    api
-   contributing
+   dev-guide
    release-notes
    todo
 
