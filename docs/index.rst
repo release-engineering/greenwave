@@ -15,6 +15,7 @@ gating points in a software delivery pipeline, based on test results stored in
    :maxdepth: 2
    :caption: Contents:
 
+   policies
    api
    dev-guide
    release-notes
