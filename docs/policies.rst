@@ -94,3 +94,29 @@ The document is a map (dictionary) with the following keys:
 
 .. _Bodhi: https://github.com/fedora-infra/bodhi
 .. _Product Definition Center: https://github.com/product-definition-center/product-definition-center
+
+
+Testing your policy changes
+===========================
+
+If you're writing a new policy, you can use the Greenwave dev server to try it
+out and experiment with how if affects Greenwave's decisions.
+
+First, follow the steps in the :doc:`dev-guide` to get the dev server running
+locally.
+
+Then, add your new or modified policy in the :file:`conf/policies/` directory
+of your source tree. Note that Greenwave currently loads policies once at
+startup, it doesn't reload them at runtime. Therefore you should restart the
+dev server whenever you make a change to the policies.
+
+Now, you can use :program:`curl` or your favourite HTTP client to ask
+Greenwave for a decision:
+
+.. code-block:: console
+
+   $ curl http://localhost:5005/api/v1.0/decision \
+       --header 'Content-Type: application/json' \
+       --data '{"product_version": "fedora-27",
+           "decision_context": "bodhi_update_push_stable",
+           "subject": [{"item": "akonadi-calendar-tools-17.12.1-1.fc27", "type": "koji_build"}]}'
