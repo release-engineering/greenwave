@@ -71,7 +71,7 @@ product_versions:
 decision_context: compose_gate
 blacklist: []
 rules:
-  - !PackageSpecificBuild {test_case_name: sometest, repos: [nethack]}
+  - !PackageSpecificBuild {test_case_name: sometest, repos: [nethack, python-*]}
         """)
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
@@ -127,6 +127,35 @@ rules:
     decision = policy.check(item, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)  # ooooh.
+
+    # Ensure that fnmatch globs work in absence
+    item = {'item': 'python-foobar-1.2.3-1.el9000', 'type': 'koji_build'}
+    results, waivers = [], []
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultMissing)
+
+    # Ensure that fnmatch globs work in the negative.
+    results = [{
+        'id': 123,
+        'item': 'nethack-1.2.3-1.el9000',
+        'testcase': {'name': 'sometest'},
+        'outcome': 'FAILED',
+    }]
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultFailed)
+
+    # Ensure that fnmatch globs work in the positive.
+    results = [{
+        'id': 123,
+        'item': 'nethack-1.2.3-1.el9000',
+        'testcase': {'name': 'sometest'},
+        'outcome': 'SUCCESS',
+    }]
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultFailed)
 
 
 def test_load_policies():
