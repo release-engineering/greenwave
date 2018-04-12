@@ -118,5 +118,6 @@ Greenwave for a decision:
    $ curl http://localhost:5005/api/v1.0/decision \
        --header 'Content-Type: application/json' \
        --data '{"product_version": "fedora-27",
-           "decision_context": "bodhi_update_push_stable",
-           "subject": [{"item": "akonadi-calendar-tools-17.12.1-1.fc27", "type": "koji_build"}]}'
+   >       "decision_context": "bodhi_update_push_stable",
+   >       "subject": [{"item": "akonadi-calendar-tools-17.12.1-1.fc27",
+   >                    "type": "koji_build"}]}'
