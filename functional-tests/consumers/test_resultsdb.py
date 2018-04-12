@@ -20,16 +20,16 @@ def test_consume_new_result(
                                            outcome='PASSED')
     message = {
         'body': {
-            'topic': 'taskotron.result.new',
+            'topic': 'resultsdb.result.new',
             'msg': {
-                'result': {
-                    'id': result['id'],
-                    'outcome': 'PASSED'
+                'id': result['id'],
+                'outcome': 'PASSED',
+                'testcase': {
+                    'name': 'dist.rpmdeplint',
                 },
-                'task': {
+                'data': {
                     'item': nvr,
                     'type': 'koji_build',
-                    'name': 'dist.rpmdeplint'
                 }
             }
         }
@@ -143,16 +143,16 @@ def test_no_message_for_unchanged_decision(
         outcome='PASSED')
     message = {
         'body': {
-            'topic': 'taskotron.result.new',
+            'topic': 'resultsdb.result.new',
             'msg': {
-                'result': {
-                    'id': new_result['id'],
-                    'outcome': 'PASSED'
+                'id': new_result['id'],
+                'outcome': 'PASSED',
+                'testcase': {
+                    'name': 'dist.rpmdeplint',
                 },
-                'task': {
+                'data': {
                     'item': nvr,
                     'type': 'koji_build',
-                    'name': 'dist.rpmdeplint'
                 }
             }
         }
@@ -184,16 +184,16 @@ def test_invalidate_new_result_with_mocked_cache(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
     message = {
         'body': {
-            'topic': 'taskotron.result.new',
+            'topic': 'resultsdb.result.new',
             'msg': {
-                'result': {
-                    'id': result['id'],
-                    'outcome': 'PASSED'
+                'id': result['id'],
+                'outcome': 'PASSED',
+                'testcase': {
+                    'name': 'dist.rpmdeplint',
                 },
-                'task': {
+                'data': {
                     'item': nvr,
                     'type': 'koji_build',
-                    'name': 'dist.rpmdeplint'
                 }
             }
         }
@@ -258,16 +258,16 @@ def test_invalidate_new_result_with_real_cache(
     # Now, handle a message about the new failing result
     message = {
         'body': {
-            u'topic': u'taskotron.result.new',
+            u'topic': u'resultsdb.result.new',
             u'msg': {
-                u'result': {
-                    u'id': u'whatever',
-                    u'outcome': u'doesn\'t matter',
+                u'id': u'whatever',
+                u'outcome': u'doesn\'t matter',
+                u'testcase': {
+                    u'name': u'dist.rpmdeplint'
                 },
-                u'task': {
+                u'data': {
                     u'item': nvr.decode('utf-8'),
                     u'type': u'koji_build',
-                    u'name': u'dist.rpmdeplint'
                 }
             }
         }
@@ -311,16 +311,16 @@ def test_invalidate_new_result_with_no_preexisting_cache(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
     message = {
         'body': {
-            'topic': 'taskotron.result.new',
+            'topic': 'resultsdb.result.new',
             'msg': {
-                'result': {
-                    'id': result['id'],
-                    'outcome': 'PASSED'
+                'id': result['id'],
+                'outcome': 'PASSED',
+                'testcase': {
+                    'name': 'dist.rpmdeplint'
                 },
-                'task': {
+                'data': {
                     'item': nvr,
                     'type': 'koji_build',
-                    'name': 'dist.rpmdeplint'
                 }
             }
         }
@@ -357,15 +357,15 @@ def test_consume_compose_id_result(
         outcome='PASSED')
     message = {
         'body': {
-            'topic': 'taskotron.result.new',
+            'topic': 'resultsdb.result.new',
             'msg': {
-                'result': {
-                    'id': result['id'],
-                    'outcome': 'PASSED'
+                'id': result['id'],
+                'outcome': 'PASSED',
+                'testcase': {
+                    'name': 'compose.install_no_user',
                 },
-                'task': {
-                    "productmd.compose.id": compose_id,
-                    "name": "compose.install_no_user",
+                'data': {
+                    'productmd.compose.id': compose_id,
                 },
             }
         }
@@ -409,3 +409,126 @@ def test_consume_compose_id_result(
     }
 
     mock_fedmsg.assert_any_call(topic='decision.update', msg=msg)
+
+
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+def test_consume_legacy_result(
+        mock_fedmsg, load_config, requests_session, greenwave_server,
+        testdatabuilder, monkeypatch):
+    """ Test that we can still handle the old legacy "taskotron" format.
+
+    We should be using resultsdb.result.new everywhere now, but we also
+    need to be able to handle this taskotron format for the transition.
+    """
+
+    monkeypatch.setenv('TEST', 'true')
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
+    nvr = testdatabuilder.unique_nvr()
+    result = testdatabuilder.create_result(item=nvr,
+                                           testcase_name='dist.rpmdeplint',
+                                           outcome='PASSED')
+    message = {
+        'body': {
+            'topic': 'taskotron.result.new',
+            'msg': {
+                'result': {
+                    'id': result['id'],
+                    'outcome': 'PASSED'
+                },
+                'task': {
+                    'item': nvr,
+                    'type': 'koji_build',
+                    'name': 'dist.rpmdeplint'
+                }
+            }
+        }
+    }
+    hub = mock.MagicMock()
+    hub.config = {
+        'environment': 'environment',
+        'topic_prefix': 'topic_prefix',
+        'greenwave_cache': {'backend': 'dogpile.cache.null'},
+    }
+    handler = resultsdb.ResultsDBHandler(hub)
+    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler.consume(message)
+
+    # get old decision
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject': [{'item': nvr, 'type': 'koji_build'}],
+        'ignore_result': [result['id']]
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    old_decision = r.json()
+    # should have two messages published as we have two decision contexts applicable to
+    # this subject.
+    first_msg = {
+        'policies_satisfied': False,
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'unsatisfied_requirements': [
+            {
+                'testcase': 'dist.abicheck',
+                'item': {
+                    'item': nvr,
+                    'type': 'koji_build'
+                },
+                'type': 'test-result-missing',
+                'scenario': None,
+            },
+            {
+                'testcase': 'dist.upgradepath',
+                'item': {
+                    'item': nvr,
+                    'type': 'koji_build'
+                },
+                'type': 'test-result-missing',
+                'scenario': None,
+            }
+        ],
+        'summary': '2 of 3 required test results missing',
+        'subject': [
+            {
+                'item': nvr,
+                'type': 'koji_build'
+            }
+        ],
+        'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
+                                'taskotron_release_critical_tasks'],
+        'previous': old_decision,
+    }
+    mock_fedmsg.assert_any_call(topic='decision.update', msg=first_msg)
+    # get the old decision for the second policy
+    data = {
+        'decision_context': 'bodhi_update_push_testing',
+        'product_version': 'fedora-26',
+        'subject': [{'item': nvr, 'type': 'koji_build'}],
+        'ignore_result': [result['id']]
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    old_decision = r.json()
+    second_msg = {
+        'policies_satisfied': True,
+        'decision_context': 'bodhi_update_push_testing',
+        'product_version': 'fedora-26',
+        'unsatisfied_requirements': [],
+        'summary': 'all required tests passed',
+        'subject': [
+            {
+                'item': nvr,
+                'type': 'koji_build'
+            }
+        ],
+        'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
+        'previous': old_decision,
+    }
+    mock_fedmsg.assert_any_call(topic='decision.update', msg=second_msg)

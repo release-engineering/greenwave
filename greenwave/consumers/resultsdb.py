@@ -69,13 +69,17 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             message (munch.Munch): A fedmsg about a new result.
         """
 
-        task = message['msg']['task']
+        try:
+            data = message['msg']['data']  # New format
+        except KeyError:
+            data = message['msg']['task']  # Old format
+
         announcement_keys = [
             set(keys) for keys in config['ANNOUNCEMENT_SUBJECT_KEYS']
         ]
         for keys in announcement_keys:
-            if keys.issubset(task.keys()):
-                yield dict([(key.decode('utf-8'), task[key].decode('utf-8')) for key in keys])
+            if keys.issubset(data.keys()):
+                yield dict([(key.decode('utf-8'), data[key].decode('utf-8')) for key in keys])
 
     def consume(self, message):
         """
@@ -87,8 +91,17 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         message = message.get('body', message)
         log.debug('Processing message "%s"', message)
         config = load_config()
-        testcase = message['msg']['task']['name']
-        result_id = message['msg']['result']['id']
+
+        try:
+            testcase = message['msg']['testcase']['name']  # New format
+        except KeyError:
+            testcase = message['msg']['task']['name']  # Old format
+
+        try:
+            result_id = message['msg']['id']  # New format
+        except KeyError:
+            result_id = message['msg']['result']['id']  # Old format
+
         for subject in self.announcement_subjects(config, message):
             log.debug('Considering subject "%s"', subject)
             self._invalidate_cache(subject)
