@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-import fnmatch
+from fnmatch import fnmatch
 import yaml
 
 
@@ -231,7 +231,7 @@ class PackageSpecificRule(Rule):
 
         nvr = item[self.nvr_key]
         pkg_name = nvr.rsplit('-', 2)[0]
-        if not any(fnmatch.fnmatch(pkg_name, repo) for repo in self.repos):
+        if not any(fnmatch(pkg_name, repo) for repo in self.repos):
             return RuleSatisfied()
 
         rule = PassingTestCaseRule()
@@ -270,7 +270,7 @@ class Policy(yaml.YAMLObject):
 
     def applies_to(self, decision_context, product_version):
         return (decision_context == self.decision_context and
-                product_version in self.product_versions)
+                self._applies_to_product_version(product_version))
 
     def check(self, item, results, waivers):
         # If an item is about a package and it is in the blacklist, return RuleSatisfied()
@@ -294,3 +294,6 @@ class Policy(yaml.YAMLObject):
             'rules': [rule.to_json() for rule in self.rules],
             'blacklist': self.blacklist,
         }
+
+    def _applies_to_product_version(self, product_version):
+        return any(fnmatch(product_version, version) for version in self.product_versions)

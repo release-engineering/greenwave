@@ -109,7 +109,7 @@ def test_consume_new_result(
     second_msg = {
         'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_testing',
-        'product_version': 'fedora-26',
+        'product_version': 'fedora-*',
         'unsatisfied_requirements': [],
         'summary': 'all required tests passed',
         'subject': [
@@ -519,7 +519,7 @@ def test_consume_legacy_result(
     second_msg = {
         'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_testing',
-        'product_version': 'fedora-26',
+        'product_version': 'fedora-*',
         'unsatisfied_requirements': [],
         'summary': 'all required tests passed',
         'subject': [

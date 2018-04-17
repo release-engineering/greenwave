@@ -25,7 +25,7 @@ rules:
 --- !Policy
 id: "taskotron_release_critical_tasks_for_testing"
 product_versions:
-  - fedora-26
+  - fedora-*
 decision_context: bodhi_update_push_testing
 blacklist: []
 rules:

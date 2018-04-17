@@ -76,6 +76,8 @@ The document is a map (dictionary) with the following keys:
    <https://pdc.fedoraproject.org/rest_api/v1/product-versions/>`_ endpoint),
    although Greenwave does not enforce this.
 
+   You can match many product versions by using a wildcard like ``fedora-*``.
+
 ``rules``
    A list of rules which this policy enforces. Each item in the list is a YAML
    map, tagged with the rule type.

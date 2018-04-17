@@ -359,3 +359,22 @@ def test_version_endpoint_jsonp():
     assert output.status_code == 200
     assert 'bac123' in output.data
     assert '"version": "%s"' % __version__ in output.data
+
+
+def test_product_versions_pattern(tmpdir):
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: dummy_policy
+product_versions:
+  - fedora-*
+decision_context: dummy_context
+blacklist: []
+rules: []
+        """)
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+
+    assert policy.applies_to('dummy_context', 'fedora-27')
+    assert policy.applies_to('dummy_context', 'fedora-28')
+    assert not policy.applies_to('dummy_context', 'epel-7')
