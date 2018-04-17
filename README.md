@@ -13,7 +13,7 @@ The latest version of Greenwave's documentation is available at:
 https://docs.pagure.org/greenwave/
 
 To get started developing Greenwave, check out the
-[development guide](docs/dev-guide.rst).
+[development guide](https://docs.pagure.org/greenwave/dev-guide.html).
 
 ## Copyright and license
 
