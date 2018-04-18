@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import fnmatch
 import yaml
 
 
@@ -215,13 +216,14 @@ class PackageSpecificRule(Rule):
     def check(self, item, results, waivers):
         """ Check that the item passes testcase for the given results, but
         only if the item is an instance of a package name configured for
-        this rule (specified by "repos").
+        this rule, specified by "repos".  Any of the repos may be a glob.
 
         Items which do not bear the "nvr_key" for this rule are considered
         satisfied (ignored).
 
-        Items whose package names (extracted from their NVR) do not appear
-        in the "repos" list of this rule are considered satisfied (ignored).
+        Items whose package names (extracted from their NVR) do not match
+        any of the globs in the "repos" list of this rule are considered
+        satisfied (ignored).
         """
 
         if self.nvr_key not in item:
@@ -229,7 +231,7 @@ class PackageSpecificRule(Rule):
 
         nvr = item[self.nvr_key]
         pkg_name = nvr.rsplit('-', 2)[0]
-        if pkg_name not in self.repos:
+        if not any(fnmatch.fnmatch(pkg_name, repo) for repo in self.repos):
             return RuleSatisfied()
 
         rule = PassingTestCaseRule()
