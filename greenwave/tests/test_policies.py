@@ -3,6 +3,7 @@
 
 import json
 import pytest
+import mock
 
 from greenwave import __version__
 from greenwave.app_factory import create_app
@@ -378,3 +379,37 @@ rules: []
     assert policy.applies_to('dummy_context', 'fedora-27')
     assert policy.applies_to('dummy_context', 'fedora-28')
     assert not policy.applies_to('dummy_context', 'epel-7')
+
+
+def test_remote_original_spec_nvr_rule_policy(tmpdir):
+    """ Testing the RemoteOriginalSpecNvrRule with the koji interaction.
+    In this case we are just mocking koji """
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        p = tmpdir.join('greenwave.yaml')
+        p.write("""
+--- !Policy
+id: "taskotron_release_critical_tasks_with_remoterule"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+blacklist: []
+rules:
+  - !RemoteOriginalSpecNvrRule {test_case_name: dist.upgradepath}
+            """)
+        with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
+            policies = load_policies(tmpdir.strpath)
+            policy = policies[0]
+
+            # Ensure that absence of a result is failure.
+            item, waivers = {}, []
+            results = [{
+                "data": {
+                    "original_spec_nvr": ['nethack-1.2.3-1.el9000']
+                },
+                "testcase": {"name": "dist.upgradepath"},
+                "outcome": "PASSED"
+            }]
+            decision = policy.check(item, results, waivers)
+            assert len(decision) == 1
+            assert isinstance(decision[0], RuleSatisfied)

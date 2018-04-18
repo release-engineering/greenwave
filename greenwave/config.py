@@ -18,6 +18,12 @@ class Config(object):
     WAIVERDB_API_URL = 'https://waiverdb.fedoraproject.org/api/v1.0'
 
     # Options for outbound HTTP requests made by python-requests
+<<<<<<< HEAD
+=======
+    DIST_GIT_BASE_URL = 'https://src.fedoraproject.org'
+    DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}/{pkg_name}/{rev}/greenwave.yaml'
+    KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
+>>>>>>> 66e68b8... Introducing RemoteRule for extending policies
     REQUESTS_TIMEOUT = (6.1, 15)
     REQUESTS_VERIFY = True
 
@@ -61,3 +67,5 @@ class TestingConfig(Config):
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'conf',
         'policies'
     )
+    DIST_GIT_BASE_URL = 'http://localhost:5678'
+    DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}/{pkg_name}-{rev}-greenwave.yaml'

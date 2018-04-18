@@ -1,6 +1,14 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import json
+import os
+
+import pytest
+from werkzeug.exceptions import InternalServerError
+
+from greenwave.app_factory import create_app
+from greenwave.utils import load_policies
+from greenwave.policies import RuleSatisfied
 
 
 all_rpmdiff_testcase_names = [
@@ -95,7 +103,7 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 6
+    assert len(policies) == 7
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)
@@ -253,6 +261,8 @@ def test_make_a_decison_on_failed_result_with_waiver(
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name=all_rpmdiff_testcase_names[0],
                                            outcome='FAILED')
+    #import pdb
+    #pdb.set_trace()
     waiver = testdatabuilder.create_waiver(result={ # noqa
         "subject": dict([(key, value[0]) for key, value in result['data'].items()]),
         "testcase": all_rpmdiff_testcase_names[0]}, product_version='rhel-7',
@@ -600,6 +610,83 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
     ]
     assert res_data['policies_satisfied'] is False
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+
+
+def test_distgit_server(requests_session, distgit_server, tmpdir):
+    """ This test is checking if the distgit server is working.
+        Check that the file is present and that the server is running.
+    """
+
+    p = tmpdir.join('greenwave.yaml')
+    open(p.strpath, "w+")
+    # Removing "/tmp/" in the beginning...
+    url = '{0}/{1}'.format(distgit_server, '/'.join(p.strpath.split('/')[2:]))
+    r_ = requests_session.head(url, headers={'Content-Type': 'application/json'}, timeout=60)
+    assert r_.status_code == 200
+
+
+def test_remote_original_spec_nvr_rule_policy(requests_session, distgit_server, greenwave_server,
+                                              tmpdir, testdatabuilder):
+    """ This test is checking:
+    - that if there aren't results greenwave must return an error.
+    - a normal situation with the Remote Rule configured: all the rules are satisfied
+    """
+    p = tmpdir.join('greenwave.yaml')
+    f = open(p.strpath, "w+")
+    f.write("""
+--- !Policy
+id: "taskotron_release_critical_tasks_with_remoterule"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+blacklist: []
+rules:
+  - !RemoteOriginalSpecNvrRule {test_case_name: dist.upgradepath}
+       """)
+    f.close()
+    policies = load_policies(p.dirname)
+    policy = policies[0]
+    # Ensure that absence of a result is failure.
+    item, results, waivers = {}, [], []
+    with pytest.raises(InternalServerError):
+        decision = policy.check(item, results, waivers)
+
+    nvr = testdatabuilder.unique_nvr()
+    key = "original_spec_nvr"
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        # now testing with rev, but without the greenwave.yaml file
+        rev_num = "rev_num"
+        results = [{
+            "data": {
+                key: [nvr],
+                "rev": [rev_num],
+            },
+            "testcase": {"name": "dist.upgradepath"},
+            "outcome": "PASSED"
+        }]
+
+        decision = policy.check(item, results, waivers)
+        assert len(decision) == 1
+        assert isinstance(decision[0], RuleSatisfied)
+
+        # now testing with rev and with the greenwave.yaml file
+        g = open("/tmp/{0}-{1}-greenwave.yaml".format(nvr.rsplit('-', 2)[0], rev_num), "w+")
+        g.write("""
+--- !Policy
+id: "taskotron_release_critical_tasks"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """)
+        g.close()
+        decision = policy.check(item, results, waivers)
+        os.remove("/tmp/{0}-{1}-greenwave.yaml".format(nvr.rsplit('-', 2)[0], rev_num))
+        assert len(decision) == 1
+        assert isinstance(decision[0], RuleSatisfied)
 
 
 def test_cached_false_positive(requests_session, greenwave_server, testdatabuilder):

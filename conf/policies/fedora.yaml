@@ -48,3 +48,11 @@ blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: compose.install_no_user, scenario: scenario1}
   - !PassingTestCaseRule {test_case_name: compose.install_no_user, scenario: scenario2}
+--- !Policy
+id: "taskotron_release_critical_tasks_with_remoterule"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+blacklist: []
+rules:
+  - !RemoteOriginalSpecNvrRule {test_case_name: dist.upgradepath}

@@ -7,23 +7,66 @@ waiverdb, etc..).
 """
 
 import json
-
 import requests
 import urllib3.exceptions
 
+import urlparse
+import xmlrpclib
 from flask import current_app
+from werkzeug.exceptions import BadGateway
 
 from greenwave.cache import cached
 from greenwave.utils import retry
+import greenwave.policies
 
 requests_session = requests.Session()
 
 
 @cached
 @retry(wait_on=urllib3.exceptions.NewConnectionError)
+def retrieve_rev_from_koji(nvr):
+    """ Retrieve cached rev from koji using the nrv """
+    proxy = xmlrpclib.ServerProxy(current_app.config['KOJI_BASE_URL'])
+    build = proxy.getBuild(nvr)
+    try:
+        url = urlparse(build['extra']['source']['original_url'])
+        if not url.scheme.startswith('git'):
+            raise BadGateway('Error occurred looking for the "rev" in koji.')
+        return url.fragment
+    except Exception:
+        raise BadGateway('Error occurred looking for the "rev" in koji.')
+
+
+@cached
+def retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name):
+    """ Retrieve cached greenwave.yaml content for a given rev. """
+    data = {
+        "DIST_GIT_BASE_URL": current_app.config['DIST_GIT_BASE_URL'],
+        "pkg_name": pkg_name,
+        "rev": rev
+    }
+    url = current_app.config['DIST_GIT_URL_TEMPLATE'].format(**data)
+    response = requests_session.request('HEAD', url,
+                                        headers={'Content-Type': 'application/json'},
+                                        timeout=60)
+    if response.status_code == 404:
+        return greenwave.policies.RuleSatisfied()
+    elif response.status_code != 200:
+        raise BadGateway('Error occurred looking for greenwave.yaml file in the dist-git repo.')
+
+    # greenwave.yaml found...
+    response = requests_session.request('GET', url,
+                                        headers={'Content-Type': 'application/json'},
+                                        timeout=60)
+    response.raise_for_status()
+    return response.content
+
+
+@cached
 def retrieve_results(item):
     """ Retrieve cached results from resultsdb for a given item. """
     # XXX make this more efficient than just fetching everything
+
     params = item.copy()
     params.update({'limit': '1000'})
     timeout = current_app.config['REQUESTS_TIMEOUT']

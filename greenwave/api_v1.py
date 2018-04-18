@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 from flask import Blueprint, request, current_app, jsonify
-from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
+from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType, InternalServerError
 from greenwave import __version__
-from greenwave.policies import summarize_answers
+from greenwave.policies import summarize_answers, RemoteOriginalSpecNvrRule
 from greenwave.resources import retrieve_results, retrieve_waivers
 from greenwave.utils import insert_headers, jsonp
 
@@ -204,6 +204,7 @@ def make_decision():
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
     """  # noqa: E501
+
     if request.get_json():
         if ('product_version' not in request.get_json() or
                 not request.get_json()['product_version']):
@@ -226,6 +227,18 @@ def make_decision():
         raise BadRequest('Invalid verbose flag, must be a bool')
     ignore_results = data.get('ignore_result', [])
     ignore_waivers = data.get('ignore_waiver', [])
+
+    for policy in current_app.config['policies']:
+        for rule in policy.rules:
+            if isinstance(rule, RemoteOriginalSpecNvrRule):
+                if ('DIST_GIT_BASE_URL' not in current_app.config or
+                    'DIST_GIT_URL_TEMPLATE' not in current_app.config or
+                        'KOJI_BASE_URL' not in current_app.config):
+                        raise InternalServerError("If you want to apply a RemoteOriginalSpecNvrRule"
+                                                  " you need to configure 'DIST_GIT_BASE_URL',"
+                                                  "'DIST_GIT_URL_TEMPLATE' and KOJI_BASE_URL in "
+                                                  "your configuration.")
+
     applicable_policies = [policy for policy in current_app.config['policies']
                            if policy.applies_to(decision_context, product_version)]
     if not applicable_policies:

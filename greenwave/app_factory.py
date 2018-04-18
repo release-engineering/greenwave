@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-
 from flask import Flask
 from greenwave.logger import init_logging
 from greenwave.api_v1 import api
@@ -15,6 +14,7 @@ from werkzeug.exceptions import default_exceptions
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
 def create_app(config_obj=None):
     app = Flask(__name__)
+
     app.config.update(load_config(config_obj))
     if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':
         raise Warning("You need to change the app.secret_key value for production")

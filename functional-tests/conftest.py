@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import os
+import sys
+import tempfile
 import time
 import textwrap
 import itertools
@@ -125,6 +127,20 @@ def waiverdb_server(tmpdir_factory):
         p.wait()
 
 
+@pytest.yield_fixture(scope='session')
+def distgit_server():
+    """ Creating a fake dist-git process. It is just a serving some files in /tmp """
+    tmpdir = tempfile.mkdtemp('data')
+    p = subprocess.Popen([sys.executable, '-m', 'SimpleHTTPServer', '5678'], cwd=tmpdir)
+    #p = subprocess.Popen('pushd /tmp;python -m SimpleHTTPServer 5678', shell=True)
+    log.debug('Started dist-git server as pid %s', p.pid)
+    wait_for_listen(5678)
+    yield 'http://localhost:5678'
+    log.debug('Terminating dist-git server pid %s', p.pid)
+    p.terminate()
+    p.wait()
+
+
 # This is only a fixture because some tests want to point the fedmsg consumers
 # at the same cache that the server process is using.
 # I would like to refactor those tests to send real messages to real consumers,
@@ -179,10 +195,11 @@ class TestDataBuilder(object):
     ResultsDB and WaiverDB.
     """
 
-    def __init__(self, requests_session, resultsdb_url, waiverdb_url):
+    def __init__(self, requests_session, resultsdb_url, waiverdb_url, distgit_url):
         self.requests_session = requests_session
         self.resultsdb_url = resultsdb_url
         self.waiverdb_url = waiverdb_url
+        self.distgit_url = distgit_url
         self._counter = itertools.count(1)
 
     def unique_nvr(self):
@@ -207,12 +224,15 @@ class TestDataBuilder(object):
         response.raise_for_status()
         return response.json()
 
-    def create_result(self, item, testcase_name, outcome, scenario=None):
+    def create_result(self, item, testcase_name, outcome, scenario=None, key=None):
         data = {
             'testcase': {'name': testcase_name},
-            'data': {'item': item, 'type': 'koji_build'},
             'outcome': outcome,
         }
+        if not key:
+            data['data'] = {'item': item, 'type': 'koji_build'}
+        else:
+            data['data'] = {key: item}
         if scenario:
             data['data']['scenario'] = scenario
         response = self.requests_session.post(
@@ -244,5 +264,5 @@ class TestDataBuilder(object):
 
 
 @pytest.fixture(scope='session')
-def testdatabuilder(requests_session, resultsdb_server, waiverdb_server):
-    return TestDataBuilder(requests_session, resultsdb_server, waiverdb_server)
+def testdatabuilder(requests_session, resultsdb_server, waiverdb_server, distgit_server):
+    return TestDataBuilder(requests_session, resultsdb_server, waiverdb_server, distgit_server)

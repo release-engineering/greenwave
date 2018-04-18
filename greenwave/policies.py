@@ -2,6 +2,23 @@
 
 from fnmatch import fnmatch
 import yaml
+from werkzeug.exceptions import InternalServerError
+import greenwave.resources
+
+
+def validate_policies(policies, disallowed_rules=[]):
+    for policy in policies:
+        if not isinstance(policy, Policy):
+            raise RuntimeError('Policies are not configured properly as policy %s '
+                               'is not an instance of Policy' % policy)
+        for rule in policy.rules:
+            if not isinstance(rule, Rule):
+                raise RuntimeError('Policies are not configured properly as rule %s '
+                                   'is not an instance of Rule' % rule)
+            for disallowed_rule in disallowed_rules:
+                if isinstance(rule, disallowed_rule):
+                    raise RuntimeError('Policies are not configured properly as rule %s '
+                                       'is an instance of %s' % (rule, disallowed_rule))
 
 
 class Answer(object):
@@ -143,6 +160,50 @@ class Rule(yaml.YAMLObject):
         raise NotImplementedError()
 
 
+class RemoteOriginalSpecNvrRule(Rule):
+    yaml_tag = u'!RemoteOriginalSpecNvrRule'
+    yaml_loader = yaml.SafeLoader
+
+    def check(self, item, results, waivers):
+        for result in results:
+            if 'original_spec_nvr' not in result['data']:  # just go on to the next one
+                continue
+            if 'rev' not in result['data'] or len(result['data']['rev']) == 0:
+                # Trying to find the rev asking to koji
+                rev = greenwave.resources.retrieve_rev_from_koji(
+                    result['data']['original_spec_nvr'][0])
+            else:
+                rev = result['data']['rev'][0]
+            pkg_name = result['data']['original_spec_nvr'][0].rsplit('-', 2)[0]
+            response = greenwave.resources.retrieve_yaml_remote_original_spec_nvr_rule(rev,
+                                                                                       pkg_name)
+            # greenwave file not found
+            if isinstance(response, RuleSatisfied):
+                return RuleSatisfied()
+            else:
+                policies = yaml.safe_load_all(response)
+                # policies is a generator, so listifying it
+                policies = list(policies)
+                validate_policies(policies, [RemoteOriginalSpecNvrRule])
+                answers = []
+                for policy in policies:
+                    response = policy.check(item, results, waivers)
+                    if isinstance(response, list):
+                        answers.extend(response)
+                    else:
+                        answers.append(response)
+                return answers
+
+        # if we arrived here it means that we don't have any result...
+        raise InternalServerError('Impossible to extend the policy.')
+
+    def to_json(self):
+        return {
+            'rule': self.__class__.__name__,
+            'test_case_name': self.test_case_name,
+        }
+
+
 class PassingTestCaseRule(Rule):
     """
     This rule requires either a passing result for the given test case, or
@@ -279,7 +340,14 @@ class Policy(yaml.YAMLObject):
                     item.get('item') and
                     item['item'].rsplit('-', 2)[0] == package):
                 return [RuleSatisfied() for rule in self.rules]
-        return [rule.check(item, results, waivers) for rule in self.rules]
+        answers = []
+        for rule in self.rules:
+            response = rule.check(item, results, waivers)
+            if isinstance(response, list):
+                answers.extend(response)
+            else:
+                answers.append(response)
+        return answers
 
     def __repr__(self):
         return "%s(id=%r, product_versions=%r, decision_context=%r, rules=%r)" % (
