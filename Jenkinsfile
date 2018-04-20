@@ -102,7 +102,7 @@ node('docker') {
             /* Note that the docker.build step has some magic to guess the
              * Dockerfile used, which will break if the build directory (here ".")
              * is not the final argument in the string. */
-            def image = docker.build "factory2/greenwave:${appversion}", "--build-arg greenwave_rpm=$f26_rpm --build-arg cacert_url=https://password.corp.redhat.com/RH-IT-Root-CA.crt ."
+            def image = docker.build "factory2/greenwave:internal-${appversion}", "--build-arg greenwave_rpm=$f26_rpm --build-arg cacert_url=https://password.corp.redhat.com/RH-IT-Root-CA.crt ."
             image.push()
         }
         /* Build and push the same image with the same tag to quay.io, but without the cacert. */
@@ -131,7 +131,7 @@ node('docker') {
             docker.withRegistry(
                     'https://docker-registry.engineering.redhat.com/',
                     'docker-registry-factory2-builder-sa-credentials') {
-                def image = docker.image("factory2/greenwave:${appversion}")
+                def image = docker.image("factory2/greenwave:internal-${appversion}")
                 image.push('latest')
             }
             docker.withRegistry(
