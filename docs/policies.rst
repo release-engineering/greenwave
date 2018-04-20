@@ -82,11 +82,8 @@ The document is a map (dictionary) with the following keys:
    A list of rules which this policy enforces. Each item in the list is a YAML
    map, tagged with the rule type.
 
-   Currently only one rule type is defined, ``PassingTestCaseRule``. The
-   ``test_case_name`` key in the map identifies the name of the test case. For
-   this rule to be satisfied, there must be a result in ResultsDB for the
-   given test case with an outcome of ``PASS``, *or* there must be a
-   corresponding waiver in WaiverDB for the given test case.
+   Currently there are a few rule types, ``PassingTestCaseRule`` being one of
+   them.  See the section of Rule Types, below for a full list.
 
 ``blacklist``
    A list of binary RPM package names which are exempted from this policy.
@@ -96,6 +93,30 @@ The document is a map (dictionary) with the following keys:
 
 .. _Bodhi: https://github.com/fedora-infra/bodhi
 .. _Product Definition Center: https://github.com/product-definition-center/product-definition-center
+
+
+Rule Types
+==========
+
+``PassingTestCaseRule``
+   For this rule to be satisfied, there must be a result in ResultsDB for the
+   given ``test_case_name`` with an outcome of ``PASS``, *or* there must be a
+   corresponding waiver in WaiverDB for the given test case.
+
+``PackageSpecificBuild``
+   Just like the ``PassingTestCaseRule``, the ``PackageSpecificBuild`` rule
+   requires that a given ``test_case_name`` is passing, but only for certain
+   packages (listed in the ``repos`` argument).  The configured package names
+   in the ``repos`` list may contain wildcards to, for instance, write a rule
+   requiring a certain test must pass for all `python-*` packages.
+
+   At query time, the package name is parsed from an assumed `nvr` in the
+   ``item`` of the subject.
+
+``FedoraAtomicCi``
+   This rule is nearly identical to the ``PackageSpecificBuild`` rule, except
+   that at query time, the package name is parsed from an assumed `nvr` in the
+   ``original_spec_nvr`` of the subject.
 
 
 Testing your policy changes
