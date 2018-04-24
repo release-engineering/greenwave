@@ -223,12 +223,13 @@ class TestDataBuilder(object):
         response.raise_for_status()
         return response.json()
 
-    def create_waiver(self, result, product_version, waived=True):
+    def create_waiver(self, result, product_version, comment, waived=True):
         data = {
             'subject': result['subject'],
             'testcase': result['testcase'],
             'product_version': product_version,
             'waived': waived,
+            'comment': comment
         }
         # We assume WaiverDB is configured with
         # AUTH_METHOD = 'dummy' to accept Basic with any credentials.

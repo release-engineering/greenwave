@@ -255,7 +255,8 @@ def test_make_a_decison_on_failed_result_with_waiver(
                                            outcome='FAILED')
     waiver = testdatabuilder.create_waiver(result={ # noqa
         "subject": dict([(key, value[0]) for key, value in result['data'].items()]),
-        "testcase": all_rpmdiff_testcase_names[0]}, product_version='rhel-7')
+        "testcase": all_rpmdiff_testcase_names[0]}, product_version='rhel-7',
+        comment='This is fine')
     # The rest passed
     for testcase_name in all_rpmdiff_testcase_names[1:]:
         testdatabuilder.create_result(item=nvr,
@@ -561,7 +562,8 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
                                            outcome='FAILED')
     waiver = testdatabuilder.create_waiver(result={
         "subject": dict([(key, value[0]) for key, value in result['data'].items()]),
-        "testcase": all_rpmdiff_testcase_names[0]}, product_version='rhel-7')
+        "testcase": all_rpmdiff_testcase_names[0]}, product_version='rhel-7',
+        comment='This is fine')
     # The rest passed
     for testcase_name in all_rpmdiff_testcase_names[1:]:
         testdatabuilder.create_result(item=nvr,
