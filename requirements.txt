@@ -2,4 +2,4 @@ flask
 requests
 PyYAML
 dogpile.cache
-fedmsg
+fedmsg[consumers]
