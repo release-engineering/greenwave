@@ -61,7 +61,8 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         log.info('Greenwave resultsdb handler listening on: %s', self.topic)
 
-    def announcement_subjects(self, config, message):
+    @staticmethod
+    def announcement_subjects(config, message):
         """ Yields subjects for announcement consideration from the message.
 
         Args:
