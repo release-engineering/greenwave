@@ -78,9 +78,16 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         announcement_keys = [
             set(keys) for keys in config['ANNOUNCEMENT_SUBJECT_KEYS']
         ]
+
+        def _decode(value):
+            """ Decode either a string or a list of strings. """
+            if len(value) == 1:
+                value = value[0]
+            return value.decode('utf-8')
+
         for keys in announcement_keys:
             if keys.issubset(data.keys()):
-                yield dict([(key.decode('utf-8'), data[key].decode('utf-8')) for key in keys])
+                yield {key.decode('utf-8'): _decode(data[key]) for key in keys}
 
     def consume(self, message):
         """
