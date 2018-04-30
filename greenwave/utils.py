@@ -10,7 +10,7 @@ import yaml
 from flask import jsonify, current_app, request
 from flask.config import Config
 from werkzeug.exceptions import HTTPException
-from greenwave.policies import validate_policies
+import greenwave.policies
 
 log = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ def load_policies(policies_dir):
     policies = []
     for policy_pathname in policy_pathnames:
         policies.extend(yaml.safe_load_all(open(policy_pathname, 'r')))
-    validate_policies(policies)
+    greenwave.policies.validate_policies(policies)
     return policies
 
 

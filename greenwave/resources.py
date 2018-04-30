@@ -16,14 +16,14 @@ from flask import current_app
 from werkzeug.exceptions import BadGateway
 
 from greenwave.cache import cached
-from greenwave.utils import retry
+import greenwave.utils
 import greenwave.policies
 
 requests_session = requests.Session()
 
 
 @cached
-@retry(wait_on=urllib3.exceptions.NewConnectionError)
+@greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_rev_from_koji(nvr):
     """ Retrieve cached rev from koji using the nrv """
     proxy = xmlrpclib.ServerProxy(current_app.config['KOJI_BASE_URL'])
@@ -79,7 +79,7 @@ def retrieve_results(item):
 
 
 # NOTE - not cached, for now.
-@retry(wait_on=urllib3.exceptions.NewConnectionError)
+@greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_waivers(product_version, item):
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']
