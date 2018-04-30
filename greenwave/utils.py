@@ -145,9 +145,9 @@ def retry(timeout=None, interval=None, wait_on=Exception):
             while True:
                 try:
                     return function(*args, **kwargs)
-                except wait_on as e:
-                    log.warn("Exception %r raised from %r.  Retry in %rs" % (
-                        e, function, _interval))
+                except wait_on as e:  # pylint: disable=broad-except
+                    log.warning("Exception %r raised from %r.  Retry in %rs",
+                                e, function, _interval)
                     time.sleep(_interval)
                     if (time.time() - start) >= _timeout:
                         raise  # This re-raises the last exception.
