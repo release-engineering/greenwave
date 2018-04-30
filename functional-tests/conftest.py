@@ -2,7 +2,6 @@
 
 import os
 import sys
-import tempfile
 import time
 import textwrap
 import itertools
@@ -128,11 +127,12 @@ def waiverdb_server(tmpdir_factory):
 
 
 @pytest.yield_fixture(scope='session')
-def distgit_server():
-    """ Creating a fake dist-git process. It is just a serving some files in /tmp """
-    tmpdir = tempfile.mkdtemp('data')
-    p = subprocess.Popen([sys.executable, '-m', 'SimpleHTTPServer', '5678'], cwd=tmpdir)
-    #p = subprocess.Popen('pushd /tmp;python -m SimpleHTTPServer 5678', shell=True)
+def distgit_server(tmpdir_factory):
+    """ Creating a fake dist-git process. It is just a serving some files in a tmp dir """
+    tmp_dir = tmpdir_factory.mktemp('distgit')
+    f = open(tmp_dir.strpath + "/greenwave.yaml", "w+")
+    f.close()
+    p = subprocess.Popen([sys.executable, '-m', 'SimpleHTTPServer', '5678'], cwd=tmp_dir.strpath)
     log.debug('Started dist-git server as pid %s', p.pid)
     wait_for_listen(5678)
     yield 'http://localhost:5678'

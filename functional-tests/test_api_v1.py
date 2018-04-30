@@ -261,8 +261,6 @@ def test_make_a_decison_on_failed_result_with_waiver(
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name=all_rpmdiff_testcase_names[0],
                                            outcome='FAILED')
-    #import pdb
-    #pdb.set_trace()
     waiver = testdatabuilder.create_waiver(result={ # noqa
         "subject": dict([(key, value[0]) for key, value in result['data'].items()]),
         "testcase": all_rpmdiff_testcase_names[0]}, product_version='rhel-7',
@@ -616,16 +614,12 @@ def test_distgit_server(requests_session, distgit_server, tmpdir):
     """ This test is checking if the distgit server is working.
         Check that the file is present and that the server is running.
     """
-
-    p = tmpdir.join('greenwave.yaml')
-    open(p.strpath, "w+")
-    # Removing "/tmp/" in the beginning...
-    url = '{0}/{1}'.format(distgit_server, '/'.join(p.strpath.split('/')[2:]))
-    r_ = requests_session.head(url, headers={'Content-Type': 'application/json'}, timeout=60)
+    r_ = requests_session.head(distgit_server, headers={'Content-Type': 'application/json'},
+                               timeout=60)
     assert r_.status_code == 200
 
 
-def test_remote_original_spec_nvr_rule_policy(requests_session, distgit_server, greenwave_server,
+def test_remote_original_spec_nvr_rule_policy(requests_session, greenwave_server,
                                               tmpdir, testdatabuilder):
     """ This test is checking:
     - that if there aren't results greenwave must return an error.

@@ -67,5 +67,3 @@ class TestingConfig(Config):
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'conf',
         'policies'
     )
-    DIST_GIT_BASE_URL = 'http://localhost:5678'
-    DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}/{pkg_name}-{rev}-greenwave.yaml'
