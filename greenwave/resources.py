@@ -6,16 +6,21 @@ waiverdb, etc..).
 
 """
 
-import requests
 import json
+
+import requests
+import urllib3.exceptions
+
 from flask import current_app
 
 from greenwave.cache import cached
+from greenwave.utils import retry
 
 requests_session = requests.Session()
 
 
 @cached
+@retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_results(item):
     """ Retrieve cached results from resultsdb for a given item. """
     # XXX make this more efficient than just fetching everything
@@ -31,6 +36,7 @@ def retrieve_results(item):
 
 
 # NOTE - not cached, for now.
+@retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_waivers(product_version, item):
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']

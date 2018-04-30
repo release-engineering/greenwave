@@ -13,11 +13,20 @@ class Config(object):
     PORT = 5005
     PRODUCTION = False
     SECRET_KEY = 'replace-me-with-something-random'
+
     RESULTSDB_API_URL = 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0'
     WAIVERDB_API_URL = 'https://waiverdb.fedoraproject.org/api/v1.0'
+
+    # Options for outbound HTTP requests made by python-requests
     REQUESTS_TIMEOUT = (6.1, 15)
     REQUESTS_VERIFY = True
+
+    # General options for retrying failed operations (querying external services)
+    RETRY_TIMEOUT = 6
+    RETRY_INTERVAL = 2
+
     POLICIES_DIR = '/etc/greenwave/policies'
+
     # By default, don't cache anything.
     CACHE = {'backend': 'dogpile.cache.null'}
 
