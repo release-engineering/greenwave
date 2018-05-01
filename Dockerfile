@@ -25,4 +25,4 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
     fi
 USER 1001
 EXPOSE 8080
-ENTRYPOINT gunicorn --workers 8 --bind 0.0.0.0:8080 --access-logfile=- greenwave.wsgi:app
+ENTRYPOINT gunicorn --workers 8 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance greenwave.wsgi:app
