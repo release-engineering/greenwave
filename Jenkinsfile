@@ -9,6 +9,8 @@ node('fedora') {
     checkout scm
     sh 'sudo dnf -y builddep greenwave.spec'
     sh 'sudo dnf -y install python2-flake8 python2-pylint python2-sphinx python-sphinxcontrib-httpdomain'
+    /* Needed to get the latest /etc/mock/fedora-28-x86_64.cfg */
+    sh 'sudo dnf -y update mock-core-configs'
     stage('Invoke Flake8') {
         sh 'flake8'
     }
