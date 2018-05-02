@@ -7,4 +7,3 @@ include fedmsg.d/*.py
 recursive-include conf *
 exclude conf/settings.py
 recursive-include docs *.py *.rst *.inv Makefile
-recursive-include systemd *
