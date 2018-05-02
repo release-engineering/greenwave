@@ -1,10 +1,8 @@
 
 # SPDX-License-Identifier: GPL-2.0+
 
-import json
 import pytest
 
-from greenwave import __version__
 from greenwave.app_factory import create_app
 from greenwave.policies import (
     summarize_answers,
@@ -168,130 +166,6 @@ def test_load_policies():
                app.config['policies'] for rule in policy.rules)
 
 
-def test_invalid_payload():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.post('/api/v1.0/decision', data='not a json')
-    assert output.status_code == 415
-    assert "No JSON payload in request" in output.data
-
-
-def test_missing_content_type():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.post(
-        '/api/v1.0/decision',
-        data=json.dumps({"subject": "foo"}),
-    )
-    assert output.status_code == 415
-    assert "No JSON payload in request" in output.data
-
-
-def test_missing_product_version():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.post(
-        '/api/v1.0/decision',
-        data=json.dumps({"subject": "foo"}),
-        content_type='application/json'
-    )
-    assert output.status_code == 400
-    assert "Missing required product version" in output.data
-
-
-def test_missing_decision_context():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.post(
-        '/api/v1.0/decision',
-        data=json.dumps({"subject": "foo", "product_version": "f26"}),
-        content_type='application/json'
-    )
-    assert output.status_code == 400
-    assert "Missing required decision context" in output.data
-
-
-def test_missing_subject():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.post(
-        '/api/v1.0/decision',
-        data=json.dumps({
-            "decision_context": "bodhi_push_stable",
-            "product_version": "f26"
-        }),
-        content_type='application/json'
-    )
-    assert output.status_code == 400
-    assert "Missing required subject" in output.data
-
-
-def test_invalid_subect_list():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.post(
-        '/api/v1.0/decision',
-        data=json.dumps({
-            "decision_context": "bodhi_push_stable",
-            "product_version": "f26",
-            "subject": "foo",
-        }),
-        content_type='application/json'
-    )
-    assert output.status_code == 400
-    assert "Invalid subject, must be a list of items" in output.data
-
-
-def test_invalid_subect_list_content():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.post(
-        '/api/v1.0/decision',
-        data=json.dumps({
-            "decision_context": "bodhi_update_push_stable",
-            "product_version": "fedora-26",
-            "subject": ["foo"],
-        }),
-        content_type='application/json'
-    )
-    assert output.status_code == 400
-    assert "Invalid subject, must be a list of dicts" in output.data
-
-
-def test_invalid_product_version():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.post(
-        '/api/v1.0/decision',
-        data=json.dumps({
-            "decision_context": "bodhi_update_push_stable",
-            "product_version": "f26",
-            "subject": ["foo"],
-        }),
-        content_type='application/json'
-    )
-    assert output.status_code == 404
-    assert "Cannot find any applicable policies " \
-        "for f26 and bodhi_update_push_stable" in output.data
-
-
-def test_invalid_decision_context():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.post(
-        '/api/v1.0/decision',
-        data=json.dumps({
-            "decision_context": "bodhi_update_push",
-            "product_version": "fedora-26",
-            "subject": ["foo"],
-        }),
-        content_type='application/json'
-    )
-    assert output.status_code == 404
-    assert "Cannot find any applicable policies " \
-        "for fedora-26 and bodhi_update_push" in output.data
-
-
 def test_misconfigured_policies(tmpdir):
     p = tmpdir.join('fedora.yaml')
     p.write("""
@@ -336,29 +210,6 @@ rules:
   - !PassingTestCaseRule {test_case_name: compose.install_default_upload, scenario: somescenario}
         """)
     load_policies(tmpdir.strpath)
-
-
-def test_version_endpoint():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.get(
-        '/api/v1.0/version',
-        headers={"content-type": "application/json"}
-    )
-    assert output.status_code == 200
-    assert '"version": "%s"' % __version__ in output.data
-
-
-def test_version_endpoint_jsonp():
-    app = create_app('greenwave.config.TestingConfig')
-    test_app = app.test_client()
-    output = test_app.get(
-        '/api/v1.0/version?callback=bac123',
-        headers={"content-type": "application/json"}
-    )
-    assert output.status_code == 200
-    assert 'bac123' in output.data
-    assert '"version": "%s"' % __version__ in output.data
 
 
 def test_product_versions_pattern(tmpdir):
