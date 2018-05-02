@@ -10,7 +10,6 @@ to the message bus about the newly satisfied/unsatisfied policy.
 """
 
 import collections
-import json
 import logging
 
 import dogpile.cache
@@ -147,27 +146,21 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         # result pushes any decisions over a threshold.
         for decision_context, product_versions in decision_contexts.items():
             for product_version in product_versions:
+                greenwave_url = self.fedmsg_config['greenwave_api_url'] + '/decision'
+
                 data = {
                     'decision_context': decision_context,
                     'product_version': product_version,
                     'subject': [subject],
                 }
-                response = requests_session.post(
-                    self.fedmsg_config['greenwave_api_url'] + '/decision',
-                    headers={'Content-Type': 'application/json'},
-                    data=json.dumps(data))
-                response.raise_for_status()
-                decision = response.json()
+                decision = greenwave.resources.retrieve_decision(greenwave_url, data)
+
                 # get old decision
                 data.update({
                     'ignore_result': [result_id],
                 })
-                response = requests_session.post(
-                    self.fedmsg_config['greenwave_api_url'] + '/decision',
-                    headers={'Content-Type': 'application/json'},
-                    data=json.dumps(data))
-                response.raise_for_status()
-                old_decision = response.json()
+                old_decision = greenwave.resources.retrieve_decision(greenwave_url, data)
+
                 if decision != old_decision:
                     decision.update({
                         'subject': [subject],
