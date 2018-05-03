@@ -10,8 +10,6 @@ URL:            https://pagure.io/greenwave
 Source0:        https://files.pythonhosted.org/packages/source/g/%{name}/%{name}-%{upstream_version}.tar.gz
 
 BuildRequires:  python2-devel
-%{?systemd_requires}
-BuildRequires:  systemd
 %if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires:  python2-setuptools
 BuildRequires:  python2-sphinx
@@ -72,11 +70,6 @@ DEV=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example make -C docs SPHINXOPT
 
 %install
 %py2_install
-install -d %{buildroot}%{_unitdir}
-install -m0644 \
-    systemd/%{name}.service \
-    systemd/%{name}.socket \
-    %{buildroot}%{_unitdir}
 
 %check
 export PYTHONPATH=%{buildroot}/%{python2_sitelib}
@@ -90,19 +83,6 @@ TEST=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example py.test greenwave/tes
 %endif
 %{python2_sitelib}/%{name}
 %{python2_sitelib}/%{name}*.egg-info
-%{_unitdir}/%{name}.service
-%{_unitdir}/%{name}.socket
 %{_sysconfdir}/fedmsg.d/*
-
-%post
-%systemd_post %{name}.service
-%systemd_post %{name}.socket
-
-%preun
-%systemd_preun %{name}.service
-%systemd_preun %{name}.socket
-
-%postun
-%systemd_postun_with_restart %{name}.service
 
 %changelog
