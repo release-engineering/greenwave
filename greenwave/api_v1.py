@@ -234,10 +234,10 @@ def make_decision():
                 if ('DIST_GIT_BASE_URL' not in current_app.config or
                     'DIST_GIT_URL_TEMPLATE' not in current_app.config or
                         'KOJI_BASE_URL' not in current_app.config):
-                        raise InternalServerError("If you want to apply a RemoteOriginalSpecNvrRule"
-                                                  " you need to configure 'DIST_GIT_BASE_URL',"
-                                                  "'DIST_GIT_URL_TEMPLATE' and KOJI_BASE_URL in "
-                                                  "your configuration.")
+                    raise InternalServerError("If you want to apply a RemoteOriginalSpecNvrRule"
+                                              " you need to configure 'DIST_GIT_BASE_URL',"
+                                              "'DIST_GIT_URL_TEMPLATE' and KOJI_BASE_URL in "
+                                              "your configuration.")
 
     applicable_policies = [policy for policy in current_app.config['policies']
                            if policy.applies_to(decision_context, product_version)]

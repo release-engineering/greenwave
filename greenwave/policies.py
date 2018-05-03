@@ -6,7 +6,8 @@ from werkzeug.exceptions import InternalServerError
 import greenwave.resources
 
 
-def validate_policies(policies, disallowed_rules=[]):
+def validate_policies(policies, disallowed_rules=None):
+    disallowed_rules = disallowed_rules or []
     for policy in policies:
         if not isinstance(policy, Policy):
             raise RuntimeError('Policies are not configured properly as policy %s '
