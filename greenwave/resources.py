@@ -29,7 +29,7 @@ def retrieve_rev_from_koji(nvr):
     proxy = xmlrpclib.ServerProxy(current_app.config['KOJI_BASE_URL'])
     build = proxy.getBuild(nvr)
     try:
-        url = urlparse(build['extra']['source']['original_url'])
+        url = urlparse.urlparse(build['extra']['source']['original_url'])
         if not url.scheme.startswith('git'):
             raise BadGateway('Error occurred looking for the "rev" in koji.')
         return url.fragment
