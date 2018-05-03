@@ -113,7 +113,7 @@ def waiverdb_server(tmpdir_factory):
                                'db', 'upgrade'],
                               env=env)
         # Start server
-        p = subprocess.Popen(['python3-gunicorn',
+        p = subprocess.Popen(['gunicorn-3',
                               '--bind=127.0.0.1:5004',
                               '--access-logfile=-',
                               'waiverdb.wsgi:app'],
