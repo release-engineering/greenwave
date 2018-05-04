@@ -187,7 +187,7 @@ def test_404_for_inapplicable_policies(requests_session, greenwave_server):
     assert expected == r.json()['message']
 
 
-def test_make_a_decison_on_passed_result(requests_session, greenwave_server, testdatabuilder):
+def test_make_a_decision_on_passed_result(requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
     for testcase_name in all_rpmdiff_testcase_names:
         testdatabuilder.create_result(item=nvr,
@@ -210,7 +210,7 @@ def test_make_a_decison_on_passed_result(requests_session, greenwave_server, tes
     assert res_data['summary'] == expected_summary
 
 
-def test_make_a_decison_with_verbose_flag(requests_session, greenwave_server, testdatabuilder):
+def test_make_a_decision_with_verbose_flag(requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
     for testcase_name in all_rpmdiff_testcase_names:
         testdatabuilder.create_result(item=nvr,
@@ -254,7 +254,7 @@ def test_make_a_decison_with_verbose_flag(requests_session, greenwave_server, te
     assert res_data['waivers'] == expected_waivers
 
 
-def test_make_a_decison_on_failed_result_with_waiver(
+def test_make_a_decision_on_failed_result_with_waiver(
         requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
     # First one failed but was waived
@@ -286,7 +286,7 @@ def test_make_a_decison_on_failed_result_with_waiver(
     assert res_data['summary'] == expected_summary
 
 
-def test_make_a_decison_on_failed_result(requests_session, greenwave_server, testdatabuilder):
+def test_make_a_decision_on_failed_result(requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='dist.rpmdiff.comparison.xml_validity',
@@ -324,7 +324,7 @@ def test_make_a_decison_on_failed_result(requests_session, greenwave_server, tes
     assert sorted(res_data['unsatisfied_requirements']) == sorted(expected_unsatisfied_requirements)
 
 
-def test_make_a_decison_on_no_results(requests_session, greenwave_server, testdatabuilder):
+def test_make_a_decision_on_no_results(requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
     data = {
         'decision_context': 'errata_newfile_to_qe',
@@ -487,7 +487,7 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
 
-def test_make_a_decison_on_passed_result_with_scenario(
+def test_make_a_decision_on_passed_result_with_scenario(
         requests_session, greenwave_server, testdatabuilder):
     """
     If we require two scenarios to pass, and both pass, then we pass.
@@ -516,7 +516,7 @@ def test_make_a_decison_on_passed_result_with_scenario(
     assert res_data['summary'] == expected_summary
 
 
-def test_make_a_decison_on_failing_result_with_scenario(
+def test_make_a_decision_on_failing_result_with_scenario(
         requests_session, greenwave_server, testdatabuilder):
     """
     If we require two scenarios to pass, and one is failing, then we fail.
