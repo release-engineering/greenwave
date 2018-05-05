@@ -1,14 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import json
-import os
-
-import pytest
-from werkzeug.exceptions import InternalServerError
-
-from greenwave.app_factory import create_app
-from greenwave.utils import load_policies
-from greenwave.policies import RuleSatisfied
 
 
 all_rpmdiff_testcase_names = [
@@ -617,70 +609,6 @@ def test_distgit_server(requests_session, distgit_server, tmpdir):
     r_ = requests_session.head(distgit_server, headers={'Content-Type': 'application/json'},
                                timeout=60)
     assert r_.status_code == 200
-
-
-def test_remote_original_spec_nvr_rule_policy(requests_session, greenwave_server,
-                                              tmpdir, testdatabuilder):
-    """ This test is checking:
-    - that if there aren't results greenwave must return an error.
-    - a normal situation with the Remote Rule configured: all the rules are satisfied
-    """
-    p = tmpdir.join('greenwave.yaml')
-    f = open(p.strpath, "w+")
-    f.write("""
---- !Policy
-id: "taskotron_release_critical_tasks_with_remoterule"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-blacklist: []
-rules:
-  - !RemoteOriginalSpecNvrRule {test_case_name: dist.upgradepath}
-       """)
-    f.close()
-    policies = load_policies(p.dirname)
-    policy = policies[0]
-    # Ensure that absence of a result is failure.
-    item, results, waivers = {}, [], []
-    with pytest.raises(InternalServerError):
-        decision = policy.check(item, results, waivers)
-
-    nvr = testdatabuilder.unique_nvr()
-    key = "original_spec_nvr"
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        # now testing with rev, but without the greenwave.yaml file
-        rev_num = "rev_num"
-        results = [{
-            "data": {
-                key: [nvr],
-                "rev": [rev_num],
-            },
-            "testcase": {"name": "dist.upgradepath"},
-            "outcome": "PASSED"
-        }]
-
-        decision = policy.check(item, results, waivers)
-        assert len(decision) == 1
-        assert isinstance(decision[0], RuleSatisfied)
-
-        # now testing with rev and with the greenwave.yaml file
-        g = open("/tmp/{0}-{1}-greenwave.yaml".format(nvr.rsplit('-', 2)[0], rev_num), "w+")
-        g.write("""
---- !Policy
-id: "taskotron_release_critical_tasks"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable
-blacklist: []
-rules:
-  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
-        """)
-        g.close()
-        decision = policy.check(item, results, waivers)
-        os.remove("/tmp/{0}-{1}-greenwave.yaml".format(nvr.rsplit('-', 2)[0], rev_num))
-        assert len(decision) == 1
-        assert isinstance(decision[0], RuleSatisfied)
 
 
 def test_cached_false_positive(requests_session, greenwave_server, testdatabuilder):
