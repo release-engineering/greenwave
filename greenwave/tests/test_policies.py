@@ -384,10 +384,10 @@ rules: []
 def test_remote_original_spec_nvr_rule_policy(tmpdir):
     """ Testing the RemoteOriginalSpecNvrRule with the koji interaction.
     In this case we are just mocking koji """
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        p = tmpdir.join('greenwave.yaml')
-        p.write("""
+
+    nvr = 'nethack-1.2.3-1.el9000'
+
+    serverside_fragment = """
 --- !Policy
 id: "taskotron_release_critical_tasks_with_remoterule"
 product_versions:
@@ -395,21 +395,56 @@ product_versions:
 decision_context: bodhi_update_push_stable_with_remoterule
 blacklist: []
 rules:
-  - !RemoteOriginalSpecNvrRule {test_case_name: dist.upgradepath}
-            """)
-        with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
-            policies = load_policies(tmpdir.strpath)
-            policy = policies[0]
+  - !RemoteOriginalSpecNvrRule {}
+        """
 
-            # Ensure that absence of a result is failure.
-            item, waivers = {}, []
-            results = [{
-                "data": {
-                    "original_spec_nvr": ['nethack-1.2.3-1.el9000']
-                },
-                "testcase": {"name": "dist.upgradepath"},
-                "outcome": "PASSED"
-            }]
-            decision = policy.check(item, results, waivers)
-            assert len(decision) == 1
-            assert isinstance(decision[0], RuleSatisfied)
+    remote_fragment = """
+--- !Policy
+id: "some-policy-from-a-random-packager"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """
+
+    p = tmpdir.join('greenwave.yaml')
+    p.write(serverside_fragment)
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_original_spec_nvr_rule') as f:
+                f.return_value = remote_fragment
+                policies = load_policies(tmpdir.strpath)
+                policy = policies[0]
+
+                item, waivers = {'original_spec_nvr': nvr}, []
+
+                # Ensure that presence of a result is success.
+                results = [{
+                    "id": 12345,
+                    "data": {"original_spec_nvr": [nvr]},
+                    "testcase": {"name": "dist.upgradepath"},
+                    "outcome": "PASSED"
+                }]
+                decision = policy.check(item, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], RuleSatisfied)
+
+                # Ensure that absence of a result is failure.
+                results = []
+                decision = policy.check(item, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultMissing)
+
+                # And that a result with a failure, is a failure.
+                results = [{
+                    "id": 12345,
+                    "data": {"original_spec_nvr": [nvr]},
+                    "testcase": {"name": "dist.upgradepath"},
+                    "outcome": "FAILED"
+                }]
+                decision = policy.check(item, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultFailed)

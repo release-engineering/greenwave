@@ -28,6 +28,11 @@ def retrieve_rev_from_koji(nvr):
     """ Retrieve cached rev from koji using the nrv """
     proxy = xmlrpclib.ServerProxy(current_app.config['KOJI_BASE_URL'])
     build = proxy.getBuild(nvr)
+
+    if not build:
+        raise BadGateway("Found %s when looking for %s at %s" % (
+            build, nvr, current_app.config['KOJI_BASE_URL']))
+
     try:
         url = urlparse.urlparse(build['extra']['source']['original_url'])
         if not url.scheme.startswith('git'):

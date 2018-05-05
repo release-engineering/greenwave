@@ -2,7 +2,6 @@
 
 from fnmatch import fnmatch
 import yaml
-from werkzeug.exceptions import InternalServerError
 import greenwave.resources
 
 
@@ -166,37 +165,26 @@ class RemoteOriginalSpecNvrRule(Rule):
     yaml_loader = yaml.SafeLoader
 
     def check(self, item, results, waivers):
-        for result in results:
-            if 'original_spec_nvr' not in result['data']:  # just go on to the next one
-                continue
-            if 'rev' not in result['data'] or len(result['data']['rev']) == 0:
-                # Trying to find the rev asking to koji
-                rev = greenwave.resources.retrieve_rev_from_koji(
-                    result['data']['original_spec_nvr'][0])
-            else:
-                rev = result['data']['rev'][0]
-            pkg_name = result['data']['original_spec_nvr'][0].rsplit('-', 2)[0]
-            response = greenwave.resources.retrieve_yaml_remote_original_spec_nvr_rule(rev,
-                                                                                       pkg_name)
-            # greenwave file not found
-            if isinstance(response, RuleSatisfied):
-                return RuleSatisfied()
-            else:
-                policies = yaml.safe_load_all(response)
-                # policies is a generator, so listifying it
-                policies = list(policies)
-                validate_policies(policies, [RemoteOriginalSpecNvrRule])
-                answers = []
-                for policy in policies:
-                    response = policy.check(item, results, waivers)
-                    if isinstance(response, list):
-                        answers.extend(response)
-                    else:
-                        answers.append(response)
-                return answers
+        pkg_name = item['original_spec_nvr'].rsplit('-', 2)[0]
+        rev = greenwave.resources.retrieve_rev_from_koji(item['original_spec_nvr'])
+        response = greenwave.resources.retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name)
 
-        # if we arrived here it means that we don't have any result...
-        raise InternalServerError('Impossible to extend the policy.')
+        if isinstance(response, RuleSatisfied):
+            # greenwave extension file not found
+            return RuleSatisfied()
+        else:
+            policies = yaml.safe_load_all(response)
+            # policies is a generator, so listifying it
+            policies = list(policies)
+            validate_policies(policies, [RemoteOriginalSpecNvrRule])
+            answers = []
+            for policy in policies:
+                response = policy.check(item, results, waivers)
+                if isinstance(response, list):
+                    answers.extend(response)
+                else:
+                    answers.append(response)
+            return answers
 
     def to_json(self):
         return {
