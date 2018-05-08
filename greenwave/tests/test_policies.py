@@ -160,10 +160,11 @@ rules:
 def test_load_policies():
     app = create_app('greenwave.config.TestingConfig')
     assert len(app.config['policies']) > 0
-    assert any(policy.id == '1' for policy in app.config['policies'])
-    assert any(policy.decision_context == 'errata_newfile_to_qe'
+    assert any(policy.id == 'taskotron_release_critical_tasks'
                for policy in app.config['policies'])
-    assert any(getattr(rule, 'test_case_name', None) == 'dist.rpmdiff.analysis.abi_symbols'
+    assert any(policy.decision_context == 'bodhi_update_push_stable'
+               for policy in app.config['policies'])
+    assert any(getattr(rule, 'test_case_name', None) == 'dist.rpmdeplint'
                for policy in app.config['policies'] for rule in policy.rules)
 
 

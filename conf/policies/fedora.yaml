@@ -56,3 +56,13 @@ decision_context: bodhi_update_push_stable_with_remoterule
 blacklist: []
 rules:
   - !RemoteOriginalSpecNvrRule {}
+
+# No Fedora product has *actually* used an empty policy like this,
+# but we cover it in our tests for completeness.
+--- !Policy
+id: "empty-policy"
+product_versions:
+- fedora-24
+decision_context: bodhi_update_push_stable
+blacklist: []
+rules: []
