@@ -130,7 +130,7 @@ def waiverdb_server(tmpdir_factory):
 def distgit_server(tmpdir_factory):
     """ Creating a fake dist-git process. It is just a serving some files in a tmp dir """
     tmp_dir = tmpdir_factory.mktemp('distgit')
-    f = open(tmp_dir.strpath + "/greenwave.yaml", "w+")
+    f = open(tmp_dir.strpath + "/gating.yaml", "w+")
     f.close()
     p = subprocess.Popen([sys.executable, '-m', 'SimpleHTTPServer', '5678'], cwd=tmp_dir.strpath)
     log.debug('Started dist-git server as pid %s', p.pid)

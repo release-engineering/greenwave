@@ -409,7 +409,7 @@ rules:
   - !PassingTestCaseRule {test_case_name: dist.upgradepath}
         """
 
-    p = tmpdir.join('greenwave.yaml')
+    p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():

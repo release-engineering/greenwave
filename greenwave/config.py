@@ -19,7 +19,7 @@ class Config(object):
 
     # Options for outbound HTTP requests made by python-requests
     DIST_GIT_BASE_URL = 'https://src.fedoraproject.org'
-    DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}/{pkg_name}/{rev}/greenwave.yaml'
+    DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}/{pkg_name}/{rev}/gating.yaml'
     KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
     REQUESTS_TIMEOUT = (6.1, 15)
     REQUESTS_VERIFY = True

@@ -44,7 +44,7 @@ def retrieve_rev_from_koji(nvr):
 
 @cached
 def retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name):
-    """ Retrieve cached greenwave.yaml content for a given rev. """
+    """ Retrieve cached gating.yaml content for a given rev. """
     data = {
         "DIST_GIT_BASE_URL": current_app.config['DIST_GIT_BASE_URL'],
         "pkg_name": pkg_name,
@@ -57,9 +57,9 @@ def retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name):
     if response.status_code == 404:
         return greenwave.policies.RuleSatisfied()
     elif response.status_code != 200:
-        raise BadGateway('Error occurred looking for greenwave.yaml file in the dist-git repo.')
+        raise BadGateway('Error occurred looking for gating.yaml file in the dist-git repo.')
 
-    # greenwave.yaml found...
+    # gating.yaml found...
     response = requests_session.request('GET', url,
                                         headers={'Content-Type': 'application/json'},
                                         timeout=60)
