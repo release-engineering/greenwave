@@ -2,6 +2,25 @@
 Release Notes
 =============
 
+Greenwave 0.7
+=============
+
+Released 10 May 2018.
+
+* New :ref:`remote-original-spec-nvr-rule` for extending policies (#75).
+
+* In case Greenwave found no matching results for a decision, the summary text
+  has been re-worded to be clearer and to indicate how many results were
+  expected (#145).
+
+* Wildcard support for matching multiple product versions. This allows to
+  specify ``product_versions`` like ``fedora-*`` in policies to match
+  ``fedora-27``, ``fedora-28`` and any future release.
+
+* Wildcard support in the ``repos`` list in ``rules`` in policy files (#155).
+
+* Both new and old ResultsDB message format are now supported.
+
 Greenwave 0.6.1
 ===============
 

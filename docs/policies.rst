@@ -126,6 +126,7 @@ FedoraAtomicCi
    that at query time, the package name is parsed from an assumed `nvr` in the
    ``original_spec_nvr`` of the subject.
 
+.. _remote-original-spec-nvr-rule:
 
 RemoteOriginalSpecNvrRule
 -------------------------
