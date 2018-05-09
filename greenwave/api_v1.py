@@ -248,18 +248,17 @@ def make_decision():
     subjects = [item for item in data['subject'] if isinstance(item, dict)]
     if not subjects:
         raise BadRequest('Invalid subject, must be a list of dicts')
-    answers = []
 
-    all_results, all_waivers = [], []
+    waivers = retrieve_waivers(product_version, subjects)
+    waivers = [w for w in waivers if w['id'] not in ignore_waivers]
+
+    results = []
     for item in subjects:
-        results = retrieve_results(item)
-        results = [r for r in results if r['id'] not in ignore_results]
-        all_results.extend(results)
+        results.extend(retrieve_results(item))
+    results = [r for r in results if r['id'] not in ignore_results]
 
-        waivers = retrieve_waivers(product_version, item)
-        waivers = [w for w in waivers if w['id'] not in ignore_waivers]
-        all_waivers.extend(waivers)
-
+    answers = []
+    for item in subjects:
         for policy in applicable_policies:
             answers.extend(policy.check(item, results, waivers))
 
@@ -272,8 +271,8 @@ def make_decision():
     }
     if verbose:
         res.update({
-            'results': all_results,
-            'waivers': all_waivers,
+            'results': results,
+            'waivers': waivers,
         })
     resp = jsonify(res)
     resp = insert_headers(resp)

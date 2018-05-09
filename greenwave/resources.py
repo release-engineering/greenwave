@@ -85,13 +85,15 @@ def retrieve_results(item):
 
 # NOTE - not cached, for now.
 @greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
-def retrieve_waivers(product_version, item):
+def retrieve_waivers(product_version, items):
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']
+
     data = {
         'product_version': product_version,
-        'results': [{"subject": item}]
+        'results': [{"subject": item} for item in items]
     }
+
     response = requests_session.post(
         current_app.config['WAIVERDB_API_URL'] + '/waivers/+by-subjects-and-testcases',
         headers={'Content-Type': 'application/json'},
