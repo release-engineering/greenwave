@@ -189,7 +189,6 @@ class RemoteOriginalSpecNvrRule(Rule):
     def to_json(self):
         return {
             'rule': self.__class__.__name__,
-            'test_case_name': self.test_case_name,
         }
 
 
