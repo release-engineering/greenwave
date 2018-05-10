@@ -322,6 +322,21 @@ class Policy(yaml.YAMLObject):
         return (decision_context == self.decision_context and
                 self._applies_to_product_version(product_version))
 
+    def is_relevant_to(self, item):
+        relevance_key = getattr(self, 'relevance_key', None)
+        relevance_value = getattr(self, 'relevance_value', None)
+
+        if relevance_key and relevance_value:
+            return item.get(relevance_key) == relevance_value
+
+        if relevance_key:
+            return relevance_key in item
+
+        if relevance_value:
+            return relevance_value in item.values()
+
+        return True
+
     def check(self, item, results, waivers):
         # If an item is about a package and it is in the blacklist, return RuleSatisfied()
         for package in self.blacklist:
@@ -350,6 +365,8 @@ class Policy(yaml.YAMLObject):
             'decision_context': self.decision_context,
             'rules': [rule.to_json() for rule in self.rules],
             'blacklist': self.blacklist,
+            'relevance_key': getattr(self, 'relevance_key', None),
+            'relevance_value': getattr(self, 'relevance_value', None),
         }
 
     def _applies_to_product_version(self, product_version):

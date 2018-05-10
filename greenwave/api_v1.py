@@ -259,7 +259,10 @@ def make_decision():
 
     answers = []
     for item in subjects:
-        for policy in applicable_policies:
+        relevant_policies = [
+            policy for policy in applicable_policies
+            if policy.is_relevant_to(item)]
+        for policy in relevant_policies:
             answers.extend(policy.check(item, results, waivers))
 
     res = {
