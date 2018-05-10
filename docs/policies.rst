@@ -98,12 +98,17 @@ The document is a map (dictionary) with the following keys:
 Rule Types
 ==========
 
-``PassingTestCaseRule``
+PassingTestCaseRule
+-------------------
+
    For this rule to be satisfied, there must be a result in ResultsDB for the
    given ``test_case_name`` with an outcome of ``PASS``, *or* there must be a
    corresponding waiver in WaiverDB for the given test case.
 
-``PackageSpecificBuild``
+
+PackageSpecificBuild
+--------------------
+
    Just like the ``PassingTestCaseRule``, the ``PackageSpecificBuild`` rule
    requires that a given ``test_case_name`` is passing, but only for certain
    packages (listed in the ``repos`` argument).  The configured package names
@@ -113,10 +118,34 @@ Rule Types
    At query time, the package name is parsed from an assumed `nvr` in the
    ``item`` of the subject.
 
-``FedoraAtomicCi``
+
+FedoraAtomicCi
+--------------
+
    This rule is nearly identical to the ``PackageSpecificBuild`` rule, except
    that at query time, the package name is parsed from an assumed `nvr` in the
    ``original_spec_nvr`` of the subject.
+
+
+RemoteOriginalSpecNvrRule
+-------------------------
+
+   This rule allows the packager to configure some additional policies in a
+   gating.yaml file configured in the repo.
+   Greenwave checks if the file exists, and, if it does it pulls it down,
+   loads it, and uses it to additionally evaluate the subject of the decision.
+   
+   This feature is available for an `nvr` that is ``original_spec_nvr``.
+   To use this feature it is required to configure ``KOJI_BASE_URL``,
+   ``DIST_GIT_BASE_URL`` and ``DIST_GIT_URL_TEMPLATE``.
+   
+   Examples:
+
+   .. code-block:: console
+   
+      DIST_GIT_BASE_URL = 'https://src.fedoraproject.org'
+      DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}/{pkg_name}/{rev}/gating.yaml'
+      KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub' 
 
 
 Testing your policy changes
