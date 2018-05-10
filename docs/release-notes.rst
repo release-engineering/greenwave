@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+Greenwave 0.7.1
+===============
+
+Released 10 May 2018.
+
+* The patch to enable `relevance_key` and `relevance_value` behavior on
+  policies has been rebased and pulled in from the downstream Fedora release.
+
 Greenwave 0.7
 =============
 
