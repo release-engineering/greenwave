@@ -11,8 +11,7 @@ from greenwave.consumers import resultsdb
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_consume_new_result(
         mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder, monkeypatch):
-    monkeypatch.setenv('TEST', 'true')
+        testdatabuilder):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(item=nvr,
@@ -128,8 +127,7 @@ def test_consume_new_result(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_no_message_for_unchanged_decision(
         mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder, monkeypatch):
-    monkeypatch.setenv('TEST', 'true')
+        testdatabuilder):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     # One result gets the decision in a certain state.
@@ -175,9 +173,8 @@ def test_no_message_for_unchanged_decision(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_mocked_cache(
         mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder, monkeypatch):
+        testdatabuilder):
     """ Consume a result, and ensure that `delete` is called. """
-    monkeypatch.setenv('TEST', 'true')
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(
@@ -221,8 +218,7 @@ def test_invalidate_new_result_with_mocked_cache(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_real_cache(
         mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder, monkeypatch, greenwave_cache_config):
-    monkeypatch.setenv('TEST', 'true')
+        testdatabuilder, greenwave_cache_config):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     for testcase_name in ['dist.rpmdeplint', 'dist.upgradepath', 'dist.abicheck']:
@@ -302,9 +298,8 @@ def test_invalidate_new_result_with_real_cache(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_no_preexisting_cache(
         mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder, monkeypatch):
+        testdatabuilder):
     """ Ensure that invalidating an unknown value is sane. """
-    monkeypatch.setenv('TEST', 'true')
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(
@@ -346,8 +341,7 @@ def test_invalidate_new_result_with_no_preexisting_cache(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_consume_compose_id_result(
         mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder, monkeypatch):
-    monkeypatch.setenv('TEST', 'true')
+        testdatabuilder):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     compose_id = testdatabuilder.unique_compose_id()
     result = testdatabuilder.create_compose_result(
@@ -415,14 +409,13 @@ def test_consume_compose_id_result(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_consume_legacy_result(
         mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder, monkeypatch):
+        testdatabuilder):
     """ Test that we can still handle the old legacy "taskotron" format.
 
     We should be using resultsdb.result.new everywhere now, but we also
     need to be able to handle this taskotron format for the transition.
     """
 
-    monkeypatch.setenv('TEST', 'true')
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(item=nvr,

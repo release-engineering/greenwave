@@ -73,7 +73,7 @@ DEV=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example make -C docs SPHINXOPT
 
 %check
 export PYTHONPATH=%{buildroot}/%{python2_sitelib}
-TEST=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example py.test greenwave/tests/
+GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example py.test greenwave/tests/
 
 %files
 %license COPYING

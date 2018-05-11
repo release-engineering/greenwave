@@ -66,7 +66,6 @@ def resultsdb_server(tmpdir_factory):
             """ % dbname))
         env = dict(os.environ,
                    PYTHONPATH=resultsdb_source,
-                   TEST='true',
                    RESULTSDB_CONFIG=settings_file.strpath)
         # Create and populate the database
         drop_and_create_database(dbname)
@@ -104,7 +103,6 @@ def waiverdb_server(tmpdir_factory):
             """ % dbname))
         env = dict(os.environ,
                    PYTHONPATH=waiverdb_source,
-                   TEST='true',
                    WAIVERDB_CONFIG=settings_file.strpath)
         # Create and populate the database
         drop_and_create_database(dbname)
@@ -167,7 +165,6 @@ def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server, greenwav
             """ % greenwave_cache_config))
         env = dict(os.environ,
                    PYTHONPATH='.',
-                   TEST='true',
                    GREENWAVE_CONFIG=settings_file.strpath)
         p = subprocess.Popen(['gunicorn',
                               '--bind=127.0.0.1:5005',

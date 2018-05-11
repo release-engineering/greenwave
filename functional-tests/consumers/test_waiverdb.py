@@ -16,8 +16,7 @@ TASKTRON_RELEASE_CRITICAL_TASKS = [
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.waiverdb.fedmsg.publish')
 def test_consume_new_waiver(
-        mock_fedmsg, load_config, requests_session, greenwave_server, testdatabuilder, monkeypatch):
-    monkeypatch.setenv('TEST', 'true')
+        mock_fedmsg, load_config, requests_session, greenwave_server, testdatabuilder):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(item=nvr,
