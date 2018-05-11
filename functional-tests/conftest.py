@@ -11,6 +11,7 @@ import subprocess
 import socket
 import pytest
 import requests
+from contextlib import contextmanager
 from sqlalchemy import create_engine
 
 from greenwave.logger import init_logging
@@ -56,100 +57,128 @@ def wait_for_listen(port):
     raise RuntimeError('Gave up waiting for port %s' % port)
 
 
-@pytest.yield_fixture(scope='session')
-def resultsdb_server(tmpdir_factory):
-    if 'RESULTSDB_TEST_URL' in os.environ:
-        yield os.environ['RESULTSDB_TEST_URL']
-    else:
-        # Start ResultsDB as a subprocess
-        resultsdb_source = os.environ.get('RESULTSDB', '../resultsdb')
-        if not os.path.isdir(resultsdb_source):
-            raise RuntimeError('ResultsDB source tree %s does not exist' % resultsdb_source)
-        dbname = 'resultsdb_for_greenwave_functest'
-        # Write out a config
-        settings_file = tmpdir_factory.mktemp('resultsdb').join('settings.py')
-        settings_file.write(textwrap.dedent("""\
-            PORT = 5001
-            SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2:///%s'
-            DEBUG = False
-            """ % dbname))
-        env = dict(os.environ,
-                   PYTHONPATH=resultsdb_source,
-                   RESULTSDB_CONFIG=settings_file.strpath)
-        # Create and populate the database
+@contextmanager
+def server_subprocess(
+        name, port, start_server_arguments,
+        source_path=None,
+        settings_content=None, tmpdir_factory=None,
+        dbname=None, init_db_arguments=None):
+    """
+    Starts a server as subprocess and returns address.
+    """
+    env_var_prefix = name.upper()
+
+    # <NAME>_TEST_URL environment variable overrides address and avoids
+    # creating test process.
+    test_url_env_var = env_var_prefix + '_TEST_URL'
+    if test_url_env_var in os.environ:
+        yield os.environ[test_url_env_var]
+        return
+
+    if source_path is None:
+        default_source_path = os.path.join('..', name)
+        source_path = os.environ.get(env_var_prefix, default_source_path)
+        if not os.path.isdir(source_path):
+            raise RuntimeError('{} source tree {} does not exist'.format(name, source_path))
+
+    env = dict(os.environ, PYTHONPATH=source_path)
+
+    # Write out a config
+    if settings_content is not None:
+        settings_file = tmpdir_factory.mktemp(name).join('settings.py')
+        settings_file.write(textwrap.dedent(settings_content))
+        config_env_var = env_var_prefix + '_CONFIG'
+        env[config_env_var] = settings_file.strpath
+
+        # We also update the config file for *this* process, as well as the server subprocess,
+        # because the fedmsg consumer tests actually invoke the handler code in-process.
+        # This way they will see the same config as the server.
+        os.environ[config_env_var] = settings_file.strpath
+
+    subprocess_arguments = dict(env=env, cwd=source_path)
+
+    # Create and populate the database
+    if dbname:
         drop_and_create_database(dbname)
-        subprocess.check_call(['python',
-                               os.path.join(resultsdb_source, 'run_cli.py'),
-                               'init_db'],
-                              env=env)
-        # Start server
-        p = subprocess.Popen(['python',
-                              os.path.join(resultsdb_source, 'runapp.py')],
-                             env=env)
-        log.debug('Started resultsdb server as pid %s', p.pid)
-        wait_for_listen(5001)
-        yield 'http://localhost:5001/'
-        log.debug('Terminating resultsdb server pid %s', p.pid)
+    if init_db_arguments:
+        subprocess.check_call(init_db_arguments, **subprocess_arguments)
+
+    # Start server
+    with subprocess.Popen(start_server_arguments, **subprocess_arguments) as p:
+        log.debug('Started %s server as pid %s', name, p.pid)
+        wait_for_listen(port)
+
+        yield 'http://localhost:{}/'.format(port)
+
+        log.debug('Terminating %s server pid %s', name, p.pid)
         p.terminate()
         p.wait()
+
+
+@pytest.yield_fixture(scope='session')
+def resultsdb_server(tmpdir_factory):
+    dbname = 'resultsdb_for_greenwave_functest'
+    settings_content = """
+        PORT = 5001
+        SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2:///%s'
+        DEBUG = False
+        """ % dbname
+
+    init_db_arguments = ['python2', 'run_cli.py', 'init_db']
+    start_server_arguments = ['python2', 'runapp.py']
+
+    with server_subprocess(
+            name='resultsdb',
+            port=5001,
+            dbname=dbname,
+            settings_content=settings_content,
+            init_db_arguments=init_db_arguments,
+            start_server_arguments=start_server_arguments,
+            tmpdir_factory=tmpdir_factory) as url:
+        yield url
 
 
 @pytest.yield_fixture(scope='session')
 def waiverdb_server(tmpdir_factory):
-    if 'WAIVERDB_TEST_URL' in os.environ:
-        yield os.environ['WAIVERDB_TEST_URL']
-    else:
-        # Start WaiverDB as a subprocess
-        waiverdb_source = os.environ.get('WAIVERDB', '../waiverdb')
-        if not os.path.isdir(waiverdb_source):
-            raise RuntimeError('WaiverDB source tree %s does not exist' % waiverdb_source)
-        dbname = 'waiverdb_for_greenwave_functest'
-        # Write out a config
-        settings_file = tmpdir_factory.mktemp('waiverdb').join('settings.py')
-        settings_file.write(textwrap.dedent("""\
-            AUTH_METHOD = 'dummy'
-            DATABASE_URI = 'postgresql+psycopg2:///%s'
-            """ % dbname))
-        env = dict(os.environ,
-                   PYTHONPATH=waiverdb_source,
-                   WAIVERDB_CONFIG=settings_file.strpath)
-        # Create and populate the database
-        drop_and_create_database(dbname)
-        subprocess.check_call(['python3',
-                               os.path.join(waiverdb_source, 'waiverdb', 'manage.py'),
-                               'db', 'upgrade'],
-                              env=env)
-        # Start server
-        p = subprocess.Popen(['gunicorn-3',
-                              '--bind=127.0.0.1:5004',
-                              '--access-logfile=-',
-                              'waiverdb.wsgi:app'],
-                             env=env)
-        log.debug('Started waiverdb server as pid %s', p.pid)
-        wait_for_listen(5004)
-        yield 'http://localhost:5004/'
-        log.debug('Terminating waiverdb server pid %s', p.pid)
-        p.terminate()
-        p.wait()
+    dbname = 'waiverdb_for_greenwave_functest'
+    settings_content = """
+        AUTH_METHOD = 'dummy'
+        DATABASE_URI = 'postgresql+psycopg2:///%s'
+        """ % dbname
+
+    init_db_arguments = ['python3', os.path.join('waiverdb', 'manage.py'), 'db', 'upgrade']
+    start_server_arguments = [
+        'gunicorn-3',
+        '--bind=127.0.0.1:5004',
+        '--access-logfile=-',
+        'waiverdb.wsgi:app']
+
+    with server_subprocess(
+            name='waiverdb',
+            port=5004,
+            dbname=dbname,
+            settings_content=settings_content,
+            init_db_arguments=init_db_arguments,
+            start_server_arguments=start_server_arguments,
+            tmpdir_factory=tmpdir_factory) as url:
+        yield url
 
 
 @pytest.yield_fixture(scope='session')
 def bodhi():
-    if 'BODHI_TEST_URL' in os.environ:
-        yield os.environ['BODHI_TEST_URL']
-    else:
-        # Start fake Bodhi as a subprocess
-        p = subprocess.Popen(['gunicorn-3',
-                              '--bind=127.0.0.1:5677',
-                              '--access-logfile=-',
-                              '--pythonpath=' + os.path.dirname(__file__),
-                              'fake_bodhi:application'])
-        log.debug('Started fake Bodhi as pid %s', p.pid)
-        wait_for_listen(5677)
-        yield 'http://localhost:5677/'
-        log.debug('Terminating fake Bodhi pid %s', p.pid)
-        p.terminate()
-        p.wait()
+    start_server_arguments = [
+        'gunicorn-3',
+        '--bind=127.0.0.1:5677',
+        '--access-logfile=-',
+        'fake_bodhi:application'
+    ]
+
+    with server_subprocess(
+            name='bodhi',
+            port=5677,
+            source_path=os.path.dirname(__file__),
+            start_server_arguments=start_server_arguments) as url:
+        yield url
 
 
 @pytest.yield_fixture(scope='session')
@@ -158,53 +187,44 @@ def distgit_server(tmpdir_factory):
     tmp_dir = tmpdir_factory.mktemp('distgit')
     f = open(tmp_dir.strpath + "/gating.yaml", "w+")
     f.close()
-    p = subprocess.Popen([sys.executable, '-m', 'http.server', '5678'], cwd=tmp_dir.strpath)
-    log.debug('Started dist-git server as pid %s', p.pid)
-    wait_for_listen(5678)
-    yield 'http://localhost:5678'
-    log.debug('Terminating dist-git server pid %s', p.pid)
-    p.terminate()
-    p.wait()
+
+    start_server_arguments = [sys.executable, '-m', 'http.server', '5678']
+
+    with server_subprocess(
+            name='dist-git',
+            port=5678,
+            source_path=tmp_dir.strpath,
+            start_server_arguments=start_server_arguments) as url:
+        yield url
 
 
 @pytest.yield_fixture(scope='session')
 def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server, bodhi):
-    if 'GREENWAVE_TEST_URL' in os.environ:
-        yield os.environ['GREENWAVE_TEST_URL']
-    else:
-        # Start Greenwave as a subprocess
-        cache_file = tmpdir_factory.mktemp('greenwave').join('cache.dbm')
-        settings_file = tmpdir_factory.mktemp('greenwave').join('settings.py')
-        settings_file.write(textwrap.dedent("""\
-            CACHE = {
-                'backend': 'dogpile.cache.dbm',
-                'expiration_time': 300,
-                'arguments': {'filename': %r},
-            }
-            RESULTSDB_API_URL = '%sapi/v2.0'
-            WAIVERDB_API_URL = '%sapi/v1.0'
-            BODHI_URL = %r
-            """ % (cache_file.strpath, resultsdb_server, waiverdb_server, bodhi)))
+    cache_file = tmpdir_factory.mktemp('greenwave').join('cache.dbm')
+    settings_content = """
+        CACHE = {
+            'backend': 'dogpile.cache.dbm',
+            'expiration_time': 300,
+            'arguments': {'filename': %r},
+        }
+        RESULTSDB_API_URL = '%sapi/v2.0'
+        WAIVERDB_API_URL = '%sapi/v1.0'
+        BODHI_URL = %r
+        """ % (cache_file.strpath, resultsdb_server, waiverdb_server, bodhi)
 
-        # We also update the config file for *this* process, as well as the server subprocess,
-        # because the fedmsg consumer tests actually invoke the handler code in-process.
-        # This way they will see the same config as the server.
-        os.environ['GREENWAVE_CONFIG'] = settings_file.strpath
+    start_server_arguments = [
+        'gunicorn-3',
+        '--bind=127.0.0.1:5005',
+        '--access-logfile=-',
+        'greenwave.wsgi:app']
 
-        env = dict(os.environ,
-                   PYTHONPATH='.',
-                   GREENWAVE_CONFIG=settings_file.strpath)
-        p = subprocess.Popen(['gunicorn-3',
-                              '--bind=127.0.0.1:5005',
-                              '--access-logfile=-',
-                              'greenwave.wsgi:app'],
-                             env=env)
-        log.debug('Started greenwave server as pid %s', p.pid)
-        wait_for_listen(5005)
-        yield 'http://localhost:5005/'
-        log.debug('Terminating greenwave server pid %s', p.pid)
-        p.terminate()
-        p.wait()
+    with server_subprocess(
+            name='greenwave',
+            port=5005,
+            settings_content=settings_content,
+            start_server_arguments=start_server_arguments,
+            tmpdir_factory=tmpdir_factory) as url:
+        yield url
 
 
 @pytest.fixture(scope='session')
