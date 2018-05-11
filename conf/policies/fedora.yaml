@@ -55,4 +55,4 @@ product_versions:
 decision_context: bodhi_update_push_stable_with_remoterule
 blacklist: []
 rules:
-  - !RemoteOriginalSpecNvrRule {test_case_name: dist.upgradepath}
+  - !RemoteOriginalSpecNvrRule {}
