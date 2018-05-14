@@ -65,14 +65,16 @@ def load_config(config_obj=None):
     # Load default config, then override that with a config file
     config = Config(__name__)
     if config_obj is None:
-        if os.getenv('DEV') == 'true':
-            config_obj = 'greenwave.config.DevelopmentConfig'
-        elif os.getenv('TEST') == 'true':
+        if os.getenv('TEST') == 'true':
             config_obj = 'greenwave.config.TestingConfig'
+        elif os.getenv('DEV') == 'true':
+            config_obj = 'greenwave.config.DevelopmentConfig'
         else:
             config_obj = 'greenwave.config.ProductionConfig'
 
-    if os.getenv('DEV') == 'true' or os.getenv('TEST') == 'true':
+    if os.getenv('TEST') == 'true':
+        default_config_file = os.getcwd() + '/conf/settings.py.example'
+    elif os.getenv('DEV') == 'true':
         default_config_file = os.getcwd() + '/conf/settings.py'
     else:
         default_config_file = '/etc/greenwave/settings.py'
