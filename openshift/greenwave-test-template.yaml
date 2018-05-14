@@ -157,6 +157,7 @@ objects:
       protocol: TCP
       targetPort: 11211
     selector:
+      app: greenwave
       service: memcached
       environment: "test-${TEST_ID}"
 - apiVersion: v1
@@ -231,6 +232,7 @@ objects:
       protocol: TCP
       targetPort: 8080
     selector:
+      app: greenwave
       service: web
       environment: "test-${TEST_ID}"
 - apiVersion: v1
