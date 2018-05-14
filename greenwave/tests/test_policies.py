@@ -163,10 +163,10 @@ def test_load_policies():
     app = create_app('greenwave.config.TestingConfig')
     assert len(app.config['policies']) > 0
     assert any(policy.id == '1' for policy in app.config['policies'])
-    assert any(policy.decision_context == 'errata_newfile_to_qe' for policy in
-               app.config['policies'])
-    assert any(rule.test_case_name == 'dist.rpmdiff.analysis.abi_symbols' for policy in
-               app.config['policies'] for rule in policy.rules)
+    assert any(policy.decision_context == 'errata_newfile_to_qe'
+               for policy in app.config['policies'])
+    assert any(getattr(rule, 'test_case_name', None) == 'dist.rpmdiff.analysis.abi_symbols'
+               for policy in app.config['policies'] for rule in policy.rules)
 
 
 def test_invalid_payload():
