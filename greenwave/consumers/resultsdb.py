@@ -129,7 +129,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         applicable_policies = set()
         for policy in config['policies']:
             for rule in policy.rules:
-                if rule.test_case_name == testcase:
+                if getattr(rule, 'test_case_name', None) == testcase:
                     applicable_policies.add(policy)
         log.debug("messaging: found %i applicable policies of %i for testcase %r",
                   len(applicable_policies), len(config['policies']), testcase)

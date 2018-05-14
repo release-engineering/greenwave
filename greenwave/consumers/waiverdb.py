@@ -66,7 +66,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         testcase = msg['testcase']
         for policy in config['policies']:
             for rule in policy.rules:
-                if rule.test_case_name == testcase:
+                if getattr(rule, 'test_case_name', None) == testcase:
                     data = {
                         'decision_context': policy.decision_context,
                         'product_version': product_version,
