@@ -2,6 +2,8 @@
 
 import json
 
+from greenwave import __version__
+
 
 all_rpmdiff_testcase_names = [
     'dist.rpmdiff.analysis.abi_symbols',
@@ -115,6 +117,19 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert any(p['rules'] == expected_rules for p in policies)
 
 
+def test_version_endpoint(requests_session, greenwave_server):
+    r = requests_session.get(greenwave_server + 'api/v1.0/version')
+    assert r.status_code == 200
+    assert {'version': __version__} == r.json()
+
+
+def test_version_endpoint_jsonp(requests_session, greenwave_server):
+    r = requests_session.get(greenwave_server + 'api/v1.0/version?callback=bac123')
+    assert r.status_code == 200
+    assert 'bac123' in r.text
+    assert '"version": "%s"' % __version__ in r.text
+
+
 def test_cannot_make_decision_without_product_version(requests_session, greenwave_server):
     data = {
         'decision_context': 'errata_newfile_to_qe',
@@ -155,6 +170,17 @@ def test_cannot_make_decision_with_invalid_subject(requests_session, greenwave_s
     data = {
         'decision_context': 'errata_newfile_to_qe',
         'product_version': 'rhel-7',
+        'subject': 'foo-1.0.0-1.el7',
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 400
+    assert 'Invalid subject, must be a list of items' == r.json()['message']
+
+    data = {
+        'decision_context': 'errata_newfile_to_qe',
+        'product_version': 'rhel-7',
         'subject': ['foo-1.0.0-1.el7'],
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
@@ -164,18 +190,48 @@ def test_cannot_make_decision_with_invalid_subject(requests_session, greenwave_s
     assert u'Invalid subject, must be a list of dicts' in r.text
 
 
-def test_404_for_inapplicable_policies(requests_session, greenwave_server):
+def test_404_for_invalid_product_version(requests_session, greenwave_server):
     data = {
-        'decision_context': 'dummy_decision',
-        'product_version': 'rhel-7',
+        'decision_context': 'bodhi_push_update_stable',
+        'product_version': 'f26',
         'subject': [{'item': 'foo-1.0.0-1.el7', 'type': 'koji_build'}]
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 404
-    expected = u'Cannot find any applicable policies ' + \
-        'for rhel-7 and dummy_decision'
+    expected = u'Cannot find any applicable policies for f26 and bodhi_push_update_stable'
+    assert expected == r.json()['message']
+
+
+def test_404_for_invalid_decision_context(requests_session, greenwave_server):
+    data = {
+        'decision_context': 'bodhi_push_update',  # missing the _stable part!
+        'product_version': 'fedora-26',
+        'subject': [{'item': 'foo-1.0.0-1.el7', 'type': 'koji_build'}]
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 404
+    expected = u'Cannot find any applicable policies for fedora-26 and bodhi_push_update'
+    assert expected == r.json()['message']
+
+
+def test_415_for_missing_request_content_type(requests_session, greenwave_server):
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              data=json.dumps({}))
+    assert r.status_code == 415
+    expected = "No JSON payload in request"
+    assert expected == r.json()['message']
+
+
+def test_invalid_payload(requests_session, greenwave_server):
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data='not a json')
+    assert r.status_code == 400
+    expected = "Failed to decode JSON object: Expecting value: line 1 column 1 (char 0)"
     assert expected == r.json()['message']
 
 
