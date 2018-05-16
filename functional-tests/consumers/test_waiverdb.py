@@ -28,9 +28,10 @@ def test_consume_new_waiver(
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
     testcase = str(result['testcase']['name'])
-    waiver = testdatabuilder.create_waiver(result={
-        "subject": dict([(str(key), str(value[0])) for key, value in result['data'].items()]),
-        "testcase": testcase}, product_version='fedora-26', comment='Because I said so')
+    waiver = testdatabuilder.create_waiver(nvr=nvr,
+                                           testcase_name=testcase,
+                                           product_version='fedora-26',
+                                           comment='Because I said so')
     message = {
         'body': {
             'topic': 'waiver.new',

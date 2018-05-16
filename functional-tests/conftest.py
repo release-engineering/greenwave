@@ -269,10 +269,11 @@ class TestDataBuilder(object):
         response.raise_for_status()
         return response.json()
 
-    def create_waiver(self, result, product_version, comment, waived=True):
+    def create_waiver(self, nvr, testcase_name, product_version, comment, waived=True):
         data = {
-            'subject': result['subject'],
-            'testcase': result['testcase'],
+            'subject_type': 'koji_build',
+            'subject_identifier': nvr,
+            'testcase': testcase_name,
             'product_version': product_version,
             'waived': waived,
             'comment': comment

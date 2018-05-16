@@ -242,13 +242,13 @@ def test_make_a_decision_on_failed_result_with_waiver(
         requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
     # First one failed but was waived
-    result = testdatabuilder.create_result(item=nvr,
-                                           testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
-                                           outcome='FAILED')
-    waiver = testdatabuilder.create_waiver(result={ # noqa
-        "subject": dict([(key, value[0]) for key, value in result['data'].items()]),
-        "testcase": TASKTRON_RELEASE_CRITICAL_TASKS[0]}, product_version='fedora-26',
-        comment='This is fine')
+    testdatabuilder.create_result(item=nvr,
+                                  testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                  outcome='FAILED')
+    testdatabuilder.create_waiver(nvr=nvr,
+                                  product_version='fedora-26',
+                                  testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                  comment='This is fine')
     # The rest passed
     for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
         testdatabuilder.create_result(item=nvr,
@@ -577,10 +577,10 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
                                            outcome='FAILED')
-    waiver = testdatabuilder.create_waiver(result={
-        "subject": dict([(key, value[0]) for key, value in result['data'].items()]),
-        "testcase": TASKTRON_RELEASE_CRITICAL_TASKS[0]}, product_version='fedora-26',
-        comment='This is fine')
+    waiver = testdatabuilder.create_waiver(nvr=nvr,
+                                           testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                           product_version='fedora-26',
+                                           comment='This is fine')
     # The rest passed
     for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
         testdatabuilder.create_result(item=nvr,
