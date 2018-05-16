@@ -177,7 +177,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             subject (munch.Munch): A subject argument, used to query greenwave.
         """
         namespace = None
-        fn = greenwave.resources.retrieve_results
+        fn = greenwave.resources.retrieve_item_results
         key = greenwave.cache.key_generator(namespace, fn)(subject)
         if not self.cache.get(key):
             log.debug("No cache value found for %r", key)

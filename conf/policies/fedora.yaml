@@ -9,6 +9,7 @@ id: "taskotron_release_critical_tasks_with_blacklist"
 product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable
+subject_type: koji_build
 blacklist:
   # see the excluded list for dist.abicheck 
   # https://infrastructure.fedoraproject.org/cgit/ansible.git/tree/roles/taskotron/taskotron-trigger/templates/trigger_rules.yml.j2#n17
@@ -27,6 +28,7 @@ id: "taskotron_release_critical_tasks_for_testing"
 product_versions:
   - fedora-*
 decision_context: bodhi_update_push_testing
+subject_type: koji_build
 blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
@@ -35,6 +37,7 @@ id: "taskotron_release_critical_tasks"
 product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable
+subject_type: koji_build
 blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
@@ -44,6 +47,7 @@ id: "openqa_important_stuff_for_rawhide"
 product_versions:
   - fedora-rawhide
 decision_context: rawhide_compose_sync_to_mirrors
+subject_type: compose
 blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: compose.install_no_user, scenario: scenario1}
@@ -53,6 +57,7 @@ id: "taskotron_release_critical_tasks_with_remoterule"
 product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable_with_remoterule
+subject_type: bodhi_update
 blacklist: []
 rules:
   - !RemoteOriginalSpecNvrRule {}
@@ -64,5 +69,6 @@ id: "empty-policy"
 product_versions:
 - fedora-24
 decision_context: bodhi_update_push_stable
+subject_type: bodhi_update
 blacklist: []
 rules: []

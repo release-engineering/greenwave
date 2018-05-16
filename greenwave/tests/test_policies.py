@@ -17,18 +17,20 @@ from greenwave.utils import load_policies
 def test_summarize_answers():
     assert summarize_answers([RuleSatisfied()]) == \
         'all required tests passed'
-    assert summarize_answers([TestResultFailed('item', 'test', None, 'id'), RuleSatisfied()]) == \
+    assert summarize_answers([TestResultFailed('koji_build', 'nvr', 'test', None, 'id'),
+                              RuleSatisfied()]) == \
         '1 of 2 required tests failed'
-    assert summarize_answers([TestResultMissing('item', 'test', None)]) == \
+    assert summarize_answers([TestResultMissing('koji_build', 'nvr', 'test', None)]) == \
         '1 of 1 required test results missing'
-    assert summarize_answers([TestResultMissing('item', 'test', None),
-                              TestResultFailed('item', 'test', None, 'id')]) == \
+    assert summarize_answers([TestResultMissing('koji_build', 'nvr', 'test', None),
+                              TestResultFailed('koji_build', 'nvr', 'test', None, 'id')]) == \
         '1 of 2 required tests failed, 1 result missing'
-    assert summarize_answers([TestResultMissing('item', 'testa', None),
-                              TestResultMissing('item', 'testb', None),
-                              TestResultFailed('item', 'test', None, 'id')]) == \
+    assert summarize_answers([TestResultMissing('koji_build', 'nvr', 'testa', None),
+                              TestResultMissing('koji_build', 'nvr', 'testb', None),
+                              TestResultFailed('koji_build', 'nvr', 'test', None, 'id')]) == \
         '1 of 3 required tests failed, 2 results missing'
-    assert summarize_answers([TestResultMissing('item', 'test', None), RuleSatisfied()]) == \
+    assert summarize_answers([TestResultMissing('koji_build', 'nvr', 'test', None),
+                             RuleSatisfied()]) == \
         '1 of 2 required test results missing'
 
 
@@ -40,6 +42,7 @@ id: "rawhide_compose_sync_to_mirrors"
 product_versions:
   - fedora-rawhide
 decision_context: rawhide_compose_sync_to_mirrors
+subject_type: compose
 blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: sometest}
@@ -67,7 +70,8 @@ def test_package_specific_rule(tmpdir):
 id: "some_policy"
 product_versions:
   - rhel-9000
-decision_context: compose_gate
+decision_context: bodhi_update_push_stable
+subject_type: koji_build
 blacklist: []
 rules:
   - !PackageSpecificBuild {test_case_name: sometest, repos: [nethack, python-*]}
@@ -76,9 +80,8 @@ rules:
     policy = policies[0]
 
     # Ensure that we fail with no results
-    item = {'item': 'nethack-1.2.3-1.el9000', 'type': 'koji_build'}
     results, waivers = [], []
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('nethack-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultMissing)
 
@@ -89,7 +92,7 @@ rules:
         'testcase': {'name': 'sometest'},
         'outcome': 'FAILED',
     }]
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('nethack-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
@@ -100,19 +103,18 @@ rules:
         'testcase': {'name': 'sometest'},
         'outcome': 'PASSED',
     }]
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('nethack-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
     # That a non-matching passing result is ignored.
-    item = {'item': 'foobar-1.2.3-1.el9000', 'type': 'koji_build'}
     results = [{
         'id': 123,
         'item': 'foobar-1.2.3-1.el9000',
         'testcase': {'name': 'sometest'},
         'outcome': 'PASSED',
     }]
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
@@ -123,14 +125,13 @@ rules:
         'testcase': {'name': 'sometest'},
         'outcome': 'FAILED',
     }]
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)  # ooooh.
 
     # Ensure that fnmatch globs work in absence
-    item = {'item': 'python-foobar-1.2.3-1.el9000', 'type': 'koji_build'}
     results, waivers = [], []
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('python-foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultMissing)
 
@@ -141,7 +142,7 @@ rules:
         'testcase': {'name': 'sometest'},
         'outcome': 'FAILED',
     }]
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('python-foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
@@ -152,7 +153,7 @@ rules:
         'testcase': {'name': 'sometest'},
         'outcome': 'SUCCESS',
     }]
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('python-foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
@@ -176,6 +177,7 @@ id: "taskotron_release_critical_tasks"
 product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable
+subject_type: bodhi_update
 rules:
   - !PassingTestCaseRule {test_case_name: dist.abicheck}
         """)
@@ -192,6 +194,7 @@ id: "taskotron_release_critical_tasks"
 product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable
+subject_type: bodhi_update
 rules:
   - {test_case_name: dist.abicheck}
         """)
@@ -208,6 +211,7 @@ id: "rawhide_compose_sync_to_mirrors"
 product_versions:
   - fedora-rawhide
 decision_context: rawhide_compose_sync_to_mirrors
+subject_type: compose
 rules:
   - !PassingTestCaseRule {test_case_name: compose.install_default_upload, scenario: somescenario}
         """)
@@ -222,15 +226,16 @@ id: dummy_policy
 product_versions:
   - fedora-*
 decision_context: dummy_context
+subject_type: bodhi_update
 blacklist: []
 rules: []
         """)
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
-    assert policy.applies_to('dummy_context', 'fedora-27')
-    assert policy.applies_to('dummy_context', 'fedora-28')
-    assert not policy.applies_to('dummy_context', 'epel-7')
+    assert policy.applies_to('dummy_context', 'fedora-27', 'bodhi_update')
+    assert policy.applies_to('dummy_context', 'fedora-28', 'bodhi_update')
+    assert not policy.applies_to('dummy_context', 'epel-7', 'bodhi_update')
 
 
 def test_remote_original_spec_nvr_rule_policy(tmpdir):
@@ -245,6 +250,7 @@ id: "taskotron_release_critical_tasks_with_remoterule"
 product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable_with_remoterule
+subject_type: koji_build
 blacklist: []
 rules:
   - !RemoteOriginalSpecNvrRule {}
@@ -271,7 +277,7 @@ rules:
                 policies = load_policies(tmpdir.strpath)
                 policy = policies[0]
 
-                item, waivers = {'original_spec_nvr': nvr}, []
+                waivers = []
 
                 # Ensure that presence of a result is success.
                 results = [{
@@ -280,13 +286,13 @@ rules:
                     "testcase": {"name": "dist.upgradepath"},
                     "outcome": "PASSED"
                 }]
-                decision = policy.check(item, results, waivers)
+                decision = policy.check(nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
 
                 # Ensure that absence of a result is failure.
                 results = []
-                decision = policy.check(item, results, waivers)
+                decision = policy.check(nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultMissing)
 
@@ -297,6 +303,6 @@ rules:
                     "testcase": {"name": "dist.upgradepath"},
                     "outcome": "FAILED"
                 }]
-                decision = policy.check(item, results, waivers)
+                decision = policy.check(nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)

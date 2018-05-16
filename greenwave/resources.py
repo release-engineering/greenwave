@@ -67,10 +67,33 @@ def retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name):
     return response.content
 
 
+def retrieve_builds_in_update(update_id):
+    """
+    Queries Bodhi to find the list of builds in the given update.
+    Returns a list of build NVRs.
+    """
+    update_info_url = urlparse.urljoin(current_app.config['BODHI_URL'],
+                                       '/updates/{}'.format(update_id))
+    timeout = current_app.config['REQUESTS_TIMEOUT']
+    verify = current_app.config['REQUESTS_VERIFY']
+    response = requests_session.get(update_info_url,
+                                    headers={'Accept': 'application/json'},
+                                    timeout=timeout, verify=verify)
+    response.raise_for_status()
+    return [build['nvr'] for build in response.json()['update']['builds']]
+
+
 @cached
-def retrieve_results(item):
+def retrieve_item_results(item):
     """ Retrieve cached results from resultsdb for a given item. """
     # XXX make this more efficient than just fetching everything
+
+    # Types matter here because of the cache decorator!
+    # While we are still on Python 2 we must ensure the args are unicode not str
+    assert isinstance(item, dict)
+    for k, v in item.iteritems():
+        assert isinstance(k, unicode)
+        assert isinstance(v, unicode)
 
     params = item.copy()
     params.update({'limit': '1000'})
@@ -83,21 +106,40 @@ def retrieve_results(item):
     return response.json()['data']
 
 
+def retrieve_results(subject_type, subject_identifier):
+    """
+    Returns all results from ResultsDB which might be relevant for the given
+    decision subject, accounting for all the different possible ways in which
+    test results can be reported.
+    """
+    results = []
+    if subject_type == 'bodhi_update':
+        results.extend(retrieve_item_results(
+            {u'type': u'bodhi_update', u'item': subject_identifier}))
+    elif subject_type == 'koji_build':
+        results.extend(retrieve_item_results({u'type': u'koji_build', u'item': subject_identifier}))
+        results.extend(retrieve_item_results({u'original_spec_nvr': subject_identifier}))
+    elif subject_type == 'compose':
+        results.extend(retrieve_item_results({u'productmd.compose.id': subject_identifier}))
+    else:
+        raise RuntimeError('Unhandled subject type %r' % subject_type)
+    return results
+
+
 # NOTE - not cached, for now.
 @greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
-def retrieve_waivers(product_version, items):
+def retrieve_waivers(product_version, subject_type, subject_identifier):
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']
-
-    data = {
+    filters = [{
         'product_version': product_version,
-        'results': [{"subject": item} for item in items]
-    }
-
+        'subject_type': subject_type,
+        'subject_identifier': subject_identifier,
+    }]
     response = requests_session.post(
-        current_app.config['WAIVERDB_API_URL'] + '/waivers/+by-subjects-and-testcases',
+        current_app.config['WAIVERDB_API_URL'] + '/waivers/+filtered',
         headers={'Content-Type': 'application/json'},
-        data=json.dumps(data),
+        data=json.dumps({'filters': filters}),
         verify=verify,
         timeout=timeout)
     response.raise_for_status()

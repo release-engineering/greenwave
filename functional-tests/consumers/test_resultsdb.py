@@ -67,6 +67,8 @@ def test_consume_new_result(
                     'item': nvr,
                     'type': 'koji_build'
                 },
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
                 'type': 'test-result-missing',
                 'scenario': None,
             },
@@ -76,6 +78,8 @@ def test_consume_new_result(
                     'item': nvr,
                     'type': 'koji_build'
                 },
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
                 'type': 'test-result-missing',
                 'scenario': None,
             }
@@ -87,6 +91,8 @@ def test_consume_new_result(
                 'type': 'koji_build'
             }
         ],
+        #'subject_type': 'koji_build',
+        #'subject_identifier': nvr,
         'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
                                 'taskotron_release_critical_tasks'],
         'previous': old_decision,
@@ -116,6 +122,8 @@ def test_consume_new_result(
                 'type': 'koji_build'
             }
         ],
+        #'subject_type': 'koji_build',
+        #'subject_identifier': nvr,
         'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
         'previous': old_decision,
     }
@@ -206,7 +214,7 @@ def test_invalidate_new_result_with_mocked_cache(
         #'topic_prefix.environment.waiver.new',
     ]
     handler.consume(message)
-    expected = ("greenwave.resources:retrieve_results|"
+    expected = ("greenwave.resources:retrieve_item_results|"
                 "{u'item': u'%s', u'type': u'koji_build'}" % nvr)
     handler.cache.delete.assert_called_once_with(expected)
 
@@ -386,10 +394,14 @@ def test_consume_compose_id_result(
         u'policies_satisfied': False,
         'product_version': 'fedora-rawhide',
         'subject': [{u'productmd.compose.id': compose_id}],
+        #'subject_type': 'compose',
+        #'subject_identifier': compose_id,
         u'summary': u'1 of 2 required test results missing',
         'previous': old_decision,
         u'unsatisfied_requirements': [{
             u'item': {u'productmd.compose.id': compose_id},
+            'subject_type': 'compose',
+            'subject_identifier': compose_id,
             u'scenario': u'scenario2',
             u'testcase': u'compose.install_no_user',
             u'type': u'test-result-missing'}
@@ -465,6 +477,8 @@ def test_consume_legacy_result(
                     'item': nvr,
                     'type': 'koji_build'
                 },
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
                 'type': 'test-result-missing',
                 'scenario': None,
             },
@@ -474,6 +488,8 @@ def test_consume_legacy_result(
                     'item': nvr,
                     'type': 'koji_build'
                 },
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
                 'type': 'test-result-missing',
                 'scenario': None,
             }
@@ -485,6 +501,8 @@ def test_consume_legacy_result(
                 'type': 'koji_build'
             }
         ],
+        #'subject_type': 'koji_build',
+        #'subject_identifier': nvr,
         'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
                                 'taskotron_release_critical_tasks'],
         'previous': old_decision,
@@ -514,6 +532,8 @@ def test_consume_legacy_result(
                 'type': 'koji_build'
             }
         ],
+        #'subject_type': 'koji_build',
+        #'subject_identifier': nvr,
         'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
         'previous': old_decision,
     }
