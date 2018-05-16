@@ -34,13 +34,6 @@ class Config(object):
     # By default, don't cache anything.
     CACHE = {'backend': 'dogpile.cache.null'}
 
-    # These are keys used to construct announcements about decision changes.
-    ANNOUNCEMENT_SUBJECT_KEYS = [
-        ('item', 'type',),
-        ('original_spec_nvr',),
-        ('productmd.compose.id',),
-    ]
-
 
 class ProductionConfig(Config):
     DEBUG = False

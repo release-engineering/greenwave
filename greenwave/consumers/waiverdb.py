@@ -17,6 +17,7 @@ import fedmsg.consumers
 import requests
 
 import greenwave.app_factory
+from greenwave.api_v1 import subject_type_identifier_to_list
 
 requests_session = requests.Session()
 
@@ -67,13 +68,30 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         product_version = msg['product_version']
         testcase = msg['testcase']
+        subject_type = msg['subject_type']
+        subject_identifier = msg['subject_identifier']
+
+        with self.flask_app.app_context():
+            self._publish_decision_changes(subject_type, subject_identifier, msg['id'],
+                                           product_version, testcase)
+            if subject_type == 'koji_build':
+                # If the waiver is for a build, it may also influence the decision
+                # about any update which the build is part of.
+                updateid = greenwave.resources.retrieve_update_for_build(subject_identifier)
+                if updateid is not None:
+                    self._publish_decision_changes('bodhi_update', updateid, msg['id'],
+                                                   product_version, testcase)
+
+    def _publish_decision_changes(self, subject_type, subject_identifier, waiver_id,
+                                  product_version, testcase):
         for policy in self.flask_app.config['policies']:
             for rule in policy.rules:
                 if getattr(rule, 'test_case_name', None) == testcase:
                     data = {
                         'decision_context': policy.decision_context,
                         'product_version': product_version,
-                        'subject': msg['subject']
+                        'subject_type': subject_type,
+                        'subject_identifier': subject_identifier,
                     }
                     response = requests_session.post(
                         self.fedmsg_config['greenwave_api_url'] + '/decision',
@@ -83,7 +101,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
                     # get old decision
                     data.update({
-                        'ignore_waiver': [msg['id']],
+                        'ignore_waiver': [waiver_id],
                     })
                     response = requests_session.post(
                         self.fedmsg_config['greenwave_api_url'] + '/decision',
@@ -93,11 +111,13 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                     old_decision = response.json()
 
                     if decision != old_decision:
-                        subject = [dict((str(k), str(v)) for k, v in item.items())
-                                   for item in msg['subject']]
                         msg = decision
                         decision.update({
-                            'subject': subject,
+                            'subject_type': subject_type,
+                            'subject_identifier': subject_identifier,
+                            # subject is for backwards compatibility only:
+                            'subject': subject_type_identifier_to_list(subject_type,
+                                                                       subject_identifier),
                             'testcase': testcase,
                             'decision_context': policy.decision_context,
                             'product_version': product_version,

@@ -41,6 +41,25 @@ def subject_list_to_type_identifier(subject):
     raise BadRequest('Unrecognised subject type: %r' % subject)
 
 
+def subject_type_identifier_to_list(subject_type, subject_identifier):
+    """
+    Inverse of the above function.
+    This is for backwards compatibility in emitted messages.
+    """
+    if subject_type == 'bodhi_update':
+        old_subject = [{'type': 'bodhi_update', 'item': subject_identifier}]
+        for nvr in retrieve_builds_in_update(subject_identifier):
+            old_subject.append({'type': 'koji_build', 'item': nvr})
+            old_subject.append({'original_spec_nvr': nvr})
+        return old_subject
+    elif subject_type == 'koji_build':
+        return [{'type': 'koji_build', 'item': subject_identifier}]
+    elif subject_type == 'compose':
+        return [{'productmd.compose.id': subject_identifier}]
+    else:
+        raise BadRequest('Unrecognised subject type: %s' % subject_type)
+
+
 @api.route('/version', methods=['GET'])
 @jsonp
 def version():

@@ -83,17 +83,29 @@ def retrieve_builds_in_update(update_id):
     return [build['nvr'] for build in response.json()['update']['builds']]
 
 
-@cached
+def retrieve_update_for_build(nvr):
+    """
+    Queries Bodhi to find the update which the given build is in (if any).
+    Returns a Bodhi updateid, or None if the build is not in any update.
+    """
+    updates_list_url = urlparse.urljoin(current_app.config['BODHI_URL'], '/updates/')
+    params = {'builds': nvr}
+    timeout = current_app.config['REQUESTS_TIMEOUT']
+    verify = current_app.config['REQUESTS_VERIFY']
+    response = requests_session.get(updates_list_url,
+                                    params=params,
+                                    headers={'Accept': 'application/json'},
+                                    timeout=timeout, verify=verify)
+    response.raise_for_status()
+    matching_updates = response.json()['updates']
+    if matching_updates:
+        return matching_updates[0]['updateid']
+    return None
+
+
 def retrieve_item_results(item):
     """ Retrieve cached results from resultsdb for a given item. """
     # XXX make this more efficient than just fetching everything
-
-    # Types matter here because of the cache decorator!
-    # While we are still on Python 2 we must ensure the args are unicode not str
-    assert isinstance(item, dict)
-    for k, v in item.iteritems():
-        assert isinstance(k, unicode)
-        assert isinstance(v, unicode)
 
     params = item.copy()
     params.update({'limit': '1000'})
@@ -106,12 +118,16 @@ def retrieve_item_results(item):
     return response.json()['data']
 
 
+@cached
 def retrieve_results(subject_type, subject_identifier):
     """
     Returns all results from ResultsDB which might be relevant for the given
     decision subject, accounting for all the different possible ways in which
     test results can be reported.
     """
+    # Note that the reverse of this logic also lives in the
+    # announcement_subjects() method of the Resultsdb consumer (it has to map
+    # from a newly received result back to the possible subjects it is for).
     results = []
     if subject_type == 'bodhi_update':
         results.extend(retrieve_item_results(
