@@ -10,11 +10,13 @@ to the message bus about the newly satisfied/unsatisfied policy.
 """
 
 import logging
-import requests
 import json
-import fedmsg.consumers
 
-from greenwave.utils import load_config
+# from flask import current_app
+import fedmsg.consumers
+import requests
+
+import greenwave.app_factory
 
 requests_session = requests.Session()
 
@@ -48,6 +50,8 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         self.fedmsg_config = fedmsg.config.load_config()
 
         super(WaiverDBHandler, self).__init__(hub, *args, **kwargs)
+
+        self.flask_app = greenwave.app_factory.create_app()
         log.info('Greenwave waiverdb handler listening on: %s', self.topic)
 
     def consume(self, message):
@@ -62,9 +66,8 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         msg = message['msg']
 
         product_version = msg['product_version']
-        config = load_config()
         testcase = msg['testcase']
-        for policy in config['policies']:
+        for policy in self.flask_app.config['policies']:
             for rule in policy.rules:
                 if getattr(rule, 'test_case_name', None) == testcase:
                     data = {

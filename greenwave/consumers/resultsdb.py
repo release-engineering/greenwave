@@ -12,13 +12,13 @@ to the message bus about the newly satisfied/unsatisfied policy.
 import collections
 import logging
 
-import dogpile.cache
+from flask import current_app
 import fedmsg.consumers
 import requests
 
+import greenwave.app_factory
 import greenwave.cache
 import greenwave.resources
-from greenwave.utils import load_config
 
 requests_session = requests.Session()
 
@@ -53,15 +53,13 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         super(ResultsDBHandler, self).__init__(hub, *args, **kwargs)
 
-        # Initialize the cache.
-        self.cache = dogpile.cache.make_region(
-            key_mangler=dogpile.cache.util.sha1_mangle_key)
-        self.cache.configure(**hub.config['greenwave_cache'])
+        self.flask_app = greenwave.app_factory.create_app()
+        self.cache = self.flask_app.cache
 
         log.info('Greenwave resultsdb handler listening on: %s', self.topic)
 
     @staticmethod
-    def announcement_subjects(config, message):
+    def announcement_subjects(message):
         """ Yields subjects for announcement consideration from the message.
 
         Args:
@@ -75,7 +73,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             data = message['msg']['task']  # Old format
 
         announcement_keys = [
-            set(keys) for keys in config['ANNOUNCEMENT_SUBJECT_KEYS']
+            set(keys) for keys in current_app.config['ANNOUNCEMENT_SUBJECT_KEYS']
         ]
 
         def _decode(value):
@@ -97,7 +95,6 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         """
         message = message.get('body', message)
         log.debug('Processing message "%s"', message)
-        config = load_config()
 
         try:
             testcase = message['msg']['testcase']['name']  # New format
@@ -109,17 +106,17 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         except KeyError:
             result_id = message['msg']['result']['id']  # Old format
 
-        for subject in self.announcement_subjects(config, message):
-            log.debug('Considering subject "%s"', subject)
-            self._invalidate_cache(subject)
-            self._publish_decision_changes(config, subject, result_id, testcase)
+        with self.flask_app.app_context():
+            for subject in self.announcement_subjects(message):
+                log.debug('Considering subject "%s"', subject)
+                self._invalidate_cache(subject)
+                self._publish_decision_changes(subject, result_id, testcase)
 
-    def _publish_decision_changes(self, config, subject, result_id, testcase):
+    def _publish_decision_changes(self, subject, result_id, testcase):
         """
         Process the given subject and publish a message if the decision is changed.
 
         Args:
-            config (dict): The greenwave configuration.
             subject (munch.Munch): A subject argument, used to query greenwave.
             result_id (int): A result ID to ignore for comparison.
             testcase (munch.Munch): The name of a testcase to consider.
@@ -127,12 +124,12 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         # Build a set of all policies which might apply to this new results
         applicable_policies = set()
-        for policy in config['policies']:
+        for policy in current_app.config['policies']:
             for rule in policy.rules:
                 if getattr(rule, 'test_case_name', None) == testcase:
                     applicable_policies.add(policy)
         log.debug("messaging: found %i applicable policies of %i for testcase %r",
-                  len(applicable_policies), len(config['policies']), testcase)
+                  len(applicable_policies), len(current_app.config['policies']), testcase)
 
         # Given all of our applicable policies, build a map of all decision
         # context we know about, and which product versions they relate to.

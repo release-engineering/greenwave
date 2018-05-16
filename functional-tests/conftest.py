@@ -139,30 +139,27 @@ def distgit_server(tmpdir_factory):
     p.wait()
 
 
-# This is only a fixture because some tests want to point the fedmsg consumers
-# at the same cache that the server process is using.
-# I would like to refactor those tests to send real messages to real consumers,
-# so this becomes unnecessary.
-@pytest.fixture(scope='session')
-def greenwave_cache_config(tmpdir_factory):
-    cache_file = tmpdir_factory.mktemp('greenwave-cache').join('cache.dbm')
-    return {
-        'backend': 'dogpile.cache.dbm',
-        'expiration_time': 300,
-        'arguments': {'filename': cache_file.strpath},
-    }
-
-
 @pytest.yield_fixture(scope='session')
-def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server, greenwave_cache_config):
+def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server):
     if 'GREENWAVE_TEST_URL' in os.environ:
         yield os.environ['GREENWAVE_TEST_URL']
     else:
         # Start Greenwave as a subprocess
+        cache_file = tmpdir_factory.mktemp('greenwave').join('cache.dbm')
         settings_file = tmpdir_factory.mktemp('greenwave').join('settings.py')
         settings_file.write(textwrap.dedent("""\
-            CACHE = %r
-            """ % greenwave_cache_config))
+            CACHE = {
+                'backend': 'dogpile.cache.dbm',
+                'expiration_time': 300,
+                'arguments': {'filename': %r},
+            }
+            """ % cache_file.strpath))
+
+        # We also update the config file for *this* process, as well as the server subprocess,
+        # because the fedmsg consumer tests actually invoke the handler code in-process.
+        # This way they will see the same config as the server.
+        os.environ['GREENWAVE_CONFIG'] = settings_file.strpath
+
         env = dict(os.environ,
                    PYTHONPATH='.',
                    GREENWAVE_CONFIG=settings_file.strpath)

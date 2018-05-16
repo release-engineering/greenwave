@@ -37,7 +37,6 @@ def test_consume_new_result(
     hub.config = {
         'environment': 'environment',
         'topic_prefix': 'topic_prefix',
-        'greenwave_cache': {'backend': 'dogpile.cache.null'},
     }
     handler = resultsdb.ResultsDBHandler(hub)
     assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
@@ -159,7 +158,6 @@ def test_no_message_for_unchanged_decision(
     hub.config = {
         'environment': 'environment',
         'topic_prefix': 'topic_prefix',
-        'greenwave_cache': {'backend': 'dogpile.cache.null'},
     }
     handler = resultsdb.ResultsDBHandler(hub)
     assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
@@ -199,7 +197,6 @@ def test_invalidate_new_result_with_mocked_cache(
     hub.config = {
         'environment': 'environment',
         'topic_prefix': 'topic_prefix',
-        'greenwave_cache': {'backend': 'dogpile.cache.memory'},
     }
     handler = resultsdb.ResultsDBHandler(hub)
     handler.cache = mock.MagicMock()
@@ -218,7 +215,7 @@ def test_invalidate_new_result_with_mocked_cache(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_real_cache(
         mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder, greenwave_cache_config):
+        testdatabuilder):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     for testcase_name in ['dist.rpmdeplint', 'dist.upgradepath', 'dist.abicheck']:
@@ -272,7 +269,6 @@ def test_invalidate_new_result_with_real_cache(
     hub.config = {
         'environment': 'environment',
         'topic_prefix': 'topic_prefix',
-        'greenwave_cache': greenwave_cache_config,
     }
     handler = resultsdb.ResultsDBHandler(hub)
     assert handler.topic == [
@@ -324,7 +320,6 @@ def test_invalidate_new_result_with_no_preexisting_cache(
     hub.config = {
         'environment': 'environment',
         'topic_prefix': 'topic_prefix',
-        'greenwave_cache': {'backend': 'dogpile.cache.memory'},
     }
     handler = resultsdb.ResultsDBHandler(hub)
     handler.cache.delete = mock.MagicMock()
@@ -368,7 +363,6 @@ def test_consume_compose_id_result(
     hub.config = {
         'environment': 'environment',
         'topic_prefix': 'topic_prefix',
-        'greenwave_cache': {'backend': 'dogpile.cache.null'},
     }
     handler = resultsdb.ResultsDBHandler(hub)
     assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
@@ -441,7 +435,6 @@ def test_consume_legacy_result(
     hub.config = {
         'environment': 'environment',
         'topic_prefix': 'topic_prefix',
-        'greenwave_cache': {'backend': 'dogpile.cache.null'},
     }
     handler = resultsdb.ResultsDBHandler(hub)
     assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
