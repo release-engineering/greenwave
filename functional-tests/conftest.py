@@ -13,12 +13,21 @@ import pytest
 import requests
 from sqlalchemy import create_engine
 
+from greenwave.logger import init_logging
+
 
 log = logging.getLogger(__name__)
 
 
 # It's all local, and so should be fast enough.
 TEST_HTTP_TIMEOUT = int(os.environ.get('TEST_HTTP_TIMEOUT', 2))
+
+
+@pytest.fixture(scope='session', autouse=True)
+def logging():
+    init_logging()
+    # We don't configure any log handlers, let pytest capture the log
+    # messages and display them instead.
 
 
 def drop_and_create_database(dbname):

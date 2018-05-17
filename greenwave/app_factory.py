@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 from flask import Flask
-from greenwave.logger import init_logging
 from greenwave.api_v1 import api
 from greenwave.utils import json_error, load_config
 
@@ -24,9 +23,6 @@ def create_app(config_obj=None):
         app.register_error_handler(code, json_error)
     app.register_error_handler(ConnectionError, json_error)
     app.register_error_handler(Timeout, json_error)
-
-    # initialize logging
-    init_logging(app)
 
     # register blueprints
     app.register_blueprint(api, url_prefix="/api/v1.0")
