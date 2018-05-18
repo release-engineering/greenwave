@@ -107,11 +107,10 @@ def retrieve_waivers(product_version, items):
 # NOTE - not cached.
 @greenwave.utils.retry(timeout=300, interval=30, wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_decision(greenwave_url, data):
-    # TODO - get REQUESTS_TIMEOUT and REQUESTS_VERIFY here somehow.  This is usually
-    # called from the fedmsg-hub backend which doesn't have access to the flask
-    # application context.  We need to load the app context and config at backend
-    # startup to clean this up.
+    timeout = current_app.config['REQUESTS_TIMEOUT']
+    verify = current_app.config['REQUESTS_VERIFY']
     headers = {'Content-Type': 'application/json'}
-    response = requests_session.post(greenwave_url, headers=headers, data=json.dumps(data))
+    response = requests_session.post(greenwave_url, headers=headers, data=json.dumps(data),
+                                     timeout=timeout, verify=verify)
     response.raise_for_status()
     return response.json()
