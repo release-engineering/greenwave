@@ -1,10 +1,10 @@
 /*
  * SPDX-License-Identifier: GPL-2.0+
-*/
+ */
 
 try { // massive try{} catch{} around the entire build for failure notifications
-    timestamps {
 
+timestamps {
 node('fedora') {
     checkout scm
     sh 'sudo dnf -y builddep greenwave.spec'
@@ -120,7 +120,101 @@ node('docker') {
     }
 }
 
-/* XXX: run functional tests in OpenShift when UpShift is ready */
+node('fedora') {
+    checkout scm
+
+    sh '''
+    sudo dnf -y builddep greenwave.spec
+    sudo dnf -y install python2-flake8 python2-pylint python2-sphinx python-sphinxcontrib-httpdomain
+    '''
+
+    sh '''
+    sudo dnf -y install /usr/bin/py.test python-sqlalchemy python-resultsdb_api python-gunicorn python2-mock
+    '''
+
+    def openshiftHost = 'greenwave-test.cloud.upshift.engineering.redhat.com'
+    def waiverdbURL = "waiverdb-test-${env.BUILD_TAG}-web-${openshiftHost}"
+    def resultsdbURL = "resultsdb-test-${env.BUILD_TAG}-api-${openshiftHost}"
+
+    def resultsdbRepo = 'https://pagure.io/taskotron/resultsdb/raw/develop/f/openshift'
+    def resultsdbTemplate = 'resultsdb-test-template.yaml'
+    sh "curl ${resultsdbRepo}/${resultsdbTemplate} > openshift/${resultsdbTemplate}"
+
+    def waiverdbRepo = 'https://pagure.io/waiverdb/raw/master/f/openshift'
+    def waiverdbTemplate = 'waiverdb-test-template.yaml'
+    // TODO: these seds are temporary until this is configurable in the upstream template
+    sh """
+       curl ${waiverdbRepo}/${waiverdbTemplate} > openshift/${waiverdbTemplate}
+       sed -i -r "s/(RESULTSDB_API_URL *= *).*/RESULTSDB_API_URL = '${resultsdbURL}'/g" openshift/${waiverdbTemplate}
+       sed -i -e "s/replicas: 2/replicas: 1/g" openshift/${waiverdbTemplate}
+       """
+
+    stage('Perform functional tests') {
+        openshift.withCluster('Upshift') {
+            openshift.doAs('upshift-greenwave-test-jenkins-credentials') {
+                openshift.withProject('greenwave-test') {
+                    def rtemplate = readYaml file: 'openshift/resultsdb-test-template.yaml'
+                    // TODO: move this image to the factory2 project in the docker registry
+                    def resultsdbImage = 'docker-registry.engineering.redhat.com/csomh/resultsdb:latest'
+                    def resultsdbModels = openshift.process(
+                        rtemplate,
+                        '-p', "TEST_ID=${env.BUILD_TAG}",
+                        '-p', "RESULTSDB_IMAGE=${resultsdbImage}"
+                    )
+                    def wtemplate = readYaml file: 'openshift/waiverdb-test-template.yaml'
+                    def waiverdbModels = openshift.process(
+                        wtemplate,
+                        '-p', "TEST_ID=${env.BUILD_TAG}",
+                        '-p', 'WAIVERDB_APP_VERSION=latest'
+                    )
+                    def environment_label = "test-${env.BUILD_TAG}"
+                    try {
+                        openshift.create(resultsdbModels)
+                        openshift.create(waiverdbModels)
+                        echo "Waiting for pods with label environment=${environment_label} to become Ready"
+                        def pods = openshift.selector('pods', ['environment': environment_label])
+                        timeout(10) {
+                            pods.untilEach {
+                                def conds = it.object().status.conditions
+                                for (int i = 0; i < conds.size(); i++) {
+                                    if (conds[i].type == 'Ready' && conds[i].status == 'True') {
+                                        return true
+                                    }
+                                }
+                                return false
+                            }
+                        }
+
+                        def route_hostname = waiverdbURL
+                        echo "Fetching CA chain for https://${route_hostname}/"
+                        def ca_chain = sh(returnStdout: true, script: """openssl s_client \
+                                -connect ${route_hostname}:443 \
+                                -servername ${route_hostname} -showcerts < /dev/null | \
+                                awk 'BEGIN {first_cert=1; in_cert=0};
+                                    /BEGIN CERTIFICATE/ { if (first_cert == 1) first_cert = 0; else in_cert = 1 };
+                                    { if (in_cert) print };
+                                    /END CERTIFICATE/ { in_cert = 0 }'""")
+                        writeFile(file: "${env.WORKSPACE}/ca-chain.crt", text: ca_chain)
+                        echo "Wrote CA certificate chain to ${env.WORKSPACE}/ca-chain.crt"
+
+                        withEnv(["GREENWAVE_CONFIG=${env.WORKSPACE}/conf/settings.py.example"
+                                ,"PYTHONPATH=."
+                                ,"REQUESTS_CA_BUNDLE=${env.WORKSPACE}/ca-chain.crt"
+                                ,"WAIVERDB_TEST_URL=https://${waiverdbURL}/"
+                                ,"RESULTSDB_TEST_URL=https://${resultsdbURL}/"]) {
+                            sh 'py.test -v --junitxml=junit-functional-tests.xml functional-tests/'
+                        }
+                        junit 'junit-functional-tests.xml'
+                    } finally {
+                        /* Tear down everything we just created */
+                        openshift.selector('dc,deploy,configmap,secret,svc,route',
+                                ['environment': environment_label]).delete()
+                    }
+                }
+            }
+        }
+    }
+}
 
 node('docker') {
     checkout scm
@@ -146,7 +240,7 @@ node('docker') {
     }
 }
 
-    }
+} // end of timestamps
 } catch (e) {
     if (ownership.job.ownershipEnabled) {
         mail to: ownership.job.primaryOwnerEmail,
