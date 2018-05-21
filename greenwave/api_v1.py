@@ -160,18 +160,14 @@ def make_decision():
     .. sourcecode:: http
 
        POST /api/v1.0/decision HTTP/1.1
-       Host: localhost:5005
-       Accept-Encoding: gzip, deflate
        Accept: application/json
-       Connection: keep-alive
-       User-Agent: HTTPie/0.9.4
        Content-Type: application/json
-       Content-Length: 91
 
        {
            "decision_context": "bodhi_update_push_stable",
            "product_version": "fedora-26",
-           "subject": [{"item": "glibc-1.0-1.f26", "type": "koji_build"}],
+           "subject_type": "koji_build",
+           "subject_identifier": "cross-gcc-7.0.1-0.3.fc26",
            "verbose": true
        }
 
@@ -192,14 +188,13 @@ def make_decision():
            "applicable_policies": ["1"],
            "unsatisfied_requirements": [
                {
-                   'item': {"item": "glibc-1.0-1.f26", "type": "koji_build"},
                    'result_id': "123",
                    'testcase': 'dist.depcheck',
                    'type': 'test-result-failed'
                },
                {
-                   'item': {"item": "glibc-1.0-1.f26", "type": "koji_build"},
-                   'result_id': "124",
+                   "subject_type": "koji_build",
+                   "subject_identifier": "cross-gcc-7.0.1-0.3.fc26",
                    'testcase': 'dist.rpmlint',
                    'type': 'test-result-missing'
                }
@@ -234,7 +229,8 @@ def make_decision():
                  'waived': true,
                  'timestamp': '2018-01-23T18:02:04.630122',
                  'proxied_by': null,
-                 'subject': [{'item': 'cross-gcc-7.0.1-0.3.fc26', 'type': 'koji_build'}],
+                 "subject_type": "koji_build",
+                 "subject_identifier": "cross-gcc-7.0.1-0.3.fc26",
                  'testcase': 'dist.rpmlint',
                  'id': 1
                }
@@ -245,9 +241,14 @@ def make_decision():
     :jsonparam string decision_context: The decision context string, identified by a
         free-form string label. It is to be named through coordination between policy
         author and calling application, for example ``bodhi_update_push_stable``.
-    :jsonparam list subject: A list of items about which the caller is requesting a decision
-        used for querying ResultsDB. Each item contains one or more key-value pairs of 'data' key
-        in ResultsDB API. For example, [{"type": "koji_build", "item": "xscreensaver-5.37-3.fc27"}].
+    :jsonparam string subject_type: The type of software artefact we are
+        making a decision about, for example ``koji_build``.
+        See :ref:`subject-types` for a list of possible subject types.
+    :jsonparam string subject_identifier: A string identifying the software
+        artefact we are making a decision about. The meaning of the identifier
+        depends on the subject type.
+        See :ref:`subject-types` for details of how each subject type is identified.
+    :jsonparam list subject: *Deprecated:* Pass 'subject_type' and 'subject_identifier' instead.
     :jsonparam bool verbose: A flag to return additional information.
     :jsonparam list ignore_result: A list of result ids that will be ignored when making
         the decision.

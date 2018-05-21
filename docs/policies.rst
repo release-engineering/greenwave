@@ -22,6 +22,7 @@ Here is an example policy:
    --- !Policy
    id: taskotron_release_critical_tasks
    decision_context: bodhi_update_push_stable
+   subject_type: bodhi_update
    product_versions:
    - fedora-26
    - fedora-27
@@ -59,6 +60,15 @@ The document is a map (dictionary) with the following keys:
    passes this value when it asks Greenwave to decide whether a Bodhi update
    is ready to be pushed to the stable repositories.
 
+``subject_type``
+   When you ask Greenwave for a decision, you ask it about a specific software
+   artefact (the "subject" of the decision). Each policy applies to some type
+   of software artefact -- in this example, the policy applies to Bodhi
+   updates.
+
+   The subject type must be one of the fixed set of types known to Greenwave.
+   See the :ref:`subject-types` section below for a list of possible types.
+
 ``product_versions``
    A policy applies to one or more "product versions". When you ask Greenwave
    for a decision, you must tell it which product version you are working
@@ -83,7 +93,7 @@ The document is a map (dictionary) with the following keys:
    map, tagged with the rule type.
 
    Currently there are a few rule types, ``PassingTestCaseRule`` being one of
-   them.  See the section of Rule Types, below for a full list.
+   them.  See the :ref:`rule-types` section below for a full list.
 
 ``blacklist``
    A list of binary RPM package names which are exempted from this policy.
@@ -91,11 +101,44 @@ The document is a map (dictionary) with the following keys:
    The blacklist only takes effect when Greenwave is making a decision about
    subjects with ``"item": "koji_build"``.
 
+.. _Koji: https://pagure.io/koji
 .. _Bodhi: https://github.com/fedora-infra/bodhi
 .. _Product Definition Center: https://github.com/product-definition-center/product-definition-center
 
 
-Rule Types
+.. _subject-types:
+
+Subject types
+=============
+
+Greenwave can make decisions about the following types of software artefacts:
+
+``koji_build``
+   A build stored in the `Koji`_ build system. Builds are identified by their
+   Name-Version-Release (NVR) identifier, as in ``glibc-2.26-27.fc27``.
+   Note that Koji identifies builds by the NVR of their source RPM,
+   regardless which binary packages were produced in the build.
+
+``bodhi_update``
+   A distribution update in `Bodhi`_. Updates are identified by their Bodhi
+   update id, as in ``FEDORA-2018-ec7cb4d5eb``.
+
+   A Bodhi update contains one or more Koji builds. When Greenwave makes a
+   decision about a Bodhi update, it *also* considers any policies which apply
+   to Koji builds in that update.
+
+``compose``
+   A distribution compose. The compose tool (typically Pungi) takes a snapshot
+   of the distribution at a point in time, and produces a directory hierarchy
+   containing packages, installer images, and other metadata. Composes are
+   identified by the compose id in their metadata, which is typically also
+   reflected in their directory name, for example
+   ``Fedora-Rawhide-20170508.n.0``.
+
+
+.. _rule-types:
+
+Rule types
 ==========
 
 PassingTestCaseRule
@@ -111,20 +154,15 @@ PackageSpecificBuild
 
    Just like the ``PassingTestCaseRule``, the ``PackageSpecificBuild`` rule
    requires that a given ``test_case_name`` is passing, but only for certain
-   packages (listed in the ``repos`` argument).  The configured package names
-   in the ``repos`` list may contain wildcards to, for instance, write a rule
-   requiring a certain test must pass for all `python-*` packages.
+   source package names (listed in the ``repos`` argument).  The configured
+   package names in the ``repos`` list may contain wildcards to, for instance,
+   write a rule requiring a certain test must pass for all `python-*`
+   packages.
 
-   At query time, the package name is parsed from an assumed `nvr` in the
-   ``item`` of the subject.
+   This rule type can only be used if the policy's subject type is
+   ``koji_build``.
 
-
-FedoraAtomicCi
---------------
-
-   This rule is nearly identical to the ``PackageSpecificBuild`` rule, except
-   that at query time, the package name is parsed from an assumed `nvr` in the
-   ``original_spec_nvr`` of the subject.
+   ``FedoraAtomicCi`` is a backwards compatibility alias for this rule type.
 
 .. _remote-original-spec-nvr-rule:
 
