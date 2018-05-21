@@ -1,0 +1,69 @@
+version: '2.1'
+services:
+  rdb:
+    image: postgres:9.5.2
+    restart: always
+    environment:
+      POSTGRES_USER: resultsdb
+      POSTGRES_PASSWORD: resultsdb
+      POSTGRES_DB: resultsdb
+      POSTGRES_INITDB_ARGS: "--auth='ident' --auth='trust'"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  resultsdb:
+    image: "docker-registry.engineering.redhat.com/factory2/resultsdb:latest"
+    volumes:
+      - ./resultsdb-settings.py:/etc/resultsdb/settings.py:ro,Z
+      - ./resultsdb.conf:/etc/httpd/conf.d/resultsdb.conf:ro,Z
+    ports:
+      - 5001:5001
+    depends_on:
+      rdb:
+        condition: service_healthy
+
+  wdb:
+    image: postgres:9.5.2
+    restart: always
+    environment:
+      POSTGRES_USER: waiverdb
+      POSTGRES_PASSWORD: waiverdb
+      POSTGRES_DB: waiverdb
+      POSTGRES_INITDB_ARGS: "--auth='ident' --auth='trust'"
+
+  waiverdb:
+    image: "docker-registry.engineering.redhat.com/factory2/waiverdb:latest"
+    environment:
+      DATABASE_PASSWORD: waiverdb
+      SECRET_KEY: waiverdb
+    entrypoint: /bin/sh -i -c "waiverdb wait-for-db && waiverdb db upgrade && python3-gunicorn --bind 0.0.0.0:5004 --access-logfile=- waiverdb.wsgi:app"
+    volumes:
+      - ./waiverdb-settings.py:/etc/waiverdb/settings.py:ro,Z
+      - ./client_secrets.json:/etc/secret/client_secrets.json:ro,Z
+    ports:
+     - 5004:5004
+    user: '0'
+    depends_on:
+      - wdb
+
+  gmemcached:
+    image: "docker.io/modularitycontainers/memcached"
+
+  greenwave:
+    image: "quay.io/factory2/greenwave:latest"
+    volumes:
+      - ./greenwave-settings.py:/etc/greenwave/settings.py:ro,Z
+      - ../conf/policies/:/etc/greenwave/policies/:ro,Z
+    depends_on:
+      - gmemcached
+      - resultsdb
+      - waiverdb
+    ports:
+      - 8080:8080
+
+networks:
+  default:
+    driver: bridge

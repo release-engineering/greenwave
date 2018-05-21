@@ -55,6 +55,16 @@ The functional tests assume you have ResultsDB and WaiverDB git checkouts in
 find them in a different location by passing ``RESULTSDB`` or ``WAIVERDB``
 environment variables.
 
+Docker Compose
+==============
+
+For development you may want to bring up quick instances of Greenwave /
+WaiverDB / ResultsDB / all of the above. For more information on that see:
+
+.. toctree::
+   :maxdepth: 2
+
+   docker-compose
 
 Building the documentation
 ==========================

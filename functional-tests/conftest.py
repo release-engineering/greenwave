@@ -162,7 +162,9 @@ def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server):
                 'expiration_time': 300,
                 'arguments': {'filename': %r},
             }
-            """ % cache_file.strpath))
+            RESULTSDB_API_URL = '%sapi/v2.0'
+            WAIVERDB_API_URL = '%sapi/v1.0'
+            """ % (cache_file.strpath, resultsdb_server, waiverdb_server)))
 
         # We also update the config file for *this* process, as well as the server subprocess,
         # because the fedmsg consumer tests actually invoke the handler code in-process.
