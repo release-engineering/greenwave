@@ -23,7 +23,7 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 6
+    assert len(policies) == 7
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)
@@ -699,3 +699,26 @@ def test_blacklist(requests_session, greenwave_server, testdatabuilder):
     # the failed test result of dist.abicheck should be ignored and thus the policy
     # is satisfied.
     assert res_data['policies_satisfied'] is True
+
+
+def test_make_a_decision_about_brew_build(requests_session, greenwave_server, testdatabuilder):
+    # The 'brew-build' type is used internally within Red Hat. We treat it as
+    # the 'koji_build' subject type.
+    nvr = testdatabuilder.unique_nvr(name='avahi')
+    testdatabuilder.create_koji_build_result(
+        nvr=nvr, testcase_name='osci.brew-build.tier0.functional',
+        outcome='PASSED', type_='brew-build')
+    data = {
+        'decision_context': 'osci_compose_gate',
+        'product_version': 'rhel-something',
+        'subject': [{'type': 'brew-build', 'item': nvr}],
+    }
+
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied'] is True
+    assert res_data['applicable_policies'] == ['osci_compose']
+    assert res_data['summary'] == 'all required tests passed'

@@ -85,8 +85,9 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         if 'productmd.compose.id' in data:
             yield (u'compose', _decode(data['productmd.compose.id']))
         if (data.get('type') == 'koji_build' and 'item' in data or
+                data.get('type') == 'brew-build' and 'item' in data or
                 'original_spec_nvr' in data):
-            if data.get('type') == 'koji_build':
+            if data.get('type') in ['koji_build', 'brew-build']:
                 nvr = _decode(data['item'])
             else:
                 nvr = _decode(data['original_spec_nvr'])

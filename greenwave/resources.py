@@ -134,6 +134,7 @@ def retrieve_results(subject_type, subject_identifier):
             {u'type': u'bodhi_update', u'item': subject_identifier}))
     elif subject_type == 'koji_build':
         results.extend(retrieve_item_results({u'type': u'koji_build', u'item': subject_identifier}))
+        results.extend(retrieve_item_results({u'type': u'brew-build', u'item': subject_identifier}))
         results.extend(retrieve_item_results({u'original_spec_nvr': subject_identifier}))
     elif subject_type == 'compose':
         results.extend(retrieve_item_results({u'productmd.compose.id': subject_identifier}))

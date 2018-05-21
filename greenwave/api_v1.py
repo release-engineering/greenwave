@@ -34,6 +34,8 @@ def subject_list_to_type_identifier(subject):
         return ('compose', subject[0]['productmd.compose.id'])
     # We don't know of any callers who would ask about subjects like this,
     # but it's easy enough to handle here anyway:
+    if len(subject) == 1 and subject[0].get('type') == 'brew-build' and 'item' in subject[0]:
+        return ('koji_build', subject[0]['item'])
     if len(subject) == 1 and subject[0].get('type') == 'koji_build' and 'item' in subject[0]:
         return ('koji_build', subject[0]['item'])
     if len(subject) == 1 and 'original_spec_nvr' in subject[0]:

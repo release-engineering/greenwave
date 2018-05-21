@@ -228,11 +228,20 @@ class TestDataBuilder(object):
         self.distgit_url = distgit_url
         self._counter = itertools.count(1)
 
-    def unique_nvr(self):
-        return 'glibc-1.0-{}.el7'.format(self._counter.next())
+    def unique_nvr(self, name='glibc'):
+        return '{}-1.0-{}.el7'.format(name, self._counter.next())
 
     def unique_compose_id(self):
         return 'Fedora-9000-19700101.n.{}'.format(self._counter.next())
+
+    def _create_result(self, data):
+        response = self.requests_session.post(
+            self.resultsdb_url + 'api/v2.0/results',
+            headers={'Content-Type': 'application/json'},
+            timeout=TEST_HTTP_TIMEOUT,
+            data=json.dumps(data))
+        response.raise_for_status()
+        return response.json()
 
     def create_compose_result(self, compose_id, testcase_name, outcome, scenario=None):
         data = {
@@ -242,13 +251,15 @@ class TestDataBuilder(object):
         }
         if scenario:
             data['data']['scenario'] = scenario
-        response = self.requests_session.post(
-            self.resultsdb_url + 'api/v2.0/results',
-            headers={'Content-Type': 'application/json'},
-            timeout=TEST_HTTP_TIMEOUT,
-            data=json.dumps(data))
-        response.raise_for_status()
-        return response.json()
+        return self._create_result(data)
+
+    def create_koji_build_result(self, nvr, testcase_name, outcome, type_='koji_build'):
+        data = {
+            'testcase': {'name': testcase_name},
+            'outcome': outcome,
+            'data': {'item': nvr, 'type': type_},
+        }
+        return self._create_result(data)
 
     def create_result(self, item, testcase_name, outcome, scenario=None, key=None):
         data = {
@@ -261,13 +272,7 @@ class TestDataBuilder(object):
             data['data'] = {key: item}
         if scenario:
             data['data']['scenario'] = scenario
-        response = self.requests_session.post(
-            self.resultsdb_url + 'api/v2.0/results',
-            headers={'Content-Type': 'application/json'},
-            timeout=TEST_HTTP_TIMEOUT,
-            data=json.dumps(data))
-        response.raise_for_status()
-        return response.json()
+        return self._create_result(data)
 
     def create_waiver(self, nvr, testcase_name, product_version, comment, waived=True):
         data = {
