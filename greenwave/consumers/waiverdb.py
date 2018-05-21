@@ -12,7 +12,7 @@ to the message bus about the newly satisfied/unsatisfied policy.
 import logging
 import json
 
-# from flask import current_app
+from flask import current_app
 import fedmsg.consumers
 import requests
 
@@ -74,7 +74,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         with self.flask_app.app_context():
             self._publish_decision_changes(subject_type, subject_identifier, msg['id'],
                                            product_version, testcase)
-            if subject_type == 'koji_build':
+            if subject_type == 'koji_build' and current_app.config['BODHI_URL']:
                 # If the waiver is for a build, it may also influence the decision
                 # about any update which the build is part of.
                 updateid = greenwave.resources.retrieve_update_for_build(subject_identifier)

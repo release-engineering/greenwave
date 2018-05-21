@@ -6,6 +6,7 @@ waiverdb, etc..).
 
 """
 
+import logging
 import json
 import requests
 import urllib3.exceptions
@@ -18,6 +19,8 @@ from werkzeug.exceptions import BadGateway
 from greenwave.cache import cached
 import greenwave.utils
 import greenwave.policies
+
+log = logging.getLogger(__name__)
 
 requests_session = requests.Session()
 
@@ -72,6 +75,12 @@ def retrieve_builds_in_update(update_id):
     Queries Bodhi to find the list of builds in the given update.
     Returns a list of build NVRs.
     """
+    if not current_app.config['BODHI_URL']:
+        log.warning('Making a decision about Bodhi update %s '
+                    'but Bodhi integration is disabled! '
+                    'Assuming no builds in update',
+                    update_id)
+        return []
     update_info_url = urlparse.urljoin(current_app.config['BODHI_URL'],
                                        '/updates/{}'.format(update_id))
     timeout = current_app.config['REQUESTS_TIMEOUT']
