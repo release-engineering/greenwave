@@ -157,8 +157,7 @@ def test_invalid_payload(requests_session, greenwave_server):
                               headers={'Content-Type': 'application/json'},
                               data='not a json')
     assert r.status_code == 400
-    expected = "Failed to decode JSON object: Expecting value: line 1 column 1 (char 0)"
-    assert expected == r.json()['message']
+    assert "Failed to decode JSON object" in r.json()['message']
 
 
 def test_make_a_decision_on_passed_result(requests_session, greenwave_server, testdatabuilder):
