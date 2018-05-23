@@ -253,17 +253,18 @@ def make_decision():
     waivers = [w for w in waivers if w['id'] not in ignore_waivers]
 
     results = []
-    for item in subjects:
-        results.extend(retrieve_results(item))
-    results = [r for r in results if r['id'] not in ignore_results]
-
     answers = []
     for item in subjects:
-        relevant_policies = [
-            policy for policy in applicable_policies
-            if policy.is_relevant_to(item)]
-        for policy in relevant_policies:
-            answers.extend(policy.check(item, results, waivers))
+        item_results = retrieve_results(item)
+        item_results = [r for r in item_results if r['id'] not in ignore_results]
+        results.extend(item_results)
+
+        subject_subset = set(item.items())
+        item_waivers = [w for w in waivers if subject_subset <= set(w['subject'].items())]
+
+        for policy in applicable_policies:
+            if policy.is_relevant_to(item):
+                answers.extend(policy.check(item, item_results, item_waivers))
 
     res = {
         'policies_satisfied': all(answer.is_satisfied for answer in answers),
