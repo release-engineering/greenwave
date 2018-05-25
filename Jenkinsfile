@@ -142,12 +142,7 @@ node('fedora') {
 
     def waiverdbRepo = 'https://pagure.io/waiverdb/raw/master/f/openshift'
     def waiverdbTemplate = 'waiverdb-test-template.yaml'
-    // TODO: these seds are temporary until this is configurable in the upstream template
-    sh """
-       curl ${waiverdbRepo}/${waiverdbTemplate} > openshift/${waiverdbTemplate}
-       sed -i -r "s/(RESULTSDB_API_URL *= *).*/RESULTSDB_API_URL = '${resultsdbURL}'/g" openshift/${waiverdbTemplate}
-       sed -i -e "s/replicas: 2/replicas: 1/g" openshift/${waiverdbTemplate}
-       """
+    sh "curl ${waiverdbRepo}/${waiverdbTemplate} > openshift/${waiverdbTemplate}"
 
     stage('Perform functional tests') {
         openshift.withCluster('Upshift') {
@@ -165,7 +160,9 @@ node('fedora') {
                     def waiverdbModels = openshift.process(
                         wtemplate,
                         '-p', "TEST_ID=${env.BUILD_TAG}",
-                        '-p', 'WAIVERDB_APP_VERSION=latest'
+                        '-p', 'WAIVERDB_APP_VERSION=latest',
+                        '-p', "RESULTSDB_API_URL=${resultsdbURL}",
+                        '-p', "WAIVERDB_REPLICAS=1"
                     )
                     def environment_label = "test-${env.BUILD_TAG}"
                     try {
