@@ -49,11 +49,18 @@ def test_version_endpoint(requests_session, greenwave_server):
     assert {'version': __version__} == r.json()
 
 
-def test_version_endpoint_jsonp(requests_session, greenwave_server):
-    r = requests_session.get(greenwave_server + 'api/v1.0/version?callback=bac123')
+def test_about_endpoint_jsonp(requests_session, greenwave_server):
+    r = requests_session.get(greenwave_server + 'api/v1.0/about?callback=bac123')
     assert r.status_code == 200
     assert 'bac123' in r.text
     assert '"version": "%s"' % __version__ in r.text
+
+
+def test_version_redirect(requests_session, greenwave_server):
+    r = requests_session.get(greenwave_server + 'api/v1.0/version')
+    assert r.status_code == 200
+    assert '"version": "%s"' % __version__ in r.text
+    assert r.url.endswith('about')
 
 
 def test_cannot_make_decision_without_product_version(requests_session, greenwave_server):

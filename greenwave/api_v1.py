@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-from flask import Blueprint, request, current_app, jsonify
+from flask import Blueprint, request, current_app, jsonify, url_for, redirect
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType, InternalServerError
 from greenwave import __version__
 from greenwave.policies import summarize_answers, RemoteOriginalSpecNvrRule
@@ -11,8 +11,13 @@ api = (Blueprint('api_v1', __name__))
 
 
 @api.route('/version', methods=['GET'])
-@jsonp
 def version():
+    return redirect(url_for('api_v1.about'))
+
+
+@api.route('/about', methods=['GET'])
+@jsonp
+def about():
     """ Returns the current running version.
 
     **Sample response**:
