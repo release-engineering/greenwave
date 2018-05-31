@@ -12,6 +12,9 @@ api = (Blueprint('api_v1', __name__))
 
 @api.route('/version', methods=['GET'])
 def version():
+    """
+    Deprecated in favour of (and redirected to) :http:get:`/api/v1.0/about`.
+    """
     return redirect(url_for('api_v1.about'))
 
 
