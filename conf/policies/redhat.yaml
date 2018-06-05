@@ -1,0 +1,21 @@
+# This is just a hypothetical policy which could be used for Red Hat products.
+--- !Policy
+id: "osci_compose"
+product_versions:
+- rhel-something
+decision_context: osci_compose_gate
+subject_type: koji_build
+blacklist: []
+rules:
+- !PackageSpecificBuild {
+    test_case_name: osci.brew-build.tier0.functional,
+    repos: [
+      "avahi",
+      "cockpit",
+      "checkpolicy",
+      "libsemanage",
+      "libselinux",
+      "libsepol",
+      "policycoreutils",
+    ]
+  }

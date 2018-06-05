@@ -19,6 +19,7 @@ import requests
 import greenwave.app_factory
 import greenwave.cache
 import greenwave.resources
+from greenwave.api_v1 import subject_type_identifier_to_list
 
 requests_session = requests.Session()
 
@@ -60,10 +61,11 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
     @staticmethod
     def announcement_subjects(message):
-        """ Yields subjects for announcement consideration from the message.
+        """
+        Yields pairs of (subject type, subject identifier) for announcement
+        consideration from the message.
 
         Args:
-            config (dict): The greenwave configuration.
             message (munch.Munch): A fedmsg about a new result.
         """
 
@@ -72,19 +74,30 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         except KeyError:
             data = message['msg']['task']  # Old format
 
-        announcement_keys = [
-            set(keys) for keys in current_app.config['ANNOUNCEMENT_SUBJECT_KEYS']
-        ]
-
         def _decode(value):
             """ Decode either a string or a list of strings. """
             if len(value) == 1:
                 value = value[0]
             return value.decode('utf-8')
 
-        for keys in announcement_keys:
-            if keys.issubset(data.keys()):
-                yield {key.decode('utf-8'): _decode(data[key]) for key in keys}
+        if data.get('type') == 'bodhi_update' and 'item' in data:
+            yield (u'bodhi_update', _decode(data['item']))
+        if 'productmd.compose.id' in data:
+            yield (u'compose', _decode(data['productmd.compose.id']))
+        if (data.get('type') == 'koji_build' and 'item' in data or
+                data.get('type') == 'brew-build' and 'item' in data or
+                'original_spec_nvr' in data):
+            if data.get('type') in ['koji_build', 'brew-build']:
+                nvr = _decode(data['item'])
+            else:
+                nvr = _decode(data['original_spec_nvr'])
+            yield (u'koji_build', nvr)
+            # If the result is for a build, it may also influence the decision
+            # about any update which the build is part of.
+            if current_app.config['BODHI_URL']:
+                updateid = greenwave.resources.retrieve_update_for_build(nvr)
+                if updateid is not None:
+                    yield (u'bodhi_update', updateid)
 
     def consume(self, message):
         """
@@ -107,12 +120,13 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             result_id = message['msg']['result']['id']  # Old format
 
         with self.flask_app.app_context():
-            for subject in self.announcement_subjects(message):
-                log.debug('Considering subject "%s"', subject)
-                self._invalidate_cache(subject)
-                self._publish_decision_changes(subject, result_id, testcase)
+            for subject_type, subject_identifier in self.announcement_subjects(message):
+                log.debug('Considering subject %s: %r', subject_type, subject_identifier)
+                self._invalidate_cache(subject_type, subject_identifier)
+                self._publish_decision_changes(subject_type, subject_identifier,
+                                               result_id, testcase)
 
-    def _publish_decision_changes(self, subject, result_id, testcase):
+    def _publish_decision_changes(self, subject_type, subject_identifier, result_id, testcase):
         """
         Process the given subject and publish a message if the decision is changed.
 
@@ -148,7 +162,8 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 data = {
                     'decision_context': decision_context,
                     'product_version': product_version,
-                    'subject': [subject],
+                    'subject_type': subject_type,
+                    'subject_identifier': subject_identifier,
                 }
                 decision = greenwave.resources.retrieve_decision(greenwave_url, data)
 
@@ -160,7 +175,11 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
                 if decision != old_decision:
                     decision.update({
-                        'subject': [subject],
+                        'subject_type': subject_type,
+                        'subject_identifier': subject_identifier,
+                        # subject is for backwards compatibility only:
+                        'subject': subject_type_identifier_to_list(subject_type,
+                                                                   subject_identifier),
                         'decision_context': decision_context,
                         'product_version': product_version,
                         'previous': old_decision,
@@ -169,16 +188,17 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                               'greenwave.decision.update')
                     fedmsg.publish(topic='decision.update', msg=decision)
 
-    def _invalidate_cache(self, subject):
+    def _invalidate_cache(self, subject_type, subject_identifier):
         """
         Process the given subject and delete cache keys as necessary.
 
         Args:
-            subject (munch.Munch): A subject argument, used to query greenwave.
+            subject_type (str): A subject type, used to query greenwave.
+            subject_identifier (str): A subject identifier, used to query greenwave.
         """
         namespace = None
         fn = greenwave.resources.retrieve_results
-        key = greenwave.cache.key_generator(namespace, fn)(subject)
+        key = greenwave.cache.key_generator(namespace, fn)(subject_type, subject_identifier)
         if not self.cache.get(key):
             log.debug("No cache value found for %r", key)
         else:

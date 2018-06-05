@@ -11,6 +11,10 @@ def validate_policies(policies, disallowed_rules=None):
         if not isinstance(policy, Policy):
             raise RuntimeError('Policies are not configured properly as policy %s '
                                'is not an instance of Policy' % policy)
+        for required_attribute in ['decision_context', 'product_versions', 'subject_type']:
+            if not hasattr(policy, required_attribute):
+                raise RuntimeError('Policies are not configured properly as policy %s '
+                                   'is missing attribute %s' % (policy.id, required_attribute))
         for rule in policy.rules:
             if not isinstance(rule, Rule):
                 raise RuntimeError('Policies are not configured properly as rule %s '
@@ -19,6 +23,21 @@ def validate_policies(policies, disallowed_rules=None):
                 if isinstance(rule, disallowed_rule):
                     raise RuntimeError('Policies are not configured properly as rule %s '
                                        'is an instance of %s' % (rule, disallowed_rule))
+
+
+def subject_type_identifier_to_item(subject_type, subject_identifier):
+    """
+    Greenwave < 0.8 included an "item" key in the "unsatisfied_requirements".
+    This returns a suitable value for that key, for backwards compatibility.
+    """
+    if subject_type == 'bodhi_update':
+        return {'type': 'bodhi_update', 'item': subject_identifier}
+    elif subject_type == 'koji_build':
+        return {'type': 'koji_build', 'item': subject_identifier}
+    elif subject_type == 'compose':
+        return {'productmd.compose.id': subject_identifier}
+    else:
+        raise RuntimeError('Unrecognised subject type: %s' % subject_type)
 
 
 class Answer(object):
@@ -65,17 +84,21 @@ class TestResultMissing(RuleNotSatisfied):
     ResultsDB with a matching item and test case name).
     """
 
-    def __init__(self, item, test_case_name, scenario):
-        self.item = item
+    def __init__(self, subject_type, subject_identifier, test_case_name, scenario):
+        self.subject_type = subject_type
+        self.subject_identifier = subject_identifier
         self.test_case_name = test_case_name
         self.scenario = scenario
 
     def to_json(self):
         return {
             'type': 'test-result-missing',
-            'item': self.item,
             'testcase': self.test_case_name,
+            'subject_type': self.subject_type,
+            'subject_identifier': self.subject_identifier,
             'scenario': self.scenario,
+            # For backwards compatibility only:
+            'item': subject_type_identifier_to_item(self.subject_type, self.subject_identifier),
         }
 
 
@@ -85,8 +108,9 @@ class TestResultFailed(RuleNotSatisfied):
     not ``PASSED`` or ``INFO``) and no corresponding waiver was found.
     """
 
-    def __init__(self, item, test_case_name, scenario, result_id):
-        self.item = item
+    def __init__(self, subject_type, subject_identifier, test_case_name, scenario, result_id):
+        self.subject_type = subject_type
+        self.subject_identifier = subject_identifier
         self.test_case_name = test_case_name
         self.scenario = scenario
         self.result_id = result_id
@@ -94,10 +118,13 @@ class TestResultFailed(RuleNotSatisfied):
     def to_json(self):
         return {
             'type': 'test-result-failed',
-            'item': self.item,
             'testcase': self.test_case_name,
-            'scenario': self.scenario,
             'result_id': self.result_id,
+            # These are for backwards compatibility only
+            # (the values are already visible in the result data itself, the
+            # caller shouldn't need them repeated here):
+            'item': subject_type_identifier_to_item(self.subject_type, self.subject_identifier),
+            'scenario': self.scenario,
         }
 
 
@@ -135,14 +162,15 @@ class Rule(yaml.YAMLObject):
 
     This base class is not used directly.
     """
-    def check(self, item, results, waivers):
+    def check(self, subject_type, subject_identifier, results, waivers):
         """
         Evaluate this policy rule for the given item.
 
         Args:
-            item (dict): The item we are evaluating (one or more key-value pairs
-                of 'data' key in ResultsDB, for example {"type": "koji_build",
-                "item": "xscreensaver-5.37-3.fc27"}).
+            subject_type (str): Type of thing we are making a decision about
+                (for example, 'koji_build', 'bodhi_update', ...)
+            subject_identifier (str): Item we are making a decision about (for
+                example, Koji build NVR, Bodhi update id, ...)
             results (list): List of result objects looked up in ResultsDB for this item.
             waivers (list): List of waiver objects looked up in WaiverDB for the results.
 
@@ -164,9 +192,12 @@ class RemoteOriginalSpecNvrRule(Rule):
     yaml_tag = u'!RemoteOriginalSpecNvrRule'
     yaml_loader = yaml.SafeLoader
 
-    def check(self, item, results, waivers):
-        pkg_name = item['original_spec_nvr'].rsplit('-', 2)[0]
-        rev = greenwave.resources.retrieve_rev_from_koji(item['original_spec_nvr'])
+    def check(self, subject_type, subject_identifier, results, waivers):
+        if subject_type != 'koji_build':
+            return RuleSatisfied()
+
+        pkg_name = subject_identifier.rsplit('-', 2)[0]
+        rev = greenwave.resources.retrieve_rev_from_koji(subject_identifier)
         response = greenwave.resources.retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name)
 
         if isinstance(response, RuleSatisfied):
@@ -176,10 +207,13 @@ class RemoteOriginalSpecNvrRule(Rule):
             policies = yaml.safe_load_all(response)
             # policies is a generator, so listifying it
             policies = list(policies)
+            # policies in dist-git are always about a package
+            for policy in policies:
+                policy.subject_type = 'koji_build'
             validate_policies(policies, [RemoteOriginalSpecNvrRule])
             answers = []
             for policy in policies:
-                response = policy.check(item, results, waivers)
+                response = policy.check(subject_identifier, results, waivers)
                 if isinstance(response, list):
                     answers.extend(response)
                 else:
@@ -200,7 +234,7 @@ class PassingTestCaseRule(Rule):
     yaml_tag = u'!PassingTestCaseRule'
     yaml_loader = yaml.SafeLoader
 
-    def check(self, item, results, waivers):
+    def check(self, subject_type, subject_identifier, results, waivers):
         matching_results = [
             r for r in results if r['testcase']['name'] == self.test_case_name]
         matching_waivers = [
@@ -214,7 +248,8 @@ class PassingTestCaseRule(Rule):
         # Investigate the absence of results first.
         if not matching_results:
             if not matching_waivers:
-                return TestResultMissing(item, self.test_case_name, self._scenario)
+                return TestResultMissing(subject_type, subject_identifier, self.test_case_name,
+                                         self._scenario)
             else:
                 # The result is absent, but the absence is waived.
                 return RuleSatisfied()
@@ -232,7 +267,8 @@ class PassingTestCaseRule(Rule):
                w['testcase'] == matching_result['testcase']['name'] and
                w['waived'] for w in waivers):
             return RuleSatisfied()
-        return TestResultFailed(item, self.test_case_name, self._scenario, matching_result['id'])
+        return TestResultFailed(subject_type, subject_identifier, self.test_case_name,
+                                self._scenario, matching_result['id'])
 
     @property
     def _scenario(self):
@@ -262,31 +298,31 @@ class PackageSpecificRule(Rule):
         self.test_case_name = test_case_name
         self.repos = repos
 
-    def check(self, item, results, waivers):
-        """ Check that the item passes testcase for the given results, but
-        only if the item is an instance of a package name configured for
+    def check(self, subject_type, subject_identifier, results, waivers):
+        """ Check that the subject passes testcase for the given results, but
+        only if the subject is a build of a package name configured for
         this rule, specified by "repos".  Any of the repos may be a glob.
 
-        Items which do not bear the "nvr_key" for this rule are considered
-        satisfied (ignored).
+        If this rule is used in a policy for some subject type other than
+        "koji_build" (which makes no sense), the rule is considered satisfied
+        (ignored).
 
-        Items whose package names (extracted from their NVR) do not match
+        Subjects whose package names (extracted from their NVR) do not match
         any of the globs in the "repos" list of this rule are considered
         satisfied (ignored).
         """
 
-        if self.nvr_key not in item:
+        if subject_type != 'koji_build':
             return RuleSatisfied()
 
-        nvr = item[self.nvr_key]
-        pkg_name = nvr.rsplit('-', 2)[0]
+        pkg_name = subject_identifier.rsplit('-', 2)[0]
         if not any(fnmatch(pkg_name, repo) for repo in self.repos):
             return RuleSatisfied()
 
         rule = PassingTestCaseRule()
         # pylint: disable=attribute-defined-outside-init
         rule.test_case_name = self.test_case_name
-        return rule.check(item, results, waivers)
+        return rule.check(subject_type, subject_identifier, results, waivers)
 
     def __repr__(self):
         return "%s(test_case_name=%s, repos=%r)" % (
@@ -297,55 +333,37 @@ class PackageSpecificRule(Rule):
             'rule': self.__class__.__name__,
             'test_case_name': self.test_case_name,
             'repos': self.repos,
-            'nvr_key': self.nvr_key,
         }
 
 
 class FedoraAtomicCi(PackageSpecificRule):
     yaml_tag = u'!FedoraAtomicCi'
     yaml_loader = yaml.SafeLoader
-    nvr_key = 'original_spec_nvr'
 
 
 class PackageSpecificBuild(PackageSpecificRule):
     yaml_tag = u'!PackageSpecificBuild'
     yaml_loader = yaml.SafeLoader
-    nvr_key = 'item'
 
 
 class Policy(yaml.YAMLObject):
     yaml_tag = u'!Policy'
     yaml_loader = yaml.SafeLoader
 
-    def applies_to(self, decision_context, product_version):
+    def applies_to(self, decision_context, product_version, subject_type):
         return (decision_context == self.decision_context and
-                self._applies_to_product_version(product_version))
+                self._applies_to_product_version(product_version) and
+                subject_type == self.subject_type)
 
-    def is_relevant_to(self, item):
-        relevance_key = getattr(self, 'relevance_key', None)
-        relevance_value = getattr(self, 'relevance_value', None)
-
-        if relevance_key and relevance_value:
-            return item.get(relevance_key) == relevance_value
-
-        if relevance_key:
-            return relevance_key in item
-
-        if relevance_value:
-            return relevance_value in item.values()
-
-        return True
-
-    def check(self, item, results, waivers):
+    def check(self, subject_identifier, results, waivers):
         # If an item is about a package and it is in the blacklist, return RuleSatisfied()
-        for package in self.blacklist:
-            if (item.get('type') == 'koji_build' and
-                    item.get('item') and
-                    item['item'].rsplit('-', 2)[0] == package):
+        if self.subject_type == 'koji_build':
+            name = subject_identifier.rsplit('-', 2)[0]
+            if name in self.blacklist:
                 return [RuleSatisfied() for rule in self.rules]
         answers = []
         for rule in self.rules:
-            response = rule.check(item, results, waivers)
+            response = rule.check(self.subject_type, subject_identifier, results, waivers)
             if isinstance(response, list):
                 answers.extend(response)
             else:
@@ -353,15 +371,16 @@ class Policy(yaml.YAMLObject):
         return answers
 
     def __repr__(self):
-        return "%s(id=%r, product_versions=%r, decision_context=%r, rules=%r)" % (
+        return "%s(id=%r, product_versions=%r, decision_context=%r, subject_type=%r, rules=%r)" % (
             self.__class__.__name__, self.id, self.product_versions, self.decision_context,
-            self.rules)
+            self.subject_type, self.rules)
 
     def to_json(self):
         return {
             'id': self.id,
             'product_versions': self.product_versions,
             'decision_context': self.decision_context,
+            'subject_type': self.subject_type,
             'rules': [rule.to_json() for rule in self.rules],
             'blacklist': self.blacklist,
             'relevance_key': getattr(self, 'relevance_key', None),

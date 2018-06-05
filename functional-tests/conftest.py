@@ -134,6 +134,25 @@ def waiverdb_server(tmpdir_factory):
 
 
 @pytest.yield_fixture(scope='session')
+def bodhi():
+    if 'BODHI_TEST_URL' in os.environ:
+        yield os.environ['BODHI_TEST_URL']
+    else:
+        # Start fake Bodhi as a subprocess
+        p = subprocess.Popen(['gunicorn',
+                              '--bind=127.0.0.1:5677',
+                              '--access-logfile=-',
+                              '--pythonpath=' + os.path.dirname(__file__),
+                              'fake_bodhi:application'])
+        log.debug('Started fake Bodhi as pid %s', p.pid)
+        wait_for_listen(5677)
+        yield 'http://localhost:5677/'
+        log.debug('Terminating fake Bodhi pid %s', p.pid)
+        p.terminate()
+        p.wait()
+
+
+@pytest.yield_fixture(scope='session')
 def distgit_server(tmpdir_factory):
     """ Creating a fake dist-git process. It is just a serving some files in a tmp dir """
     tmp_dir = tmpdir_factory.mktemp('distgit')
@@ -149,7 +168,7 @@ def distgit_server(tmpdir_factory):
 
 
 @pytest.yield_fixture(scope='session')
-def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server):
+def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server, bodhi):
     if 'GREENWAVE_TEST_URL' in os.environ:
         yield os.environ['GREENWAVE_TEST_URL']
     else:
@@ -164,7 +183,8 @@ def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server):
             }
             RESULTSDB_API_URL = '%sapi/v2.0'
             WAIVERDB_API_URL = '%sapi/v1.0'
-            """ % (cache_file.strpath, resultsdb_server, waiverdb_server)))
+            BODHI_URL = %r
+            """ % (cache_file.strpath, resultsdb_server, waiverdb_server, bodhi)))
 
         # We also update the config file for *this* process, as well as the server subprocess,
         # because the fedmsg consumer tests actually invoke the handler code in-process.
@@ -200,18 +220,28 @@ class TestDataBuilder(object):
     ResultsDB and WaiverDB.
     """
 
-    def __init__(self, requests_session, resultsdb_url, waiverdb_url, distgit_url):
+    def __init__(self, requests_session, resultsdb_url, waiverdb_url, bodhi_url, distgit_url):
         self.requests_session = requests_session
         self.resultsdb_url = resultsdb_url
         self.waiverdb_url = waiverdb_url
+        self.bodhi_url = bodhi_url
         self.distgit_url = distgit_url
         self._counter = itertools.count(1)
 
-    def unique_nvr(self):
-        return 'glibc-1.0-{}.el7'.format(self._counter.next())
+    def unique_nvr(self, name='glibc'):
+        return '{}-1.0-{}.el7'.format(name, self._counter.next())
 
     def unique_compose_id(self):
         return 'Fedora-9000-19700101.n.{}'.format(self._counter.next())
+
+    def _create_result(self, data):
+        response = self.requests_session.post(
+            self.resultsdb_url + 'api/v2.0/results',
+            headers={'Content-Type': 'application/json'},
+            timeout=TEST_HTTP_TIMEOUT,
+            data=json.dumps(data))
+        response.raise_for_status()
+        return response.json()
 
     def create_compose_result(self, compose_id, testcase_name, outcome, scenario=None):
         data = {
@@ -221,13 +251,15 @@ class TestDataBuilder(object):
         }
         if scenario:
             data['data']['scenario'] = scenario
-        response = self.requests_session.post(
-            self.resultsdb_url + 'api/v2.0/results',
-            headers={'Content-Type': 'application/json'},
-            timeout=TEST_HTTP_TIMEOUT,
-            data=json.dumps(data))
-        response.raise_for_status()
-        return response.json()
+        return self._create_result(data)
+
+    def create_koji_build_result(self, nvr, testcase_name, outcome, type_='koji_build'):
+        data = {
+            'testcase': {'name': testcase_name},
+            'outcome': outcome,
+            'data': {'item': nvr, 'type': type_},
+        }
+        return self._create_result(data)
 
     def create_result(self, item, testcase_name, outcome, scenario=None, key=None):
         data = {
@@ -240,18 +272,13 @@ class TestDataBuilder(object):
             data['data'] = {key: item}
         if scenario:
             data['data']['scenario'] = scenario
-        response = self.requests_session.post(
-            self.resultsdb_url + 'api/v2.0/results',
-            headers={'Content-Type': 'application/json'},
-            timeout=TEST_HTTP_TIMEOUT,
-            data=json.dumps(data))
-        response.raise_for_status()
-        return response.json()
+        return self._create_result(data)
 
-    def create_waiver(self, result, product_version, comment, waived=True):
+    def create_waiver(self, nvr, testcase_name, product_version, comment, waived=True):
         data = {
-            'subject': result['subject'],
-            'testcase': result['testcase'],
+            'subject_type': 'koji_build',
+            'subject_identifier': nvr,
+            'testcase': testcase_name,
             'product_version': product_version,
             'waived': waived,
             'comment': comment
@@ -267,7 +294,18 @@ class TestDataBuilder(object):
         response.raise_for_status()
         return response.json()
 
+    def create_bodhi_update(self, build_nvrs):
+        data = {'builds': [{'nvr': nvr} for nvr in build_nvrs]}
+        response = self.requests_session.post(
+            self.bodhi_url + 'updates/',
+            headers={'Content-Type': 'application/json'},
+            timeout=TEST_HTTP_TIMEOUT,
+            data=json.dumps(data))
+        response.raise_for_status()
+        return response.json()
+
 
 @pytest.fixture(scope='session')
-def testdatabuilder(requests_session, resultsdb_server, waiverdb_server, distgit_server):
-    return TestDataBuilder(requests_session, resultsdb_server, waiverdb_server, distgit_server)
+def testdatabuilder(requests_session, resultsdb_server, waiverdb_server, bodhi, distgit_server):
+    return TestDataBuilder(requests_session, resultsdb_server, waiverdb_server, bodhi,
+                           distgit_server)

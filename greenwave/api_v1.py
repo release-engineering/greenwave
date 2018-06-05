@@ -4,10 +4,62 @@ from flask import Blueprint, request, current_app, jsonify, url_for, redirect
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType, InternalServerError
 from greenwave import __version__
 from greenwave.policies import summarize_answers, RemoteOriginalSpecNvrRule
-from greenwave.resources import retrieve_results, retrieve_waivers
+from greenwave.resources import retrieve_results, retrieve_waivers, retrieve_builds_in_update
 from greenwave.utils import insert_headers, jsonp
 
 api = (Blueprint('api_v1', __name__))
+
+
+def subject_list_to_type_identifier(subject):
+    """
+    Greenwave < 0.8 accepted a list of arbitrary dicts for the 'subject'.
+    Now we expect a specific type and identifier.
+    This maps from the old style to the new, for backwards compatibility.
+
+    Note that WaiverDB has a very similar helper function, for compatibility
+    with WaiverDB < 0.11, but it accepts a single subject dict. Here we accept
+    a list.
+    """
+    if (not isinstance(subject, list) or not subject or
+            not all(isinstance(entry, dict) for entry in subject)):
+        raise BadRequest('Invalid subject, must be a list of dicts')
+    if any(entry.get('type') == 'bodhi_update' and 'item' in entry for entry in subject):
+        # Assume that all the other entries in the list are just for the
+        # builds which are in the Bodhi update. So really, the caller wants a
+        # decision about the Bodhi update. Ignore everything else. (Is this
+        # wise? Maybe not...)
+        identifier = [entry for entry in subject if entry.get('type') == 'bodhi_update'][0]['item']
+        return ('bodhi_update', identifier)
+    if len(subject) == 1 and 'productmd.compose.id' in subject[0]:
+        return ('compose', subject[0]['productmd.compose.id'])
+    # We don't know of any callers who would ask about subjects like this,
+    # but it's easy enough to handle here anyway:
+    if len(subject) == 1 and subject[0].get('type') == 'brew-build' and 'item' in subject[0]:
+        return ('koji_build', subject[0]['item'])
+    if len(subject) == 1 and subject[0].get('type') == 'koji_build' and 'item' in subject[0]:
+        return ('koji_build', subject[0]['item'])
+    if len(subject) == 1 and 'original_spec_nvr' in subject[0]:
+        return ('koji_build', subject[0]['original_spec_nvr'])
+    raise BadRequest('Unrecognised subject type: %r' % subject)
+
+
+def subject_type_identifier_to_list(subject_type, subject_identifier):
+    """
+    Inverse of the above function.
+    This is for backwards compatibility in emitted messages.
+    """
+    if subject_type == 'bodhi_update':
+        old_subject = [{'type': 'bodhi_update', 'item': subject_identifier}]
+        for nvr in retrieve_builds_in_update(subject_identifier):
+            old_subject.append({'type': 'koji_build', 'item': nvr})
+            old_subject.append({'original_spec_nvr': nvr})
+        return old_subject
+    elif subject_type == 'koji_build':
+        return [{'type': 'koji_build', 'item': subject_identifier}]
+    elif subject_type == 'compose':
+        return [{'productmd.compose.id': subject_identifier}]
+    else:
+        raise BadRequest('Unrecognised subject type: %s' % subject_type)
 
 
 @api.route('/version', methods=['GET'])
@@ -113,18 +165,14 @@ def make_decision():
     .. sourcecode:: http
 
        POST /api/v1.0/decision HTTP/1.1
-       Host: localhost:5005
-       Accept-Encoding: gzip, deflate
        Accept: application/json
-       Connection: keep-alive
-       User-Agent: HTTPie/0.9.4
        Content-Type: application/json
-       Content-Length: 91
 
        {
            "decision_context": "bodhi_update_push_stable",
            "product_version": "fedora-26",
-           "subject": [{"item": "glibc-1.0-1.f26", "type": "koji_build"}],
+           "subject_type": "koji_build",
+           "subject_identifier": "cross-gcc-7.0.1-0.3.fc26",
            "verbose": true
        }
 
@@ -145,14 +193,13 @@ def make_decision():
            "applicable_policies": ["1"],
            "unsatisfied_requirements": [
                {
-                   'item': {"item": "glibc-1.0-1.f26", "type": "koji_build"},
                    'result_id': "123",
                    'testcase': 'dist.depcheck',
                    'type': 'test-result-failed'
                },
                {
-                   'item': {"item": "glibc-1.0-1.f26", "type": "koji_build"},
-                   'result_id': "124",
+                   "subject_type": "koji_build",
+                   "subject_identifier": "cross-gcc-7.0.1-0.3.fc26",
                    'testcase': 'dist.rpmlint',
                    'type': 'test-result-missing'
                }
@@ -187,7 +234,8 @@ def make_decision():
                  'waived': true,
                  'timestamp': '2018-01-23T18:02:04.630122',
                  'proxied_by': null,
-                 'subject': [{'item': 'cross-gcc-7.0.1-0.3.fc26', 'type': 'koji_build'}],
+                 "subject_type": "koji_build",
+                 "subject_identifier": "cross-gcc-7.0.1-0.3.fc26",
                  'testcase': 'dist.rpmlint',
                  'id': 1
                }
@@ -198,9 +246,14 @@ def make_decision():
     :jsonparam string decision_context: The decision context string, identified by a
         free-form string label. It is to be named through coordination between policy
         author and calling application, for example ``bodhi_update_push_stable``.
-    :jsonparam list subject: A list of items about which the caller is requesting a decision
-        used for querying ResultsDB. Each item contains one or more key-value pairs of 'data' key
-        in ResultsDB API. For example, [{"type": "koji_build", "item": "xscreensaver-5.37-3.fc27"}].
+    :jsonparam string subject_type: The type of software artefact we are
+        making a decision about, for example ``koji_build``.
+        See :ref:`subject-types` for a list of possible subject types.
+    :jsonparam string subject_identifier: A string identifying the software
+        artefact we are making a decision about. The meaning of the identifier
+        depends on the subject type.
+        See :ref:`subject-types` for details of how each subject type is identified.
+    :jsonparam list subject: *Deprecated:* Pass 'subject_type' and 'subject_identifier' instead.
     :jsonparam bool verbose: A flag to return additional information.
     :jsonparam list ignore_result: A list of result ids that will be ignored when making
         the decision.
@@ -217,14 +270,22 @@ def make_decision():
         if ('decision_context' not in request.get_json() or
                 not request.get_json()['decision_context']):
             raise BadRequest('Missing required decision context')
-        if ('subject' not in request.get_json() or
-                not request.get_json()['subject']):
-            raise BadRequest('Missing required subject')
     else:
         raise UnsupportedMediaType('No JSON payload in request')
     data = request.get_json()
-    if not isinstance(data['subject'], list):
-        raise BadRequest('Invalid subject, must be a list of items')
+
+    # Greenwave < 0.8
+    if 'subject' in data:
+        data['subject_type'], data['subject_identifier'] = \
+            subject_list_to_type_identifier(data['subject'])
+
+    if 'subject_type' not in data:
+        raise BadRequest('Missing required "subject_type" parameter')
+    if 'subject_identifier' not in data:
+        raise BadRequest('Missing required "subject_identifier" parameter')
+
+    subject_type = data['subject_type']
+    subject_identifier = data['subject_identifier']
     product_version = data['product_version']
     decision_context = data['decision_context']
     verbose = data.get('verbose', False)
@@ -244,32 +305,36 @@ def make_decision():
                                               "'DIST_GIT_URL_TEMPLATE' and KOJI_BASE_URL in "
                                               "your configuration.")
 
-    applicable_policies = [policy for policy in current_app.config['policies']
-                           if policy.applies_to(decision_context, product_version)]
+    subject_policies = [policy for policy in current_app.config['policies']
+                        if policy.applies_to(decision_context, product_version, subject_type)]
+    if subject_type == 'bodhi_update':
+        # Also need to apply policies for each build in the update.
+        build_policies = [policy for policy in current_app.config['policies']
+                          if policy.applies_to(decision_context, product_version, 'koji_build')]
+    else:
+        build_policies = []
+    applicable_policies = subject_policies + build_policies
     if not applicable_policies:
         raise NotFound(
-            'Cannot find any applicable policies for %s and %s' % (
-                product_version, decision_context))
-    subjects = [item for item in data['subject'] if isinstance(item, dict)]
-    if not subjects:
-        raise BadRequest('Invalid subject, must be a list of dicts')
+            'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
+                subject_type, decision_context, product_version))
 
-    waivers = retrieve_waivers(product_version, subjects)
-    waivers = [w for w in waivers if w['id'] not in ignore_waivers]
-
-    results = []
     answers = []
-    for item in subjects:
-        item_results = retrieve_results(item)
-        item_results = [r for r in item_results if r['id'] not in ignore_results]
-        results.extend(item_results)
-
-        subject_subset = set(item.items())
-        item_waivers = [w for w in waivers if subject_subset <= set(w['subject'].items())]
-
-        for policy in applicable_policies:
-            if policy.is_relevant_to(item):
-                answers.extend(policy.check(item, item_results, item_waivers))
+    results = retrieve_results(subject_type, subject_identifier)
+    results = [r for r in results if r['id'] not in ignore_results]
+    waivers = retrieve_waivers(product_version, subject_type, subject_identifier)
+    waivers = [w for w in waivers if w['id'] not in ignore_waivers]
+    for policy in subject_policies:
+        answers.extend(policy.check(subject_identifier, results, waivers))
+    if build_policies:
+        build_nvrs = retrieve_builds_in_update(subject_identifier)
+        for nvr in build_nvrs:
+            results = retrieve_results('koji_build', nvr)
+            results = [r for r in results if r['id'] not in ignore_results]
+            waivers = retrieve_waivers(product_version, 'koji_build', nvr)
+            waivers = [w for w in waivers if w['id'] not in ignore_waivers]
+            for policy in build_policies:
+                answers.extend(policy.check(nvr, results, waivers))
 
     res = {
         'policies_satisfied': all(answer.is_satisfied for answer in answers),

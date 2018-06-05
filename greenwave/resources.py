@@ -6,6 +6,7 @@ waiverdb, etc..).
 
 """
 
+import logging
 import json
 import requests
 import urllib3.exceptions
@@ -18,6 +19,8 @@ from werkzeug.exceptions import BadGateway
 from greenwave.cache import cached
 import greenwave.utils
 import greenwave.policies
+
+log = logging.getLogger(__name__)
 
 requests_session = requests.Session()
 
@@ -67,8 +70,49 @@ def retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name):
     return response.content
 
 
-@cached
-def retrieve_results(item):
+def retrieve_builds_in_update(update_id):
+    """
+    Queries Bodhi to find the list of builds in the given update.
+    Returns a list of build NVRs.
+    """
+    if not current_app.config['BODHI_URL']:
+        log.warning('Making a decision about Bodhi update %s '
+                    'but Bodhi integration is disabled! '
+                    'Assuming no builds in update',
+                    update_id)
+        return []
+    update_info_url = urlparse.urljoin(current_app.config['BODHI_URL'],
+                                       '/updates/{}'.format(update_id))
+    timeout = current_app.config['REQUESTS_TIMEOUT']
+    verify = current_app.config['REQUESTS_VERIFY']
+    response = requests_session.get(update_info_url,
+                                    headers={'Accept': 'application/json'},
+                                    timeout=timeout, verify=verify)
+    response.raise_for_status()
+    return [build['nvr'] for build in response.json()['update']['builds']]
+
+
+def retrieve_update_for_build(nvr):
+    """
+    Queries Bodhi to find the update which the given build is in (if any).
+    Returns a Bodhi updateid, or None if the build is not in any update.
+    """
+    updates_list_url = urlparse.urljoin(current_app.config['BODHI_URL'], '/updates/')
+    params = {'builds': nvr}
+    timeout = current_app.config['REQUESTS_TIMEOUT']
+    verify = current_app.config['REQUESTS_VERIFY']
+    response = requests_session.get(updates_list_url,
+                                    params=params,
+                                    headers={'Accept': 'application/json'},
+                                    timeout=timeout, verify=verify)
+    response.raise_for_status()
+    matching_updates = response.json()['updates']
+    if matching_updates:
+        return matching_updates[0]['updateid']
+    return None
+
+
+def retrieve_item_results(item):
     """ Retrieve cached results from resultsdb for a given item. """
     # XXX make this more efficient than just fetching everything
 
@@ -83,21 +127,45 @@ def retrieve_results(item):
     return response.json()['data']
 
 
+@cached
+def retrieve_results(subject_type, subject_identifier):
+    """
+    Returns all results from ResultsDB which might be relevant for the given
+    decision subject, accounting for all the different possible ways in which
+    test results can be reported.
+    """
+    # Note that the reverse of this logic also lives in the
+    # announcement_subjects() method of the Resultsdb consumer (it has to map
+    # from a newly received result back to the possible subjects it is for).
+    results = []
+    if subject_type == 'bodhi_update':
+        results.extend(retrieve_item_results(
+            {u'type': u'bodhi_update', u'item': subject_identifier}))
+    elif subject_type == 'koji_build':
+        results.extend(retrieve_item_results({u'type': u'koji_build', u'item': subject_identifier}))
+        results.extend(retrieve_item_results({u'type': u'brew-build', u'item': subject_identifier}))
+        results.extend(retrieve_item_results({u'original_spec_nvr': subject_identifier}))
+    elif subject_type == 'compose':
+        results.extend(retrieve_item_results({u'productmd.compose.id': subject_identifier}))
+    else:
+        raise RuntimeError('Unhandled subject type %r' % subject_type)
+    return results
+
+
 # NOTE - not cached, for now.
 @greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
-def retrieve_waivers(product_version, items):
+def retrieve_waivers(product_version, subject_type, subject_identifier):
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']
-
-    data = {
+    filters = [{
         'product_version': product_version,
-        'results': [{"subject": item} for item in items]
-    }
-
+        'subject_type': subject_type,
+        'subject_identifier': subject_identifier,
+    }]
     response = requests_session.post(
-        current_app.config['WAIVERDB_API_URL'] + '/waivers/+by-subjects-and-testcases',
+        current_app.config['WAIVERDB_API_URL'] + '/waivers/+filtered',
         headers={'Content-Type': 'application/json'},
-        data=json.dumps(data),
+        data=json.dumps({'filters': filters}),
         verify=verify,
         timeout=timeout)
     response.raise_for_status()
