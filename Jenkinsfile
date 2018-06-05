@@ -123,14 +123,12 @@ node('docker') {
 node('fedora') {
     checkout scm
 
-    sh '''
-    sudo dnf -y builddep greenwave.spec
-    sudo dnf -y install python2-flake8 python2-pylint python2-sphinx python-sphinxcontrib-httpdomain
-    '''
+    /* Install packages needed by the functional tests. */
+    sh 'sudo dnf -y install python2-pytest python2-requests python2-sqlalchemy python2-gunicorn'
 
-    sh '''
-    sudo dnf -y install /usr/bin/py.test python-sqlalchemy python-resultsdb_api python-gunicorn python2-mock
-    '''
+    /* Also need to install Greenwave's dependencies, since we are running it
+     * locally not in Openshift for now. */
+    sh 'sudo dnf -y builddep greenwave.spec'
 
     def openshiftHost = 'greenwave-test.cloud.upshift.engineering.redhat.com'
     def waiverdbURL = "waiverdb-test-${env.BUILD_TAG}-web-${openshiftHost}"
