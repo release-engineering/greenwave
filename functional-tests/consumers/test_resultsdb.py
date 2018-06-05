@@ -82,7 +82,7 @@ def test_consume_new_result(
             'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
-            'summary': u'3 of 3 required test results missing',
+            'summary': '3 of 3 required test results missing',
             'unsatisfied_requirements': [
                 {
                     'testcase': 'dist.abicheck',
@@ -175,7 +175,7 @@ def test_consume_new_result(
             'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
-            'summary': u'3 of 3 required test results missing',
+            'summary': '3 of 3 required test results missing',
             'unsatisfied_requirements': [
                 {
                     'testcase': 'dist.abicheck',
@@ -364,16 +364,16 @@ def test_invalidate_new_result_with_real_cache(
     # Now, handle a message about the new failing result
     message = {
         'body': {
-            u'topic': u'resultsdb.result.new',
-            u'msg': {
-                u'id': u'whatever',
-                u'outcome': u'doesn\'t matter',
-                u'testcase': {
-                    u'name': u'dist.rpmdeplint'
+            'topic': 'resultsdb.result.new',
+            'msg': {
+                'id': 'whatever',
+                'outcome': 'doesn\'t matter',
+                'testcase': {
+                    'name': 'dist.rpmdeplint'
                 },
-                u'data': {
-                    u'item': nvr.decode('utf-8'),
-                    u'type': u'koji_build',
+                'data': {
+                    'item': nvr,
+                    'type': 'koji_build',
                 }
             }
         }
@@ -494,22 +494,22 @@ def test_consume_compose_id_result(
     assert r.status_code == 200
     old_decision = r.json()
     msg = {
-        u'applicable_policies': [u'openqa_important_stuff_for_rawhide'],
-        u'decision_context': u'rawhide_compose_sync_to_mirrors',
-        u'policies_satisfied': False,
+        'applicable_policies': ['openqa_important_stuff_for_rawhide'],
+        'decision_context': 'rawhide_compose_sync_to_mirrors',
+        'policies_satisfied': False,
         'product_version': 'fedora-rawhide',
-        'subject': [{u'productmd.compose.id': compose_id}],
+        'subject': [{'productmd.compose.id': compose_id}],
         'subject_type': 'compose',
         'subject_identifier': compose_id,
-        u'summary': u'1 of 2 required test results missing',
+        'summary': '1 of 2 required test results missing',
         'previous': old_decision,
-        u'unsatisfied_requirements': [{
-            u'item': {u'productmd.compose.id': compose_id},
+        'unsatisfied_requirements': [{
+            'item': {'productmd.compose.id': compose_id},
             'subject_type': 'compose',
             'subject_identifier': compose_id,
-            u'scenario': u'scenario2',
-            u'testcase': u'compose.install_no_user',
-            u'type': u'test-result-missing'}
+            'scenario': 'scenario2',
+            'testcase': 'compose.install_no_user',
+            'type': 'test-result-missing'}
         ]
     }
 

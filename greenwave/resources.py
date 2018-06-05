@@ -11,8 +11,8 @@ import json
 import requests
 import urllib3.exceptions
 
-import urlparse
-import xmlrpclib
+from urllib.parse import urlparse, urljoin
+import xmlrpc.client
 from flask import current_app
 from werkzeug.exceptions import BadGateway
 
@@ -29,7 +29,7 @@ requests_session = requests.Session()
 @greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_rev_from_koji(nvr):
     """ Retrieve cached rev from koji using the nrv """
-    proxy = xmlrpclib.ServerProxy(current_app.config['KOJI_BASE_URL'])
+    proxy = xmlrpc.client.ServerProxy(current_app.config['KOJI_BASE_URL'])
     build = proxy.getBuild(nvr)
 
     if not build:
@@ -37,7 +37,7 @@ def retrieve_rev_from_koji(nvr):
             build, nvr, current_app.config['KOJI_BASE_URL']))
 
     try:
-        url = urlparse.urlparse(build['extra']['source']['original_url'])
+        url = urlparse(build['extra']['source']['original_url'])
         if not url.scheme.startswith('git'):
             raise BadGateway('Error occurred looking for the "rev" in koji.')
         return url.fragment
@@ -81,8 +81,8 @@ def retrieve_builds_in_update(update_id):
                     'Assuming no builds in update',
                     update_id)
         return []
-    update_info_url = urlparse.urljoin(current_app.config['BODHI_URL'],
-                                       '/updates/{}'.format(update_id))
+    update_info_url = urljoin(current_app.config['BODHI_URL'],
+                              '/updates/{}'.format(update_id))
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']
     response = requests_session.get(update_info_url,
@@ -97,7 +97,7 @@ def retrieve_update_for_build(nvr):
     Queries Bodhi to find the update which the given build is in (if any).
     Returns a Bodhi updateid, or None if the build is not in any update.
     """
-    updates_list_url = urlparse.urljoin(current_app.config['BODHI_URL'], '/updates/')
+    updates_list_url = urljoin(current_app.config['BODHI_URL'], '/updates/')
     params = {'builds': nvr}
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']
@@ -140,13 +140,13 @@ def retrieve_results(subject_type, subject_identifier):
     results = []
     if subject_type == 'bodhi_update':
         results.extend(retrieve_item_results(
-            {u'type': u'bodhi_update', u'item': subject_identifier}))
+            {'type': 'bodhi_update', 'item': subject_identifier}))
     elif subject_type == 'koji_build':
-        results.extend(retrieve_item_results({u'type': u'koji_build', u'item': subject_identifier}))
-        results.extend(retrieve_item_results({u'type': u'brew-build', u'item': subject_identifier}))
-        results.extend(retrieve_item_results({u'original_spec_nvr': subject_identifier}))
+        results.extend(retrieve_item_results({'type': 'koji_build', 'item': subject_identifier}))
+        results.extend(retrieve_item_results({'type': 'brew-build', 'item': subject_identifier}))
+        results.extend(retrieve_item_results({'original_spec_nvr': subject_identifier}))
     elif subject_type == 'compose':
-        results.extend(retrieve_item_results({u'productmd.compose.id': subject_identifier}))
+        results.extend(retrieve_item_results({'productmd.compose.id': subject_identifier}))
     else:
         raise RuntimeError('Unhandled subject type %r' % subject_type)
     return results

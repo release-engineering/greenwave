@@ -73,7 +73,7 @@ def test_cannot_make_decision_without_product_version(requests_session, greenwav
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
-    assert u'Missing required product version' == r.json()['message']
+    assert 'Missing required product version' == r.json()['message']
 
 
 def test_cannot_make_decision_without_decision_context(requests_session, greenwave_server):
@@ -86,7 +86,7 @@ def test_cannot_make_decision_without_decision_context(requests_session, greenwa
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
-    assert u'Missing required decision context' == r.json()['message']
+    assert 'Missing required decision context' == r.json()['message']
 
 
 def test_cannot_make_decision_without_subject_type(requests_session, greenwave_server):
@@ -99,7 +99,7 @@ def test_cannot_make_decision_without_subject_type(requests_session, greenwave_s
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
-    assert u'Missing required "subject_type" parameter' == r.json()['message']
+    assert 'Missing required "subject_type" parameter' == r.json()['message']
 
 
 def test_cannot_make_decision_without_subject_identifier(requests_session, greenwave_server):
@@ -112,7 +112,7 @@ def test_cannot_make_decision_without_subject_identifier(requests_session, green
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
-    assert u'Missing required "subject_identifier" parameter' == r.json()['message']
+    assert 'Missing required "subject_identifier" parameter' == r.json()['message']
 
 
 def test_cannot_make_decision_with_invalid_subject(requests_session, greenwave_server):
@@ -151,8 +151,8 @@ def test_404_for_invalid_product_version(requests_session, greenwave_server, tes
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 404
-    expected = (u'Cannot find any applicable policies for bodhi_update subjects '
-                u'at gating point bodhi_push_update_stable in f26')
+    expected = ('Cannot find any applicable policies for bodhi_update subjects '
+                'at gating point bodhi_push_update_stable in f26')
     assert expected == r.json()['message']
 
 
@@ -168,8 +168,8 @@ def test_404_for_invalid_decision_context(requests_session, greenwave_server, te
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 404
-    expected = (u'Cannot find any applicable policies for bodhi_update subjects '
-                u'at gating point bodhi_push_update in fedora-26')
+    expected = ('Cannot find any applicable policies for bodhi_update subjects '
+                'at gating point bodhi_push_update in fedora-26')
     assert expected == r.json()['message']
 
 
@@ -320,7 +320,7 @@ def test_make_a_decision_on_failed_result(requests_session, greenwave_server, te
             'scenario': None,
         } for name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]
     ]
-    assert sorted(res_data['unsatisfied_requirements']) == sorted(expected_unsatisfied_requirements)
+    assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
 
 def test_make_a_decision_on_no_results(requests_session, greenwave_server, testdatabuilder):
@@ -567,11 +567,11 @@ def test_make_a_decision_on_failing_result_with_scenario(
     expected_summary = '1 of 2 required tests failed'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [{
-        u'item': {u'productmd.compose.id': compose_id},
-        u'result_id': result['id'],
-        u'testcase': testcase_name,
-        u'type': u'test-result-failed',
-        u'scenario': u'scenario2',
+        'item': {'productmd.compose.id': compose_id},
+        'result_id': result['id'],
+        'testcase': testcase_name,
+        'type': 'test-result-failed',
+        'scenario': 'scenario2',
     }]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
