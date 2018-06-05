@@ -328,20 +328,28 @@ def make_decision():
     answers = []
     results = retrieve_results(subject_type, subject_identifier)
     results = [r for r in results if r['id'] not in ignore_results]
-    waivers = retrieve_waivers(product_version, subject_type, subject_identifier)
+    waivers = retrieve_waivers(product_version, subject_type, [subject_identifier])
     waivers = [w for w in waivers if w['id'] not in ignore_waivers]
+
     for policy in subject_policies:
         answers.extend(policy.check(subject_identifier, results, waivers))
+
     if build_policies:
         build_nvrs = retrieve_builds_in_update(subject_identifier)
+
+        nvrs_waivers = retrieve_waivers(product_version, 'koji_build', build_nvrs)
+        nvrs_waivers = [w for w in nvrs_waivers if w['id'] not in ignore_waivers]
+        waivers.extend(nvrs_waivers)
+
         for nvr in build_nvrs:
             nvr_results = retrieve_results('koji_build', nvr)
             nvr_results = [r for r in nvr_results if r['id'] not in ignore_results]
             results.extend(nvr_results)
 
-            nvr_waivers = retrieve_waivers(product_version, 'koji_build', nvr)
-            nvr_waivers = [w for w in nvr_waivers if w['id'] not in ignore_waivers]
-            waivers.extend(nvr_waivers)
+            nvr_waivers = [
+                item for item in nvrs_waivers
+                if nvr == item.get('subject_identifier')
+            ]
 
             for policy in build_policies:
                 answers.extend(policy.check(nvr, nvr_results, nvr_waivers))
