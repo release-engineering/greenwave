@@ -64,6 +64,9 @@ def subject_type_identifier_to_list(subject_type, subject_identifier):
 
 @api.route('/version', methods=['GET'])
 def version():
+    """
+    Deprecated in favour of (and redirected to) :http:get:`/api/v1.0/about`.
+    """
     return redirect(url_for('api_v1.about'))
 
 
