@@ -254,6 +254,68 @@ def test_make_a_decision_with_verbose_flag(requests_session, greenwave_server, t
     assert res_data['satisfied_requirements'] == expected_satisfied_requirements
 
 
+def test_make_a_decision_with_verbose_flag_and_multiple_nvrs_with_results(
+        requests_session, greenwave_server, testdatabuilder):
+    build_nvrs = [testdatabuilder.unique_nvr(), testdatabuilder.unique_nvr()]
+
+    results = []
+    for nvr in reversed(build_nvrs):
+        for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS:
+            results.append(testdatabuilder.create_result(
+                item=nvr, testcase_name=testcase_name, outcome='PASSED'))
+
+    update = testdatabuilder.create_bodhi_update(build_nvrs=build_nvrs)
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject_type': 'bodhi_update',
+        'subject_identifier': update['updateid'],
+        'verbose': True,
+    }
+
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+
+    assert len(res_data['results']) == len(TASKTRON_RELEASE_CRITICAL_TASKS) * len(build_nvrs)
+    assert res_data['results'] == list(reversed(results))
+
+
+def test_make_a_decision_with_verbose_flag_and_multiple_nvrs_with_waivers(
+        requests_session, greenwave_server, testdatabuilder):
+    build_nvrs = [testdatabuilder.unique_nvr(), testdatabuilder.unique_nvr()]
+
+    waivers = []
+    for nvr in reversed(build_nvrs):
+        for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS:
+            waiver = testdatabuilder.create_waiver(
+                nvr=nvr,
+                product_version='fedora-26',
+                testcase_name=testcase_name,
+                comment='This is fine')
+            waivers.append(waiver)
+
+    update = testdatabuilder.create_bodhi_update(build_nvrs=build_nvrs)
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject_type': 'bodhi_update',
+        'subject_identifier': update['updateid'],
+        'verbose': True,
+    }
+
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+
+    assert len(res_data['waivers']) == len(TASKTRON_RELEASE_CRITICAL_TASKS) * len(build_nvrs)
+    assert res_data['waivers'] == list(reversed(waivers))
+
+
 def test_make_a_decision_on_failed_result_with_waiver(
         requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
