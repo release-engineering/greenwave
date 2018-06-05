@@ -18,7 +18,6 @@ from werkzeug.exceptions import BadGateway
 
 from greenwave.cache import cached
 import greenwave.utils
-import greenwave.policies
 
 log = logging.getLogger(__name__)
 
@@ -58,8 +57,9 @@ def retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name):
                                         headers={'Content-Type': 'application/json'},
                                         timeout=60)
     if response.status_code == 404:
-        return greenwave.policies.RuleSatisfied()
-    elif response.status_code != 200:
+        return None
+
+    if response.status_code != 200:
         raise BadGateway('Error occurred looking for gating.yaml file in the dist-git repo.')
 
     # gating.yaml found...

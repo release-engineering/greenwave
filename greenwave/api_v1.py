@@ -207,6 +207,9 @@ def make_decision():
                    'type': 'test-result-missing'
                }
            ],
+           "satisfied_requirements": [
+               ...
+           ],
            "results": [
                {
                  'data': {
@@ -350,6 +353,8 @@ def make_decision():
         res.update({
             'results': results,
             'waivers': waivers,
+            'satisfied_requirements':
+                [answer.to_json() for answer in answers if answer.is_satisfied],
         })
     resp = jsonify(res)
     resp = insert_headers(resp)
