@@ -155,8 +155,9 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         # For every context X version combination, ask greenwave if this new
         # result pushes any decisions over a threshold.
-        for decision_context, product_versions in decision_contexts.items():
-            for product_version in product_versions:
+        for decision_context in sorted(decision_contexts.keys()):
+            product_versions = decision_contexts[decision_context]
+            for product_version in sorted(product_versions):
                 greenwave_url = self.fedmsg_config['greenwave_api_url'] + '/decision'
 
                 data = {
