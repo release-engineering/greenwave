@@ -5,7 +5,7 @@
 try { // massive try{} catch{} around the entire build for failure notifications
 
 timestamps {
-node('fedora') {
+node('fedora-27') {
     checkout scm
     sh 'sudo dnf -y builddep greenwave.spec'
     sh 'sudo dnf -y install python2-flake8 python2-pylint python2-sphinx python-sphinxcontrib-httpdomain'
@@ -120,7 +120,7 @@ node('docker') {
     }
 }
 
-node('fedora') {
+node('fedora-27') {
     checkout scm
 
     sh '''
