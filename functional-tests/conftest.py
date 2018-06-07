@@ -46,13 +46,13 @@ def wait_for_listen(port):
     """
     Waits until something is listening on the given TCP port.
     """
-    for attempt in range(5):
+    for attempt in range(50):
         try:
             s = socket.create_connection(('127.0.0.1', port), timeout=1)
             s.close()
             return
         except socket.error:
-            time.sleep(1)
+            time.sleep(0.1)
     raise RuntimeError('Gave up waiting for port %s' % port)
 
 
