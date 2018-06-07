@@ -58,7 +58,7 @@ def test_consume_new_waiver(
             'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
-            'summary': u'1 of 3 required tests failed',
+            'summary': '1 of 3 required tests failed',
             'unsatisfied_requirements': [
                 {
                     'result_id': result['id'],
@@ -88,7 +88,7 @@ def test_consume_new_waiver(
             'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
-            'summary': u'1 of 3 required tests failed',
+            'summary': '1 of 3 required tests failed',
             'unsatisfied_requirements': [
                 {
                     'result_id': result['id'],

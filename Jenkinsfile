@@ -8,14 +8,14 @@ timestamps {
 node('fedora-27') {
     checkout scm
     sh 'sudo dnf -y builddep greenwave.spec'
-    sh 'sudo dnf -y install python2-flake8 python2-pylint python2-sphinx python-sphinxcontrib-httpdomain'
+    sh 'sudo dnf -y install python3-flake8 python3-pylint python3-sphinx python3-sphinxcontrib-httpdomain'
     /* Needed to get the latest /etc/mock/fedora-28-x86_64.cfg */
     sh 'sudo dnf -y update mock-core-configs'
     stage('Invoke Flake8') {
-        sh 'flake8'
+        sh 'flake8-3'
     }
     stage('Invoke Pylint') {
-        sh 'pylint-2 --reports=n greenwave'
+        sh 'pylint-3 --reports=n greenwave'
     }
     stage('Build Docs') {
         sh 'DEV=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example make -C docs html'
@@ -91,7 +91,7 @@ node('docker') {
         def f28_rpm = findFiles(glob: 'mock-result/f28/**/*.noarch.rpm')[0]
         def appversion = sh(returnStdout: true, script: """
             rpm2cpio ${f28_rpm} | \
-            cpio --quiet --extract --to-stdout ./usr/lib/python2.7/site-packages/greenwave\\*.egg-info/PKG-INFO | \
+            cpio --quiet --extract --to-stdout ./usr/lib/python3\\*/site-packages/greenwave\\*.egg-info/PKG-INFO | \
             awk '/^Version: / {print \$2}'
         """).trim()
         /* Git builds will have a version like 0.3.2.dev1+git.3abbb08 following
@@ -123,14 +123,12 @@ node('docker') {
 node('fedora-27') {
     checkout scm
 
-    sh '''
-    sudo dnf -y builddep greenwave.spec
-    sudo dnf -y install python2-flake8 python2-pylint python2-sphinx python-sphinxcontrib-httpdomain
-    '''
+    /* Install packages needed by the functional tests. */
+    sh 'sudo dnf -y install python3-pytest python3-requests python3-sqlalchemy python3-gunicorn'
 
-    sh '''
-    sudo dnf -y install /usr/bin/py.test python-sqlalchemy python-resultsdb_api python-gunicorn python2-mock
-    '''
+    /* Also need to install Greenwave's dependencies, since we are running it
+     * locally not in Openshift for now. */
+    sh 'sudo dnf -y builddep greenwave.spec'
 
     def openshiftHost = 'greenwave-test.cloud.upshift.engineering.redhat.com'
     def waiverdbURL = "waiverdb-test-${env.BUILD_TAG}-web-${openshiftHost}"
@@ -199,7 +197,7 @@ node('fedora-27') {
                                 ,"REQUESTS_CA_BUNDLE=${env.WORKSPACE}/ca-chain.crt"
                                 ,"WAIVERDB_TEST_URL=https://${waiverdbURL}/"
                                 ,"RESULTSDB_TEST_URL=https://${resultsdbURL}/"]) {
-                            sh 'py.test -v --junitxml=junit-functional-tests.xml functional-tests/'
+                            sh 'py.test-3 -v --junitxml=junit-functional-tests.xml functional-tests/'
                         }
                         junit 'junit-functional-tests.xml'
                     } finally {

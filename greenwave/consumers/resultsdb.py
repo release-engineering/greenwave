@@ -78,12 +78,12 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             """ Decode either a string or a list of strings. """
             if len(value) == 1:
                 value = value[0]
-            return value.decode('utf-8')
+            return value
 
         if data.get('type') == 'bodhi_update' and 'item' in data:
-            yield (u'bodhi_update', _decode(data['item']))
+            yield ('bodhi_update', _decode(data['item']))
         if 'productmd.compose.id' in data:
-            yield (u'compose', _decode(data['productmd.compose.id']))
+            yield ('compose', _decode(data['productmd.compose.id']))
         if (data.get('type') == 'koji_build' and 'item' in data or
                 data.get('type') == 'brew-build' and 'item' in data or
                 'original_spec_nvr' in data):
@@ -91,13 +91,13 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 nvr = _decode(data['item'])
             else:
                 nvr = _decode(data['original_spec_nvr'])
-            yield (u'koji_build', nvr)
+            yield ('koji_build', nvr)
             # If the result is for a build, it may also influence the decision
             # about any update which the build is part of.
             if current_app.config['BODHI_URL']:
                 updateid = greenwave.resources.retrieve_update_for_build(nvr)
                 if updateid is not None:
-                    yield (u'bodhi_update', updateid)
+                    yield ('bodhi_update', updateid)
 
     def consume(self, message):
         """
@@ -155,8 +155,9 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         # For every context X version combination, ask greenwave if this new
         # result pushes any decisions over a threshold.
-        for decision_context, product_versions in decision_contexts.items():
-            for product_version in product_versions:
+        for decision_context in sorted(decision_contexts.keys()):
+            product_versions = decision_contexts[decision_context]
+            for product_version in sorted(product_versions):
                 greenwave_url = self.fedmsg_config['greenwave_api_url'] + '/decision'
 
                 data = {

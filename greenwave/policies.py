@@ -189,7 +189,7 @@ class Rule(yaml.YAMLObject):
 
 
 class RemoteOriginalSpecNvrRule(Rule):
-    yaml_tag = u'!RemoteOriginalSpecNvrRule'
+    yaml_tag = '!RemoteOriginalSpecNvrRule'
     yaml_loader = yaml.SafeLoader
 
     def check(self, subject_type, subject_identifier, results, waivers):
@@ -231,7 +231,7 @@ class PassingTestCaseRule(Rule):
     This rule requires either a passing result for the given test case, or
     a non-passing result with a waiver.
     """
-    yaml_tag = u'!PassingTestCaseRule'
+    yaml_tag = '!PassingTestCaseRule'
     yaml_loader = yaml.SafeLoader
 
     def check(self, subject_type, subject_identifier, results, waivers):
@@ -337,17 +337,17 @@ class PackageSpecificRule(Rule):
 
 
 class FedoraAtomicCi(PackageSpecificRule):
-    yaml_tag = u'!FedoraAtomicCi'
+    yaml_tag = '!FedoraAtomicCi'
     yaml_loader = yaml.SafeLoader
 
 
 class PackageSpecificBuild(PackageSpecificRule):
-    yaml_tag = u'!PackageSpecificBuild'
+    yaml_tag = '!PackageSpecificBuild'
     yaml_loader = yaml.SafeLoader
 
 
 class Policy(yaml.YAMLObject):
-    yaml_tag = u'!Policy'
+    yaml_tag = '!Policy'
     yaml_loader = yaml.SafeLoader
 
     def applies_to(self, decision_context, product_version, subject_type):

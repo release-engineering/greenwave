@@ -12,8 +12,8 @@ ARG cacert_url=undefined
 
 COPY $greenwave_rpm /tmp
 RUN dnf -y install \
-    python2-gunicorn \
-    python-memcached \
+    python3-gunicorn \
+    python3-memcached \
     /tmp/$(basename $greenwave_rpm) \
     && dnf -y clean all \
     && rm -rf /tmp/*
@@ -25,4 +25,4 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
     fi
 USER 1001
 EXPOSE 8080
-ENTRYPOINT gunicorn --workers 8 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance greenwave.wsgi:app
+ENTRYPOINT gunicorn-3 --workers 8 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance greenwave.wsgi:app

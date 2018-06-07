@@ -5,6 +5,7 @@ import glob
 import logging
 import os
 import time
+import hashlib
 
 import yaml
 from flask import jsonify, current_app, request
@@ -148,3 +149,12 @@ def retry(timeout=None, interval=None, wait_on=Exception):
                         raise  # This re-raises the last exception.
         return inner
     return wrapper
+
+
+def sha1_mangle_key(key):
+    """
+    Like dogpile.cache.util.sha1_mangle_key, but works correctly on
+    Python 3 with str keys (which must be encoded to bytes before passing them
+    to hashlib.sha1()).
+    """
+    return hashlib.sha1(key.encode('utf-8')).hexdigest()

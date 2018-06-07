@@ -2,7 +2,7 @@
 import re
 import json
 import hashlib
-from urlparse import parse_qs
+from urllib.parse import parse_qs
 
 
 updates = {}  #: {id -> update info}
@@ -17,7 +17,7 @@ def application(environ, start_response):
         if environ['REQUEST_METHOD'] == 'GET':
             if updateid in updates:
                 start_response('200 OK', [('Content-Type', 'application/json')])
-                return [json.dumps({'update': updates[updateid]})]
+                return [json.dumps({'update': updates[updateid]}).encode('utf8')]
             else:
                 start_response('404 Not Found', [])
                 return []
@@ -34,16 +34,16 @@ def application(environ, start_response):
                                     if set(params['builds']).issubset(build['nvr']
                                                                       for build in u['builds'])]
             else:
-                response_updates = updates.values()
+                response_updates = list(updates.values())
             response_data = {
                 'page': 1,
                 'pages': 1,
-                'rows_per_page': len(updates.values()),
-                'total': len(updates.values()),
+                'rows_per_page': len(updates),
+                'total': len(updates),
                 'updates': response_updates,
             }
             start_response('200 OK', [('Content-Type', 'application/json')])
-            return [json.dumps(response_data)]
+            return [json.dumps(response_data).encode('utf8')]
         if environ['REQUEST_METHOD'] == 'POST':
             body = environ['wsgi.input'].read(int(environ['CONTENT_LENGTH']))
             updateid = 'FEDORA-2000-{}'.format(hashlib.sha1(body).hexdigest()[-8:])
@@ -53,7 +53,7 @@ def application(environ, start_response):
             updates[updateid] = update
             print('Fake Bodhi created new update %r' % update)
             start_response('201 Created', [('Content-Type', 'application/json')])
-            return [json.dumps(update)]  # XXX check what Bodhi really returns
+            return [json.dumps(update).encode('utf8')]  # XXX check what Bodhi really returns
         else:
             start_response('405 Method Not Allowed', [])
             return []

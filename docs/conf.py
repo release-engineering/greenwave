@@ -183,7 +183,7 @@ epub_exclude_files = ['search.html']
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/2/': 'python-intersphinx.inv'}
+intersphinx_mapping = {'https://docs.python.org/3/': 'python-intersphinx.inv'}
 
 # Configuration for issue tracker magic linking.
 issuetracker = None

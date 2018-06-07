@@ -10,7 +10,7 @@ def test_announcement_keys_decode_with_list():
     cls = greenwave.consumers.resultsdb.ResultsDBHandler
     app = greenwave.app_factory.create_app()
     message = {'msg': {'data': {
-        u'original_spec_nvr'.encode('utf-8'): [u'glibc-1.0-1.fc27'.encode('utf-8')],
+        'original_spec_nvr': ['glibc-1.0-1.fc27'],
     }}}
 
     with app.app_context():
@@ -18,14 +18,14 @@ def test_announcement_keys_decode_with_list():
             f.return_value = None
             subjects = list(cls.announcement_subjects(message))
 
-    assert subjects == [(u'koji_build', u'glibc-1.0-1.fc27')]
+    assert subjects == [('koji_build', 'glibc-1.0-1.fc27')]
 
 
 def test_announcement_subjects_include_bodhi_update():
     cls = greenwave.consumers.resultsdb.ResultsDBHandler
     app = greenwave.app_factory.create_app()
     message = {'msg': {'data': {
-        u'original_spec_nvr'.encode('utf-8'): [u'glibc-1.0-2.fc27'.encode('utf-8')],
+        'original_spec_nvr': ['glibc-1.0-2.fc27'],
     }}}
 
     with app.app_context():
@@ -47,8 +47,8 @@ def test_announcement_subjects_for_brew_build():
     cls = greenwave.consumers.resultsdb.ResultsDBHandler
     app = greenwave.app_factory.create_app()
     message = {'msg': {'data': {
-        u'type'.encode('utf-8'): u'brew-build'.encode('utf-8'),
-        u'item'.encode('utf-8'): [u'glibc-1.0-3.fc27'.encode('utf-8')],
+        'type': 'brew-build',
+        'item': ['glibc-1.0-3.fc27'],
     }}}
 
     with app.app_context():

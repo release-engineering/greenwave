@@ -139,7 +139,7 @@ def bodhi():
         yield os.environ['BODHI_TEST_URL']
     else:
         # Start fake Bodhi as a subprocess
-        p = subprocess.Popen(['gunicorn',
+        p = subprocess.Popen(['gunicorn-3',
                               '--bind=127.0.0.1:5677',
                               '--access-logfile=-',
                               '--pythonpath=' + os.path.dirname(__file__),
@@ -158,7 +158,7 @@ def distgit_server(tmpdir_factory):
     tmp_dir = tmpdir_factory.mktemp('distgit')
     f = open(tmp_dir.strpath + "/gating.yaml", "w+")
     f.close()
-    p = subprocess.Popen([sys.executable, '-m', 'SimpleHTTPServer', '5678'], cwd=tmp_dir.strpath)
+    p = subprocess.Popen([sys.executable, '-m', 'http.server', '5678'], cwd=tmp_dir.strpath)
     log.debug('Started dist-git server as pid %s', p.pid)
     wait_for_listen(5678)
     yield 'http://localhost:5678'
@@ -194,7 +194,7 @@ def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server, bodhi):
         env = dict(os.environ,
                    PYTHONPATH='.',
                    GREENWAVE_CONFIG=settings_file.strpath)
-        p = subprocess.Popen(['gunicorn',
+        p = subprocess.Popen(['gunicorn-3',
                               '--bind=127.0.0.1:5005',
                               '--access-logfile=-',
                               'greenwave.wsgi:app'],
@@ -229,10 +229,10 @@ class TestDataBuilder(object):
         self._counter = itertools.count(1)
 
     def unique_nvr(self, name='glibc'):
-        return '{}-1.0-{}.el7'.format(name, self._counter.next())
+        return '{}-1.0-{}.el7'.format(name, next(self._counter))
 
     def unique_compose_id(self):
-        return 'Fedora-9000-19700101.n.{}'.format(self._counter.next())
+        return 'Fedora-9000-19700101.n.{}'.format(next(self._counter))
 
     def _create_result(self, data):
         response = self.requests_session.post(

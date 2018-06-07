@@ -39,7 +39,7 @@ the following command:
 
 .. code-block:: console
 
-   $ py.test greenwave/tests/
+   $ py.test-3 greenwave/tests/
 
 There are also functional tests in the :file:`functional-tests` directory. The
 functional tests will start their own copy of the `ResultsDB`_, `WaiverDB`_,
@@ -48,7 +48,7 @@ functional tests like this:
 
 .. code-block:: console
 
-   $ PYTHONPATH=. py.test functional-tests/
+   $ PYTHONPATH=. py.test-3 functional-tests/
 
 The functional tests assume you have ResultsDB and WaiverDB git checkouts in
 :file:`../resultsdb` and :file:`../waiverdb` respectively. You can tell it to

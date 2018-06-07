@@ -2,10 +2,9 @@
 
 from flask import Flask
 from greenwave.api_v1 import api
-from greenwave.utils import json_error, load_config
+from greenwave.utils import json_error, load_config, sha1_mangle_key
 
 from dogpile.cache import make_region
-from dogpile.cache.util import sha1_mangle_key
 from requests import ConnectionError, Timeout
 from werkzeug.exceptions import default_exceptions
 
