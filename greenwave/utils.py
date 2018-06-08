@@ -31,7 +31,7 @@ def json_error(error):
     else:
         # Could be ConnectionError or Timeout
         current_app.logger.exception('Returning 500 to user.')
-        response = jsonify(message=str(error.message))
+        response = jsonify(message=str(error))
         response.status_code = 500
 
     response = insert_headers(response)
