@@ -11,7 +11,8 @@ ARG greenwave_rpm
 ARG cacert_url=undefined
 
 COPY $greenwave_rpm /tmp
-RUN dnf -y install \
+# Temporarily use updates-testing to pull in https://bodhi.fedoraproject.org/updates/FEDORA-2018-7f02b69dcf
+RUN dnf -y --enablerepo=updates-testing install \
     python3-gunicorn \
     python3-memcached \
     /tmp/$(basename $greenwave_rpm) \
