@@ -76,18 +76,19 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         def _decode(value):
             """ Decode either a string or a list of strings. """
-            if len(value) == 1:
+            if value and len(value) == 1:
                 value = value[0]
             return value
 
-        if data.get('type') == 'bodhi_update' and 'item' in data:
+        _type = _decode(data.get('type'))
+        if _type == 'bodhi_update' and 'item' in data:
             yield ('bodhi_update', _decode(data['item']))
         if 'productmd.compose.id' in data:
             yield ('compose', _decode(data['productmd.compose.id']))
-        if (data.get('type') == 'koji_build' and 'item' in data or
-                data.get('type') == 'brew-build' and 'item' in data or
+        if (_type == 'koji_build' and 'item' in data or
+                _type == 'brew-build' and 'item' in data or
                 'original_spec_nvr' in data):
-            if data.get('type') in ['koji_build', 'brew-build']:
+            if _type in ['koji_build', 'brew-build']:
                 nvr = _decode(data['item'])
             else:
                 nvr = _decode(data['original_spec_nvr'])

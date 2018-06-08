@@ -29,8 +29,8 @@ def test_consume_new_result(
                     'name': 'dist.rpmdeplint',
                 },
                 'data': {
-                    'item': nvr,
-                    'type': 'koji_build',
+                    'item': [nvr],
+                    'type': ['koji_build'],
                 }
             }
         }
@@ -262,8 +262,8 @@ def test_no_message_for_unchanged_decision(
                     'name': 'dist.rpmdeplint',
                 },
                 'data': {
-                    'item': nvr,
-                    'type': 'koji_build',
+                    'item': [nvr],
+                    'type': ['koji_build'],
                 }
             }
         }
@@ -301,8 +301,8 @@ def test_invalidate_new_result_with_mocked_cache(
                     'name': 'dist.rpmdeplint',
                 },
                 'data': {
-                    'item': nvr,
-                    'type': 'koji_build',
+                    'item': [nvr],
+                    'type': ['koji_build'],
                 }
             }
         }
@@ -372,8 +372,8 @@ def test_invalidate_new_result_with_real_cache(
                     'name': 'dist.rpmdeplint'
                 },
                 'data': {
-                    'item': nvr,
-                    'type': 'koji_build',
+                    'item': [nvr],
+                    'type': ['koji_build'],
                 }
             }
         }
@@ -423,8 +423,8 @@ def test_invalidate_new_result_with_no_preexisting_cache(
                     'name': 'dist.rpmdeplint'
                 },
                 'data': {
-                    'item': nvr,
-                    'type': 'koji_build',
+                    'item': [nvr],
+                    'type': ['koji_build'],
                 }
             }
         }
@@ -467,7 +467,7 @@ def test_consume_compose_id_result(
                     'name': 'compose.install_no_user',
                 },
                 'data': {
-                    'productmd.compose.id': compose_id,
+                    'productmd.compose.id': [compose_id],
                 },
             }
         }
