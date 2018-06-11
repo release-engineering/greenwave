@@ -109,7 +109,7 @@ def load_policies(policies_dir):
     for policy_pathname in policy_pathnames:
         policies.extend(yaml.safe_load_all(open(policy_pathname, 'r')))
     greenwave.policies.validate_policies(policies)
-    log.debug("Loaded %i policies from %s" % (len(policies), policies_dir))
+    log.debug("Loaded %i policies from %s", len(policies), policies_dir)
     return policies
 
 
