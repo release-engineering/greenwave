@@ -244,6 +244,15 @@ def test_make_a_decision_with_verbose_flag(requests_session, greenwave_server, t
     expected_waivers = []
     assert res_data['waivers'] == expected_waivers
 
+    expected_satisfied_requirements = [
+        {
+            'result_id': result['id'],
+            'testcase': result['testcase']['name'],
+            'type': 'test-result-passed',
+        } for result in results
+    ]
+    assert res_data['satisfied_requirements'] == expected_satisfied_requirements
+
 
 def test_make_a_decision_on_failed_result_with_waiver(
         requests_session, greenwave_server, testdatabuilder):

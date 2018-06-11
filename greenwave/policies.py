@@ -50,7 +50,11 @@ class Answer(object):
     a subclass, depending on what the answer was.
     """
 
-    pass
+    def to_json(self):
+        """
+        Returns a machine-readable description of the problem for API responses.
+        """
+        raise NotImplementedError()
 
 
 class RuleSatisfied(Answer):
@@ -70,12 +74,6 @@ class RuleNotSatisfied(Answer):
     """
 
     is_satisfied = False
-
-    def to_json(self):
-        """
-        Returns a machine-readable description of the problem for API responses.
-        """
-        raise NotImplementedError()
 
 
 class TestResultMissing(RuleNotSatisfied):
@@ -102,6 +100,26 @@ class TestResultMissing(RuleNotSatisfied):
         }
 
 
+class TestResultMissingWaived(RuleSatisfied):
+    """
+    Same as TestResultMissing but the result was waived.
+    """
+    def __init__(self, subject_type, subject_identifier, test_case_name, scenario):
+        self.subject_type = subject_type
+        self.subject_identifier = subject_identifier
+        self.test_case_name = test_case_name
+        self.scenario = scenario
+
+    def to_json(self):
+        return {
+            'type': 'test-result-missing-waived',
+            'testcase': self.test_case_name,
+            'subject_type': self.subject_type,
+            'subject_identifier': self.subject_identifier,
+            'scenario': self.scenario,
+        }
+
+
 class TestResultFailed(RuleNotSatisfied):
     """
     A required test case did not pass (that is, its outcome in ResultsDB was
@@ -125,6 +143,55 @@ class TestResultFailed(RuleNotSatisfied):
             # caller shouldn't need them repeated here):
             'item': subject_type_identifier_to_item(self.subject_type, self.subject_identifier),
             'scenario': self.scenario,
+        }
+
+
+class TestResultPassed(RuleSatisfied):
+    """
+    A required test case passed (that is, its outcome in ResultsDB was
+    ``PASSED`` or ``INFO``) or a corresponding waiver was found.
+    """
+    def __init__(self, test_case_name, result_id):
+        self.test_case_name = test_case_name
+        self.result_id = result_id
+
+    def to_json(self):
+        return {
+            'type': 'test-result-passed',
+            'testcase': self.test_case_name,
+            'result_id': self.result_id,
+        }
+
+
+class TestCaseNotApplicable(RuleSatisfied):
+    """
+    A required test case is not applicable to given subject.
+    """
+    def __init__(self, subject_type, subject_identifier, test_case_name):
+        self.subject_type = subject_type
+        self.subject_identifier = subject_identifier
+        self.test_case_name = test_case_name
+
+    def to_json(self):
+        return {
+            'type': 'test-case-not-applicable',
+            'testcase': self.test_case_name,
+            'subject_type': self.subject_type,
+            'subject_identifier': self.subject_identifier,
+        }
+
+
+class BlacklistedInPolicy(RuleSatisfied):
+    """
+    Package was blacklisted in policy.
+    """
+    def __init__(self, subject_identifier):
+        self.subject_identifier = subject_identifier
+
+    def to_json(self):
+        return {
+            'type': 'blacklisted',
+            'subject_identifier': self.subject_identifier,
         }
 
 
@@ -194,31 +261,31 @@ class RemoteOriginalSpecNvrRule(Rule):
 
     def check(self, subject_type, subject_identifier, results, waivers):
         if subject_type != 'koji_build':
-            return RuleSatisfied()
+            return []
 
         pkg_name = subject_identifier.rsplit('-', 2)[0]
         rev = greenwave.resources.retrieve_rev_from_koji(subject_identifier)
         response = greenwave.resources.retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name)
 
-        if isinstance(response, RuleSatisfied):
+        if response is None:
             # greenwave extension file not found
-            return RuleSatisfied()
-        else:
-            policies = yaml.safe_load_all(response)
-            # policies is a generator, so listifying it
-            policies = list(policies)
-            # policies in dist-git are always about a package
-            for policy in policies:
-                policy.subject_type = 'koji_build'
-            validate_policies(policies, [RemoteOriginalSpecNvrRule])
-            answers = []
-            for policy in policies:
-                response = policy.check(subject_identifier, results, waivers)
-                if isinstance(response, list):
-                    answers.extend(response)
-                else:
-                    answers.append(response)
-            return answers
+            return []
+
+        policies = yaml.safe_load_all(response)
+        # policies is a generator, so listifying it
+        policies = list(policies)
+        # policies in dist-git are always about a package
+        for policy in policies:
+            policy.subject_type = 'koji_build'
+        validate_policies(policies, [RemoteOriginalSpecNvrRule])
+        answers = []
+        for policy in policies:
+            response = policy.check(subject_identifier, results, waivers)
+            if isinstance(response, list):
+                answers.extend(response)
+            else:
+                answers.append(response)
+        return answers
 
     def to_json(self):
         return {
@@ -250,23 +317,22 @@ class PassingTestCaseRule(Rule):
             if not matching_waivers:
                 return TestResultMissing(subject_type, subject_identifier, self.test_case_name,
                                          self._scenario)
-            else:
-                # The result is absent, but the absence is waived.
-                return RuleSatisfied()
+            return TestResultMissingWaived(
+                subject_type, subject_identifier, self.test_case_name, self._scenario)
 
         # If we find multiple matching results, we always use the first one which
         # will be the latest chronologically, because ResultsDB always returns
         # results ordered by `submit_time` descending.
         matching_result = matching_results[0]
         if matching_result['outcome'] in ['PASSED', 'INFO']:
-            return RuleSatisfied()
+            return TestResultPassed(self.test_case_name, matching_result['id'])
 
         # XXX limit who is allowed to waive
         if any(w['subject'] == dict([(key, value[0])
                for key, value in matching_result['data'].items()]) and
                w['testcase'] == matching_result['testcase']['name'] and
                w['waived'] for w in waivers):
-            return RuleSatisfied()
+            return TestResultPassed(self.test_case_name, matching_result['id'])
         return TestResultFailed(subject_type, subject_identifier, self.test_case_name,
                                 self._scenario, matching_result['id'])
 
@@ -313,11 +379,11 @@ class PackageSpecificRule(Rule):
         """
 
         if subject_type != 'koji_build':
-            return RuleSatisfied()
+            return TestCaseNotApplicable(subject_type, subject_identifier, self.test_case_name)
 
         pkg_name = subject_identifier.rsplit('-', 2)[0]
         if not any(fnmatch(pkg_name, repo) for repo in self.repos):
-            return RuleSatisfied()
+            return TestCaseNotApplicable(subject_type, subject_identifier, self.test_case_name)
 
         rule = PassingTestCaseRule()
         # pylint: disable=attribute-defined-outside-init
@@ -360,7 +426,7 @@ class Policy(yaml.YAMLObject):
         if self.subject_type == 'koji_build':
             name = subject_identifier.rsplit('-', 2)[0]
             if name in self.blacklist:
-                return [RuleSatisfied() for rule in self.rules]
+                return [BlacklistedInPolicy(subject_identifier) for rule in self.rules]
         answers = []
         for rule in self.rules:
             response = rule.check(self.subject_type, subject_identifier, results, waivers)
