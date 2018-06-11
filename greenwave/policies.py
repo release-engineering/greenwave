@@ -64,6 +64,9 @@ class RuleSatisfied(Answer):
 
     is_satisfied = True
 
+    def to_json(self):
+        raise NotImplementedError()
+
 
 class RuleNotSatisfied(Answer):
     """
@@ -74,6 +77,9 @@ class RuleNotSatisfied(Answer):
     """
 
     is_satisfied = False
+
+    def to_json(self):
+        raise NotImplementedError()
 
 
 class TestResultMissing(RuleNotSatisfied):
