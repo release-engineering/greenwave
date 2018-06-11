@@ -105,7 +105,12 @@ node('docker') {
              * Dockerfile used, which will break if the build directory (here ".")
              * is not the final argument in the string. */
             def image = docker.build "factory2/greenwave:internal-${appversion}", "--build-arg greenwave_rpm=$f28_rpm --build-arg cacert_url=https://password.corp.redhat.com/RH-IT-Root-CA.crt ."
-            image.push()
+            /* Pushes to the internal registry can sometimes randomly fail
+             * with "unknown blob" due to a known issue with the registry
+             * storage configuration. So we retry up to 3 times. */
+            retry(3) {
+                image.push()
+            }
         }
         /* Build and push the same image with the same tag to quay.io, but without the cacert. */
         docker.withRegistry(
