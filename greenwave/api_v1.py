@@ -335,12 +335,16 @@ def make_decision():
     if build_policies:
         build_nvrs = retrieve_builds_in_update(subject_identifier)
         for nvr in build_nvrs:
-            results = retrieve_results('koji_build', nvr)
-            results = [r for r in results if r['id'] not in ignore_results]
-            waivers = retrieve_waivers(product_version, 'koji_build', nvr)
-            waivers = [w for w in waivers if w['id'] not in ignore_waivers]
+            nvr_results = retrieve_results('koji_build', nvr)
+            nvr_results = [r for r in nvr_results if r['id'] not in ignore_results]
+            results.extend(nvr_results)
+
+            nvr_waivers = retrieve_waivers(product_version, 'koji_build', nvr)
+            nvr_waivers = [w for w in nvr_waivers if w['id'] not in ignore_waivers]
+            waivers.extend(nvr_waivers)
+
             for policy in build_policies:
-                answers.extend(policy.check(nvr, results, waivers))
+                answers.extend(policy.check(nvr, nvr_results, nvr_waivers))
 
     res = {
         'policies_satisfied': all(answer.is_satisfied for answer in answers),
