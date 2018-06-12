@@ -25,7 +25,7 @@ Run the server:
 
 .. code-block:: console
 
-   $ DEV=true python run-dev-server.py
+   $ DEV=true python3 run-dev-server.py
 
 The server is now running at <http://localhost:5005> and API calls can be sent to
 <http://localhost:5005/api/v1.0>.
