@@ -17,12 +17,25 @@ import fedmsg.consumers
 import requests
 
 import greenwave.app_factory
-import greenwave.cache
 import greenwave.resources
 from greenwave.api_v1 import subject_type_identifier_to_list
 
 
 log = logging.getLogger(__name__)
+
+
+def _invalidate_results_cache(
+        cache, subject_type, subject_identifier, testcase):
+    """
+    Removes results for given parameters from cache.
+    """
+    key = greenwave.resources.results_cache_key(
+        subject_type, subject_identifier, testcase)
+    if not cache.get(key):
+        log.debug("No cache value found for %r", key)
+    else:
+        log.debug("Invalidating cache for %r", key)
+        cache.delete(key)
 
 
 class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
@@ -123,7 +136,8 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         with self.flask_app.app_context():
             for subject_type, subject_identifier in self.announcement_subjects(message):
                 log.debug('Considering subject %s: %r', subject_type, subject_identifier)
-                self._invalidate_cache(subject_type, subject_identifier)
+                _invalidate_results_cache(
+                    self.cache, subject_type, subject_identifier, testcase)
                 self._publish_decision_changes(subject_type, subject_identifier,
                                                result_id, testcase)
 
@@ -206,20 +220,3 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                     log.debug('Emitted a fedmsg, %r, on the "%s" topic', decision,
                               'greenwave.decision.update')
                     fedmsg.publish(topic='decision.update', msg=decision)
-
-    def _invalidate_cache(self, subject_type, subject_identifier):
-        """
-        Process the given subject and delete cache keys as necessary.
-
-        Args:
-            subject_type (str): A subject type, used to query greenwave.
-            subject_identifier (str): A subject identifier, used to query greenwave.
-        """
-        namespace = None
-        fn = greenwave.resources.retrieve_results
-        key = greenwave.cache.key_generator(namespace, fn)(subject_type, subject_identifier)
-        if not self.cache.get(key):
-            log.debug("No cache value found for %r", key)
-        else:
-            log.debug("Invalidating cache for %r", key)
-            self.cache.delete(key)

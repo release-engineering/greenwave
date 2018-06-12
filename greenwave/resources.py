@@ -24,6 +24,119 @@ log = logging.getLogger(__name__)
 requests_session = requests.Session()
 
 
+class CachedResults(object):
+    """
+    Results data in cache.
+    """
+    def __init__(self):
+        self.results = []
+        self.can_fetch_more = True
+        self.last_page = -1
+
+
+def results_cache_key(subject_type, subject_identifier, testcase):
+    """
+    Returns cache key for results for given parameters.
+    """
+    return "greenwave.resources:CachedResults|{} {} {}".format(
+        subject_type, subject_identifier, testcase)
+
+
+class ResultsRetriever(object):
+    """
+    Retrieves results from cache or ResultsDB.
+    """
+    def __init__(self, cache, ignore_results):
+        self.cache = cache
+        self.ignore_results = ignore_results
+        self.timeout = current_app.config['REQUESTS_TIMEOUT']
+        self.verify = current_app.config['REQUESTS_VERIFY']
+        self.url = current_app.config['RESULTSDB_API_URL']
+        self.all_results = []
+
+    def all_retrieved_results(self):
+        """
+        Returns all results retrieved from cache or ResultsDB by this instance.
+        """
+        return sorted(self.all_results, key=lambda x: x['id'], reverse=True)
+
+    def retrieve(self, subject_type, subject_identifier, testcase):
+        """
+        Return generator over results.
+        """
+        for result in self._retrieve_helper(subject_type, subject_identifier, testcase):
+            if result['id'] not in self.ignore_results:
+                if result not in self.all_results:
+                    self.all_results.append(result)
+                yield result
+
+    def _retrieve_helper(self, subject_type, subject_identifier, testcase):
+        cache_key = results_cache_key(
+            subject_type, subject_identifier, testcase)
+
+        cached_results = self.cache.get(cache_key)
+        if not isinstance(cached_results, CachedResults):
+            cached_results = CachedResults()
+
+        for result in cached_results.results:
+            yield result
+
+        while cached_results.can_fetch_more:
+            cached_results.last_page += 1
+            results = self._retrieve_page(
+                cached_results.last_page, subject_type, subject_identifier,
+                testcase)
+            cached_results.results.extend(results)
+            cached_results.can_fetch_more = bool(results)
+            self.cache.set(cache_key, cached_results)
+            for result in results:
+                yield result
+
+    def _make_request(self, params):
+        response = requests_session.get(
+            self.url + '/results', params=params, verify=self.verify, timeout=self.timeout)
+        response.raise_for_status()
+        return response.json()['data']
+
+    def _retrieve_page(self, page, subject_type, subject_identifier, testcase):
+        params = {
+            'testcases': testcase,
+            'limit': 1,
+            'page': page,
+        }
+
+        results = []
+        if subject_type == 'bodhi_update':
+            params['type'] = subject_type
+            params['item'] = subject_identifier
+            results = self._make_request(params=params)
+        elif subject_type == 'koji_build':
+            params['type'] = subject_type
+            params['item'] = subject_identifier
+            results = self._make_request(params=params)
+
+            params['type'] = 'brew-build'
+            results.extend(self._make_request(params=params))
+
+            del params['type']
+            del params['item']
+            params['original_spec_nvr'] = subject_identifier
+            results.extend(self._make_request(params=params))
+        elif subject_type == 'compose':
+            params['productmd.compose.id'] = subject_identifier
+            results = self._make_request(params=params)
+
+            del params['productmd.compose.id']
+
+            params['type'] = 'compose'
+            params['item'] = subject_identifier
+            results.extend(self._make_request(params=params))
+        else:
+            raise RuntimeError('Unhandled subject type %r' % subject_type)
+
+        return results
+
+
 @cached
 @greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_scm_from_koji(nvr):
@@ -125,47 +238,6 @@ def retrieve_update_for_build(nvr):
     if matching_updates:
         return matching_updates[0]['updateid']
     return None
-
-
-def retrieve_item_results(item):
-    """ Retrieve cached results from resultsdb for a given item. """
-    # XXX make this more efficient than just fetching everything
-
-    params = item.copy()
-    params.update({'limit': '1000'})
-    timeout = current_app.config['REQUESTS_TIMEOUT']
-    verify = current_app.config['REQUESTS_VERIFY']
-    response = requests_session.get(
-        current_app.config['RESULTSDB_API_URL'] + '/results',
-        params=params, verify=verify, timeout=timeout)
-    response.raise_for_status()
-    return response.json()['data']
-
-
-@cached
-def retrieve_results(subject_type, subject_identifier):
-    """
-    Returns all results from ResultsDB which might be relevant for the given
-    decision subject, accounting for all the different possible ways in which
-    test results can be reported.
-    """
-    # Note that the reverse of this logic also lives in the
-    # announcement_subjects() method of the Resultsdb consumer (it has to map
-    # from a newly received result back to the possible subjects it is for).
-    results = []
-    if subject_type == 'bodhi_update':
-        results.extend(retrieve_item_results(
-            {'type': 'bodhi_update', 'item': subject_identifier}))
-    elif subject_type == 'koji_build':
-        results.extend(retrieve_item_results({'type': 'koji_build', 'item': subject_identifier}))
-        results.extend(retrieve_item_results({'type': 'brew-build', 'item': subject_identifier}))
-        results.extend(retrieve_item_results({'original_spec_nvr': subject_identifier}))
-    elif subject_type == 'compose':
-        results.extend(retrieve_item_results({'productmd.compose.id': subject_identifier}))
-        results.extend(retrieve_item_results({'type': 'compose', 'item': subject_identifier}))
-    else:
-        raise RuntimeError('Unhandled subject type %r' % subject_type)
-    return results
 
 
 # NOTE - not cached, for now.
