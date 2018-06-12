@@ -164,17 +164,16 @@ PackageSpecificBuild
 
    ``FedoraAtomicCi`` is a backwards compatibility alias for this rule type.
 
-.. _remote-original-spec-nvr-rule:
+.. _remote-rule:
 
-RemoteOriginalSpecNvrRule
--------------------------
+RemoteRule
+----------
 
    This rule allows the packager to configure some additional policies in a
    gating.yaml file configured in the repo.
    Greenwave checks if the file exists, and, if it does it pulls it down,
    loads it, and uses it to additionally evaluate the subject of the decision.
    
-   This feature is available for an `nvr` that is ``original_spec_nvr``.
    To use this feature it is required to configure ``KOJI_BASE_URL``,
    ``DIST_GIT_BASE_URL`` and ``DIST_GIT_URL_TEMPLATE``.
    
