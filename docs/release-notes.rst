@@ -2,6 +2,12 @@
 Release Notes
 =============
 
+Next Release
+============
+
+* Old `remote-original-spec-nvr-rule` for extending policies (#75) renamed
+  to :ref:`remote-rule` (#220).
+
 Greenwave 0.7.1
 ===============
 
@@ -15,7 +21,7 @@ Greenwave 0.7
 
 Released 10 May 2018.
 
-* New :ref:`remote-original-spec-nvr-rule` for extending policies (#75).
+* New `remote-original-spec-nvr-rule` for extending policies (#75).
 
 * In case Greenwave found no matching results for a decision, the summary text
   has been re-worded to be clearer and to indicate how many results were
