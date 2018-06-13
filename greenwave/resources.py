@@ -45,7 +45,7 @@ def retrieve_rev_from_koji(nvr):
 
 
 @cached
-def retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name):
+def retrieve_yaml_remote_rule(rev, pkg_name):
     """ Retrieve cached gating.yaml content for a given rev. """
     data = {
         "DIST_GIT_BASE_URL": current_app.config['DIST_GIT_BASE_URL'],

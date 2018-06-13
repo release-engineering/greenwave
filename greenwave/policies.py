@@ -261,8 +261,8 @@ class Rule(yaml.YAMLObject):
         raise NotImplementedError()
 
 
-class RemoteOriginalSpecNvrRule(Rule):
-    yaml_tag = '!RemoteOriginalSpecNvrRule'
+class RemoteRule(Rule):
+    yaml_tag = '!RemoteRule'
     yaml_loader = yaml.SafeLoader
 
     def check(self, subject_type, subject_identifier, results, waivers):
@@ -271,7 +271,7 @@ class RemoteOriginalSpecNvrRule(Rule):
 
         pkg_name = subject_identifier.rsplit('-', 2)[0]
         rev = greenwave.resources.retrieve_rev_from_koji(subject_identifier)
-        response = greenwave.resources.retrieve_yaml_remote_original_spec_nvr_rule(rev, pkg_name)
+        response = greenwave.resources.retrieve_yaml_remote_rule(rev, pkg_name)
 
         if response is None:
             # greenwave extension file not found
@@ -283,7 +283,7 @@ class RemoteOriginalSpecNvrRule(Rule):
         # policies in dist-git are always about a package
         for policy in policies:
             policy.subject_type = 'koji_build'
-        validate_policies(policies, [RemoteOriginalSpecNvrRule])
+        validate_policies(policies, [RemoteRule])
         answers = []
         for policy in policies:
             response = policy.check(subject_identifier, results, waivers)

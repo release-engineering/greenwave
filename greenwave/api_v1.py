@@ -3,7 +3,7 @@
 from flask import Blueprint, request, current_app, jsonify, url_for, redirect
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType, InternalServerError
 from greenwave import __version__
-from greenwave.policies import summarize_answers, RemoteOriginalSpecNvrRule
+from greenwave.policies import summarize_answers, RemoteRule
 from greenwave.resources import retrieve_results, retrieve_waivers, retrieve_builds_in_update
 from greenwave.utils import insert_headers, jsonp
 
@@ -302,11 +302,11 @@ def make_decision():
 
     for policy in current_app.config['policies']:
         for rule in policy.rules:
-            if isinstance(rule, RemoteOriginalSpecNvrRule):
+            if isinstance(rule, RemoteRule):
                 if ('DIST_GIT_BASE_URL' not in current_app.config or
                     'DIST_GIT_URL_TEMPLATE' not in current_app.config or
                         'KOJI_BASE_URL' not in current_app.config):
-                    raise InternalServerError("If you want to apply a RemoteOriginalSpecNvrRule"
+                    raise InternalServerError("If you want to apply a RemoteRule"
                                               " you need to configure 'DIST_GIT_BASE_URL',"
                                               "'DIST_GIT_URL_TEMPLATE' and KOJI_BASE_URL in "
                                               "your configuration.")

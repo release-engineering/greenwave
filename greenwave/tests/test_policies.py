@@ -238,8 +238,8 @@ rules: []
     assert not policy.applies_to('dummy_context', 'epel-7', 'bodhi_update')
 
 
-def test_remote_original_spec_nvr_rule_policy(tmpdir):
-    """ Testing the RemoteOriginalSpecNvrRule with the koji interaction.
+def test_remote_rule_policy(tmpdir):
+    """ Testing the RemoteRule with the koji interaction.
     In this case we are just mocking koji """
 
     nvr = 'nethack-1.2.3-1.el9000'
@@ -253,7 +253,7 @@ decision_context: bodhi_update_push_stable_with_remoterule
 subject_type: koji_build
 blacklist: []
 rules:
-  - !RemoteOriginalSpecNvrRule {}
+  - !RemoteRule {}
         """
 
     remote_fragment = """
@@ -272,7 +272,7 @@ rules:
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
         with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
-            with mock.patch('greenwave.resources.retrieve_yaml_remote_original_spec_nvr_rule') as f:
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = remote_fragment
                 policies = load_policies(tmpdir.strpath)
                 policy = policies[0]
