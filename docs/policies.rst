@@ -71,6 +71,9 @@ The document is a map (dictionary) with the following keys:
    The subject type must be one of the fixed set of types known to Greenwave.
    See the :ref:`subject-types` section below for a list of possible types.
 
+   This shouldn't be defined in ``gating.yaml`` files (see :ref:`remote-rule`)
+   - the value there is always ``koji_build``.
+
 ``product_versions``
    A policy applies to one or more "product versions". When you ask Greenwave
    for a decision, you must tell it which product version you are working
