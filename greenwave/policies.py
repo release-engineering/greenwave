@@ -421,6 +421,7 @@ class PackageSpecificBuild(PackageSpecificRule):
 class Policy(yaml.YAMLObject):
     yaml_tag = '!Policy'
     yaml_loader = yaml.SafeLoader
+    blacklist = []
 
     def applies_to(self, decision_context, product_version, subject_type):
         return (decision_context == self.decision_context and

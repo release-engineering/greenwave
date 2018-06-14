@@ -43,7 +43,6 @@ product_versions:
   - fedora-rawhide
 decision_context: rawhide_compose_sync_to_mirrors
 subject_type: compose
-blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: sometest}
         """)
@@ -72,7 +71,6 @@ product_versions:
   - rhel-9000
 decision_context: bodhi_update_push_stable
 subject_type: koji_build
-blacklist: []
 rules:
   - !PackageSpecificBuild {test_case_name: sometest, repos: [nethack, python-*]}
         """)
@@ -227,7 +225,6 @@ product_versions:
   - fedora-*
 decision_context: dummy_context
 subject_type: bodhi_update
-blacklist: []
 rules: []
         """)
     policies = load_policies(tmpdir.strpath)
@@ -251,7 +248,6 @@ product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable_with_remoterule
 subject_type: koji_build
-blacklist: []
 rules:
   - !RemoteRule {}
         """
@@ -262,7 +258,6 @@ id: "some-policy-from-a-random-packager"
 product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable_with_remoterule
-blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: dist.upgradepath}
         """

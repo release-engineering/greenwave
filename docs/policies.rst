@@ -95,7 +95,7 @@ The document is a map (dictionary) with the following keys:
    Currently there are a few rule types, ``PassingTestCaseRule`` being one of
    them.  See the :ref:`rule-types` section below for a full list.
 
-``blacklist``
+``blacklist`` (optional)
    A list of binary RPM package names which are exempted from this policy.
 
    The blacklist only takes effect when Greenwave is making a decision about
