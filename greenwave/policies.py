@@ -283,6 +283,10 @@ class RemoteRule(Rule):
         # policies in dist-git are always about a package
         for policy in policies:
             policy.subject_type = 'koji_build'
+            # Attribute 'id' in remote policy is optional.
+            policy_id = getattr(policy, 'id', 'untitled')
+            # Prefix the id for better error reporting.
+            policy.id = 'dist-git-gating-policy-{}-{}'.format(policy_id, pkg_name)
         validate_policies(policies, [RemoteRule])
         answers = []
         for policy in policies:

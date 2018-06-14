@@ -306,3 +306,43 @@ rules:
                 decision = policy.check(nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
+
+
+def test_remote_rule_policy_optional_id(tmpdir):
+    nvr = 'nethack-1.2.3-1.el9000'
+
+    serverside_fragment = """
+--- !Policy
+id: "taskotron_release_critical_tasks_with_remoterule"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+subject_type: koji_build
+rules:
+  - !RemoteRule {}
+        """
+
+    remote_fragment = """
+--- !Policy
+decision_context: bodhi_update_push_stable_with_remoterule
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """
+
+    p = tmpdir.join('gating.yaml')
+    p.write(serverside_fragment)
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = remote_fragment
+                policies = load_policies(tmpdir.strpath)
+                policy = policies[0]
+
+                results, waivers = [], []
+                expected_error = (
+                    'policy dist-git-gating-policy-untitled-nethack'
+                    ' is missing attribute product_versions'
+                )
+                with pytest.raises(RuntimeError, match=expected_error):
+                    policy.check(nvr, results, waivers)

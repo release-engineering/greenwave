@@ -48,6 +48,8 @@ The document is a map (dictionary) with the following keys:
    responses so that you can map it back to the configuration where it is
    defined.
 
+   This is optional in ``gating.yaml`` files (see :ref:`remote-rule`).
+
 ``decision_context``
    This is an arbitrary string identifying the "context" of the decisions
    where this policy is applicable. In other words, if Greenwave is making
