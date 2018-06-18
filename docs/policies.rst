@@ -48,6 +48,8 @@ The document is a map (dictionary) with the following keys:
    responses so that you can map it back to the configuration where it is
    defined.
 
+   This is optional in ``gating.yaml`` files (see :ref:`remote-rule`).
+
 ``decision_context``
    This is an arbitrary string identifying the "context" of the decisions
    where this policy is applicable. In other words, if Greenwave is making
@@ -68,6 +70,9 @@ The document is a map (dictionary) with the following keys:
 
    The subject type must be one of the fixed set of types known to Greenwave.
    See the :ref:`subject-types` section below for a list of possible types.
+
+   This shouldn't be defined in ``gating.yaml`` files (see :ref:`remote-rule`)
+   - the value there is always ``koji_build``.
 
 ``product_versions``
    A policy applies to one or more "product versions". When you ask Greenwave
