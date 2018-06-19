@@ -230,7 +230,12 @@ node('docker') {
                     'https://docker-registry.engineering.redhat.com/',
                     'docker-registry-factory2-builder-sa-credentials') {
                 def image = docker.image("factory2/greenwave:internal-${appversion}")
-                image.push('latest')
+                /* Pushes to the internal registry can sometimes randomly fail
+                 * with "unknown blob" due to a known issue with the registry
+                 * storage configuration. So we retry up to 3 times. */
+                retry(3) {
+                    image.push('latest')
+                }
             }
             docker.withRegistry(
                     'https://quay.io/',
