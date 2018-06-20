@@ -5,7 +5,7 @@ import pytest
 
 import json
 
-from requests import ConnectionError, ConnectTimeout
+from requests import ConnectionError, ConnectTimeout, Timeout
 from werkzeug.exceptions import InternalServerError
 
 import greenwave.app_factory
@@ -43,16 +43,19 @@ def test_retry_count():
     assert sum(calls) == 3
 
 
-@pytest.mark.parametrize('error, expected_error_message_part', [
-    (ConnectionError('ERROR'), 'ERROR'),
-    (ConnectTimeout('TIMEOUT'), 'TIMEOUT'),
-    (InternalServerError(), 'The server encountered an internal error'),
+@pytest.mark.parametrize(('error, expected_status_code,'
+                          'expected_error_message_part'), [
+    (ConnectionError('ERROR'), 502, 'ERROR'),
+    (ConnectTimeout('TIMEOUT'), 502, 'TIMEOUT'),
+    (Timeout('TIMEOUT'), 504, 'TIMEOUT'),
+    (InternalServerError(), 500, 'The server encountered an internal error')
 ])
-def test_json_error(error, expected_error_message_part):
+def test_json_connection_error(error, expected_status_code,
+                               expected_error_message_part):
     app = greenwave.app_factory.create_app()
     with app.app_context():
         with app.test_request_context():
             r = json_error(error)
             data = json.loads(r.get_data())
-            assert r.status_code == 500
+            assert r.status_code == expected_status_code
             assert expected_error_message_part in data['message']

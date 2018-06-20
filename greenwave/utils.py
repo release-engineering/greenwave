@@ -10,6 +10,7 @@ import hashlib
 import yaml
 from flask import jsonify, current_app, request
 from flask.config import Config
+from requests import ConnectionError, Timeout
 from werkzeug.exceptions import HTTPException
 import greenwave.policies
 
@@ -29,10 +30,21 @@ def json_error(error):
         response = jsonify(message=error.description)
         response.status_code = error.code
     else:
-        # Could be ConnectionError or Timeout
-        current_app.logger.exception('Returning 500 to user.')
-        response = jsonify(message=str(error))
-        response.status_code = 500
+        if isinstance(error, ConnectionError):
+            current_app.logger.exception('ConnectionError, returning 502 to user.')
+            msg = 'Error connecting to upstream server: {err}'
+            status_code = 502
+        elif isinstance(error, Timeout):
+            current_app.logger.exception('Timeout error, returning 504 to user.')
+            msg = 'Timeout connecting to upstream server: {err}'
+            status_code = 504
+        else:
+            current_app.logger.exception('Returning 500 to user.')
+            msg = '{err}'
+            status_code = 500
+
+        response = jsonify(message=msg.format(err=error))
+        response.status_code = status_code
 
     response = insert_headers(response)
 
