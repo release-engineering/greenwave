@@ -4,15 +4,20 @@
 import pytest
 import mock
 
+from textwrap import dedent
+
 from greenwave.app_factory import create_app
 from greenwave.policies import (
     summarize_answers,
+    Policy,
+    RemotePolicy,
     RuleSatisfied,
     TestResultMissing,
     TestResultFailed,
     InvalidGatingYaml
 )
 from greenwave.utils import load_policies
+from greenwave.safe_yaml import SafeYAMLError
 
 
 def test_summarize_answers():
@@ -180,9 +185,9 @@ subject_type: bodhi_update
 rules:
   - !PassingTestCaseRule {test_case_name: dist.abicheck}
         """)
-    with pytest.raises(RuntimeError) as excinfo:
+    expected_error = "Missing !Policy tag"
+    with pytest.raises(SafeYAMLError, match=expected_error):
         load_policies(tmpdir.strpath)
-    assert 'Policies are not configured properly' in str(excinfo.value)
 
 
 def test_misconfigured_policy_rules(tmpdir):
@@ -197,9 +202,13 @@ subject_type: bodhi_update
 rules:
   - {test_case_name: dist.abicheck}
         """)
-    with pytest.raises(RuntimeError) as excinfo:
+    expected_error = (
+        "Policy 'taskotron_release_critical_tasks': "
+        "Attribute 'rules': "
+        "Expected list of Rule objects"
+    )
+    with pytest.raises(SafeYAMLError, match=expected_error):
         load_policies(tmpdir.strpath)
-    assert 'Policies are not configured properly' in str(excinfo.value)
 
 
 def test_passing_testcasename_with_scenario(tmpdir):
@@ -338,12 +347,12 @@ rules:
                 policy = policies[0]
 
                 results, waivers = [], []
-                expected_error = (
-                    'policy dist-git-gating-policy-untitled-nethack'
-                    ' is missing attribute product_versions'
-                )
-                with pytest.raises(RuntimeError, match=expected_error):
-                    policy.check(nvr, results, waivers)
+                expected_details = "Policy 'untitled': Attribute 'product_versions' is required"
+                decision = policy.check(nvr, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], InvalidGatingYaml)
+                assert decision[0].is_satisfied is False
+                assert decision[0].details == expected_details
 
 
 def test_remote_rule_malformed_yaml(tmpdir):
@@ -459,3 +468,223 @@ rules:
                     }]
                     decision = policy.check(nvr, results, waivers)
                     assert len(decision) == 0
+
+
+def test_parse_policies_missing_tag():
+    expected_error = "Missing !Policy tag"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        Policy.safe_load_all("""---""")
+
+
+def test_parse_policies_unexpected_type():
+    policies = dedent("""
+        --- !Policy
+        42
+    """)
+    expected_error = "Expected mapping for !Policy tagged object"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        RemotePolicy.safe_load_all(policies)
+
+
+def test_parse_policies_missing_id():
+    expected_error = "Policy 'untitled': Attribute 'id' is required"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        Policy.safe_load_all(dedent("""
+            --- !Policy
+            product_versions: [fedora-rawhide]
+            decision_context: test
+            subject_type: compose
+            blacklist: []
+            rules:
+              - !PassingTestCaseRule {test_case_name: compose.cloud.all}
+        """))
+
+
+def test_parse_policies_missing_product_versions():
+    expected_error = "Policy 'test': Attribute 'product_versions' is required"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        Policy.safe_load_all(dedent("""
+            --- !Policy
+            id: test
+            decision_context: test
+            subject_type: compose
+            blacklist: []
+            rules:
+              - !PassingTestCaseRule {test_case_name: compose.cloud.all}
+        """))
+
+
+def test_parse_policies_missing_decision_context():
+    expected_error = "Policy 'test': Attribute 'decision_context' is required"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        Policy.safe_load_all(dedent("""
+            --- !Policy
+            id: test
+            product_versions: [fedora-rawhide]
+            subject_type: compose
+            blacklist: []
+            rules:
+              - !PassingTestCaseRule {test_case_name: compose.cloud.all}
+        """))
+
+
+def test_parse_policies_invalid_subject_type():
+    expected_error = (
+        r"Policy 'test': Attribute 'subject_type': "
+        "Value must be one of:.*"
+    )
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        Policy.safe_load_all(dedent("""
+            --- !Policy
+            id: test
+            product_versions: [fedora-rawhide]
+            decision_context: test
+            subject_type: bad_subject
+            blacklist: []
+            rules:
+              - !PassingTestCaseRule {test_case_name: compose.cloud.all}
+              - 0
+        """))
+
+
+def test_parse_policies_invalid_rule():
+    expected_error = "Policy 'test': Attribute 'rules': Expected list of Rule objects"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        Policy.safe_load_all(dedent("""
+            --- !Policy
+            id: test
+            product_versions: [fedora-rawhide]
+            decision_context: test
+            subject_type: compose
+            blacklist: []
+            rules:
+              - !PassingTestCaseRule {test_case_name: compose.cloud.all}
+              - bad_rule
+        """))
+
+
+def test_parse_policies_remote_missing_tag():
+    expected_error = "Missing !Policy tag"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        RemotePolicy.safe_load_all("""---""")
+
+
+def test_parse_policies_remote_missing_id_is_ok():
+    policies = RemotePolicy.safe_load_all(dedent("""
+        --- !Policy
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: test.case.name}
+    """))
+    assert len(policies) == 1
+    assert policies[0].id is None
+
+
+def test_parse_policies_remote_missing_subject_type_is_ok():
+    policies = RemotePolicy.safe_load_all(dedent("""
+        --- !Policy
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        rules:
+          - !PassingTestCaseRule {test_case_name: test.case.name}
+    """))
+    assert len(policies) == 1
+    assert policies[0].subject_type == 'koji_build'
+
+
+def test_parse_policies_remote_recursive():
+    expected_error = "Policy 'test': RemoteRule is not allowed in remote policies"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        RemotePolicy.safe_load_all(dedent("""
+            --- !Policy
+            id: test
+            product_versions: [fedora-rawhide]
+            decision_context: bodhi_update_push_stable_with_remoterule
+            subject_type: koji_build
+            rules:
+              - !RemoteRule {}
+        """))
+
+
+def test_parse_policies_remote_multiple():
+    policies = RemotePolicy.safe_load_all(dedent("""
+        --- !Policy
+        id: test1
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        rules:
+          - !PassingTestCaseRule {test_case_name: test.case.name}
+
+        --- !Policy
+        id: test2
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        rules:
+          - !PassingTestCaseRule {test_case_name: test.case.name}
+    """))
+    assert len(policies) == 2
+    assert policies[0].id == 'test1'
+    assert policies[1].id == 'test2'
+
+
+def test_parse_policies_remote_multiple_missing_tag():
+    expected_error = "Missing !Policy tag"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        RemotePolicy.safe_load_all(dedent("""
+            --- !Policy
+            id: test1
+            product_versions: [fedora-rawhide]
+            decision_context: test
+            rules:
+              - !PassingTestCaseRule {test_case_name: test.case.name}
+
+            ---
+            id: test2
+            product_versions: [fedora-rawhide]
+            decision_context: test
+            rules:
+              - !PassingTestCaseRule {test_case_name: test.case.name}
+        """))
+
+
+def test_parse_policies_remote_missing_rule_attribute():
+    expected_error = (
+        "Policy 'test': "
+        "Attribute 'rules': "
+        "YAML object !PassingTestCaseRule: "
+        "Attribute 'test_case_name' is required"
+    )
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        RemotePolicy.safe_load_all(dedent("""
+            --- !Policy
+            id: test
+            product_versions: [fedora-rawhide]
+            decision_context: test
+            rules:
+              - !PassingTestCaseRule {test_case: test.case.name}
+        """))
+
+
+def test_policies_to_json():
+    policies = Policy.safe_load_all(dedent("""
+        --- !Policy
+        id: test
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        subject_type: compose
+        blacklist: []
+        rules: []
+    """))
+    assert len(policies) == 1
+    assert policies[0].to_json() == {
+        'id': 'test',
+        'product_versions': ['fedora-rawhide'],
+        'decision_context': 'test',
+        'subject_type': 'compose',
+        'blacklist': [],
+        'rules': [],
+        'relevance_key': None,
+        'relevance_value': None,
+    }

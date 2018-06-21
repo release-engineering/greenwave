@@ -1,35 +1,22 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 from fnmatch import fnmatch
-import yaml
 import logging
 import greenwave.resources
+
+from greenwave.safe_yaml import (
+    SafeYAMLChoice,
+    SafeYAMLList,
+    SafeYAMLObject,
+    SafeYAMLString,
+    SafeYAMLError,
+)
 
 log = logging.getLogger(__name__)
 
 
 class DisallowedRuleError(RuntimeError):
     pass
-
-
-def validate_policies(policies, disallowed_rules=None):
-    disallowed_rules = disallowed_rules or []
-    for policy in policies:
-        if not isinstance(policy, Policy):
-            raise RuntimeError('Policies are not configured properly as policy %s '
-                               'is not an instance of Policy' % policy)
-        for required_attribute in ['decision_context', 'product_versions', 'subject_type']:
-            if not hasattr(policy, required_attribute):
-                raise RuntimeError('Policies are not configured properly as policy %s '
-                                   'is missing attribute %s' % (policy.id, required_attribute))
-        for rule in policy.rules:
-            if not isinstance(rule, Rule):
-                raise RuntimeError('Policies are not configured properly as rule %s '
-                                   'is not an instance of Rule' % rule)
-            for disallowed_rule in disallowed_rules:
-                if isinstance(rule, disallowed_rule):
-                    raise DisallowedRuleError('Policies are not configured properly as rule %s '
-                                              'is an instance of %s' % (rule, disallowed_rule))
 
 
 def subject_type_identifier_to_item(subject_type, subject_identifier):
@@ -160,18 +147,23 @@ class TestResultFailed(RuleNotSatisfied):
 
 
 class InvalidGatingYaml(RuleNotSatisfied):
+    """
+    Remote policy parsing failed.
+    """
 
-    def __init__(self, subject_type, subject_identifier, test_case_name):
+    def __init__(self, subject_type, subject_identifier, test_case_name, details):
         self.subject_type = subject_type
         self.subject_identifier = subject_identifier
         self.test_case_name = test_case_name
+        self.details = details
 
     def to_json(self):
         return {
             'type': 'invalid-gating-yaml',
             'testcase': self.test_case_name,
             'subject_type': self.subject_type,
-            'subject_identifier': self.subject_identifier
+            'subject_identifier': self.subject_identifier,
+            'details': self.details
         }
 
 
@@ -234,27 +226,30 @@ def summarize_answers(answers):
     Returns:
         str: Human-readable summary.
     """
-    if len(answers) == 0:
+    if not answers:
         return 'no tests are required'
-    if all(answer.is_satisfied for answer in answers):
-        return 'all required tests passed'
+
     failure_count = len([answer for answer in answers if isinstance(answer, TestResultFailed)])
     missing_count = len([answer for answer in answers if isinstance(answer, TestResultMissing)])
-    invalid_gating_yaml = any(answer for answer in answers
-                              if isinstance(answer, InvalidGatingYaml))
+
     if failure_count and missing_count:
         return '{} of {} required tests failed, {} result{} missing'.format(
             failure_count, len(answers), missing_count, 's' if missing_count > 1 else '')
-    elif failure_count:
+
+    if failure_count > 0:
         return '{} of {} required tests failed'.format(failure_count, len(answers))
-    elif missing_count:
+
+    if missing_count > 0:
         return '{} of {} required test results missing'.format(missing_count, len(answers))
-    elif invalid_gating_yaml:
-        return 'misconfigured gating.yaml file'
+
+    if all(answer.is_satisfied for answer in answers):
+        return 'all required tests passed'
+
+    assert False, 'Unexpected unsatisfied result'
     return 'inexplicable result'
 
 
-class Rule(yaml.YAMLObject):
+class Rule(SafeYAMLObject):
     """
     An individual rule within a policy. A policy consists of multiple rules.
     When the policy is evaluated, each rule returns an answer
@@ -279,26 +274,16 @@ class Rule(yaml.YAMLObject):
         """
         raise NotImplementedError()
 
-    def to_json(self):
-        """ Return a dict representation of this rule.
 
-        Returns:
-            dict: A representation of this Rule as a dict for an API response.
-        """
-        raise NotImplementedError()
-
-
-def handle_misconfigured_gating_yaml(subject_type, subject_identifier, waivers):
-    if any((d['testcase'] == 'invalid-gating-yaml' and d['subject']['type'] == subject_type and
-            d['subject']['item'] == subject_identifier) for d in waivers):
-        return []
-    else:
-        return InvalidGatingYaml(subject_type, subject_identifier, 'invalid-gating-yaml')
+def waives_invalid_gating_yaml(waiver, subject_type, subject_identifier):
+    return (waiver['testcase'] == 'invalid-gating-yaml' and
+            waiver['subject']['type'] == subject_type and
+            waiver['subject']['item'] == subject_identifier)
 
 
 class RemoteRule(Rule):
     yaml_tag = '!RemoteRule'
-    yaml_loader = yaml.SafeLoader
+    safe_yaml_attributes = {}
 
     def check(self, subject_type, subject_identifier, results, waivers):
         if subject_type != 'koji_build':
@@ -313,26 +298,16 @@ class RemoteRule(Rule):
             return []
 
         try:
-            policies = yaml.safe_load_all(response)
-            # policies is a generator, so listifying it
-            policies = list(policies)
-        except yaml.parser.ParserError as e:
-            # if the yaml file is malformed we skip these policies
-            log.warning("Error parsing gating.yaml for package %s: %s", pkg_name, e)
-            return handle_misconfigured_gating_yaml(subject_type, subject_identifier, waivers)
-        # policies in dist-git are always about a package
-        for policy in policies:
-            policy.subject_type = 'koji_build'
-            # Attribute 'id' in remote policy is optional.
-            policy_id = getattr(policy, 'id', 'untitled')
-            # Prefix the id for better error reporting.
-            policy.id = 'dist-git-gating-policy-{}-{}'.format(policy_id, pkg_name)
-        try:
-            validate_policies(policies, [RemoteRule])
-        except DisallowedRuleError:
-            log.warning('Policies are not configured properly as there is a policy '
-                        'that is an instance of RemoteRule')
-            return handle_misconfigured_gating_yaml(subject_type, subject_identifier, waivers)
+            policies = RemotePolicy.safe_load_all(response)
+        except SafeYAMLError as e:
+            if any(waives_invalid_gating_yaml(waiver, subject_type, subject_identifier)
+                    for waiver in waivers):
+                return []
+            return [
+                InvalidGatingYaml(
+                    subject_type, subject_identifier, 'invalid-gating-yaml', str(e))
+            ]
+
         answers = []
         for policy in policies:
             response = policy.check(subject_identifier, results, waivers)
@@ -354,7 +329,11 @@ class PassingTestCaseRule(Rule):
     a non-passing result with a waiver.
     """
     yaml_tag = '!PassingTestCaseRule'
-    yaml_loader = yaml.SafeLoader
+
+    safe_yaml_attributes = {
+        'test_case_name': SafeYAMLString(),
+        'scenario': SafeYAMLString(optional=True),
+    }
 
     def check(self, subject_type, subject_identifier, results, waivers):
         matching_results = [
@@ -363,7 +342,7 @@ class PassingTestCaseRule(Rule):
             w for w in waivers if (w['testcase'] == self.test_case_name and w['waived'] is True)]
 
         # Rules may optionally specify a scenario to limit applicability.
-        if self._scenario:
+        if self.scenario:
             matching_results = [r for r in matching_results if self.scenario in
                                 r['data'].get('scenario', [])]
 
@@ -371,9 +350,9 @@ class PassingTestCaseRule(Rule):
         if not matching_results:
             if not matching_waivers:
                 return TestResultMissing(subject_type, subject_identifier, self.test_case_name,
-                                         self._scenario)
+                                         self.scenario)
             return TestResultMissingWaived(
-                subject_type, subject_identifier, self.test_case_name, self._scenario)
+                subject_type, subject_identifier, self.test_case_name, self.scenario)
 
         # If we find multiple matching results, we always use the first one which
         # will be the latest chronologically, because ResultsDB always returns
@@ -389,21 +368,13 @@ class PassingTestCaseRule(Rule):
                w['waived'] for w in waivers):
             return TestResultPassed(self.test_case_name, matching_result['id'])
         return TestResultFailed(subject_type, subject_identifier, self.test_case_name,
-                                self._scenario, matching_result['id'])
-
-    @property
-    def _scenario(self):
-        return getattr(self, 'scenario', None)
-
-    def __repr__(self):
-        return "%s(test_case_name=%r, scenario=%r)" % (
-            self.__class__.__name__, self.test_case_name, self._scenario)
+                                self.scenario, matching_result['id'])
 
     def to_json(self):
         return {
             'rule': self.__class__.__name__,
             'test_case_name': self.test_case_name,
-            'scenario': self._scenario,
+            'scenario': self.scenario,
         }
 
 
@@ -415,9 +386,10 @@ class PackageSpecificRule(Rule):
     This intermediary class should be considered abstract, and not used directly.
     """
 
-    def __init__(self, test_case_name, repos):
-        self.test_case_name = test_case_name
-        self.repos = repos
+    safe_yaml_attributes = {
+        'test_case_name': SafeYAMLString(),
+        'repos': SafeYAMLList(str),
+    }
 
     def check(self, subject_type, subject_identifier, results, waivers):
         """ Check that the subject passes testcase for the given results, but
@@ -445,10 +417,6 @@ class PackageSpecificRule(Rule):
         rule.test_case_name = self.test_case_name
         return rule.check(subject_type, subject_identifier, results, waivers)
 
-    def __repr__(self):
-        return "%s(test_case_name=%s, repos=%r)" % (
-            self.__class__.__name__, self.test_case_name, self.repos)
-
     def to_json(self):
         return {
             'rule': self.__class__.__name__,
@@ -459,18 +427,27 @@ class PackageSpecificRule(Rule):
 
 class FedoraAtomicCi(PackageSpecificRule):
     yaml_tag = '!FedoraAtomicCi'
-    yaml_loader = yaml.SafeLoader
 
 
 class PackageSpecificBuild(PackageSpecificRule):
     yaml_tag = '!PackageSpecificBuild'
-    yaml_loader = yaml.SafeLoader
 
 
-class Policy(yaml.YAMLObject):
-    yaml_tag = '!Policy'
-    yaml_loader = yaml.SafeLoader
-    blacklist = []
+class Policy(SafeYAMLObject):
+    root_yaml_tag = '!Policy'
+
+    safe_yaml_attributes = {
+        'id': SafeYAMLString(),
+        'product_versions': SafeYAMLList(str),
+        'decision_context': SafeYAMLString(),
+        # TODO: Handle brew-build value better.
+        'subject_type': SafeYAMLChoice(
+            'koji_build', 'bodhi_update', 'compose', 'brew-build'),
+        'rules': SafeYAMLList(Rule),
+        'blacklist': SafeYAMLList(str, optional=True),
+        'relevance_key': SafeYAMLString(optional=True),
+        'relevance_value': SafeYAMLString(optional=True),
+    }
 
     def applies_to(self, decision_context, product_version, subject_type):
         return (decision_context == self.decision_context and
@@ -492,22 +469,29 @@ class Policy(yaml.YAMLObject):
                 answers.append(response)
         return answers
 
-    def __repr__(self):
-        return "%s(id=%r, product_versions=%r, decision_context=%r, subject_type=%r, rules=%r)" % (
-            self.__class__.__name__, self.id, self.product_versions, self.decision_context,
-            self.subject_type, self.rules)
-
-    def to_json(self):
-        return {
-            'id': self.id,
-            'product_versions': self.product_versions,
-            'decision_context': self.decision_context,
-            'subject_type': self.subject_type,
-            'rules': [rule.to_json() for rule in self.rules],
-            'blacklist': self.blacklist,
-            'relevance_key': getattr(self, 'relevance_key', None),
-            'relevance_value': getattr(self, 'relevance_value', None),
-        }
-
     def _applies_to_product_version(self, product_version):
         return any(fnmatch(product_version, version) for version in self.product_versions)
+
+    @property
+    def safe_yaml_label(self):
+        return 'Policy {!r}'.format(self.id or 'untitled')
+
+
+class RemotePolicy(Policy):
+    root_yaml_tag = '!Policy'
+
+    safe_yaml_attributes = {
+        'id': SafeYAMLString(optional=True),
+        'product_versions': SafeYAMLList(str),
+        'decision_context': SafeYAMLString(),
+        'rules': SafeYAMLList(Rule),
+        'blacklist': SafeYAMLList(str, optional=True),
+    }
+
+    subject_type = 'koji_build'
+
+    def validate(self):
+        for rule in self.rules:
+            if isinstance(rule, RemoteRule):
+                raise SafeYAMLError('RemoteRule is not allowed in remote policies')
+        super().validate()

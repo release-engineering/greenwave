@@ -7,7 +7,6 @@ import os
 import time
 import hashlib
 
-import yaml
 from flask import jsonify, current_app, request
 from flask.config import Config
 from requests import ConnectionError, Timeout
@@ -119,8 +118,8 @@ def load_policies(policies_dir):
     policy_pathnames = glob.glob(os.path.join(policies_dir, '*.yaml'))
     policies = []
     for policy_pathname in policy_pathnames:
-        policies.extend(yaml.safe_load_all(open(policy_pathname, 'r')))
-    greenwave.policies.validate_policies(policies)
+        with open(policy_pathname, 'r') as f:
+            policies.extend(greenwave.policies.Policy.safe_load_all(f))
     log.debug("Loaded %i policies from %s", len(policies), policies_dir)
     return policies
 
