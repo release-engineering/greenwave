@@ -3,8 +3,9 @@
 from flask import Blueprint, request, current_app, jsonify, url_for, redirect
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType, InternalServerError
 from greenwave import __version__
-from greenwave.policies import summarize_answers, RemoteRule
+from greenwave.policies import summarize_answers, RemotePolicy, RemoteRule
 from greenwave.resources import retrieve_results, retrieve_waivers, retrieve_builds_in_update
+from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
 
 api = (Blueprint('api_v1', __name__))
@@ -372,3 +373,54 @@ def make_decision():
     resp = insert_headers(resp)
     resp.status_code = 200
     return resp
+
+
+@api.route('/validate-gating-yaml', methods=['GET', 'POST'])
+@jsonp
+def validate_gating_yaml_post():
+    """
+    Validates contents of "gating.yaml" file.
+
+    POST data is the file content.
+
+    The response is JSON object containing lists of "errors", "successes" and
+    "messages".
+
+    **Sample response for failed validation**:
+
+    .. sourcecode:: none
+
+       HTTP/1.0 200 OK
+       Content-Length: 52
+       Content-Type: application/json
+       Date: Fri, 22 Jun 2018 11:19:35 GMT
+       Server: Werkzeug/0.12.2 Python/3.6.5
+
+       {
+           "message": "Missing !Policy tag"
+       }
+
+    **Sample response for successful validation**:
+
+    .. sourcecode:: none
+
+       HTTP/1.0 200 OK
+       Content-Length: 38
+       Content-Type: application/json
+       Date: Fri, 22 Jun 2018 11:23:16 GMT
+       Server: Werkzeug/0.12.2 Python/3.6.5
+
+       {
+           "message": "All OK"
+       }
+    """
+    content = request.get_data().decode('utf-8')
+    try:
+        policies = RemotePolicy.safe_load_all(content)
+    except SafeYAMLError as e:
+        raise BadRequest(str(e))
+
+    if not policies:
+        raise BadRequest('No policies defined')
+
+    return jsonify({'message': 'All OK'})

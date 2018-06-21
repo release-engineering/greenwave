@@ -2,6 +2,8 @@
 
 import json
 
+from textwrap import dedent
+
 from greenwave import __version__
 
 
@@ -826,3 +828,41 @@ def test_make_a_decision_about_brew_build(requests_session, greenwave_server, te
     assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['osci_compose']
     assert res_data['summary'] == 'all required tests passed'
+
+
+def test_validate_gating_yaml_valid(requests_session, greenwave_server):
+    gating_yaml = dedent("""
+        --- !Policy
+        id: "test"
+        product_versions:
+          - fedora-26
+        decision_context: test
+        rules:
+          - !PassingTestCaseRule {test_case_name: test}
+    """)
+    result = requests_session.post(
+        greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
+    assert result.json().get('message') == 'All OK'
+    assert result.status_code == 200
+
+
+def test_validate_gating_yaml_empty(requests_session, greenwave_server):
+    result = requests_session.post(greenwave_server + 'api/v1.0/validate-gating-yaml')
+    assert result.json().get('message') == 'No policies defined'
+    assert result.status_code == 400
+
+
+def test_validate_gating_yaml_missing_tag(requests_session, greenwave_server):
+    gating_yaml = dedent("""
+        ---
+        id: "test"
+        product_versions:
+          - fedora-26
+        decision_context: test
+        rules:
+          - !PassingTestCaseRule {test_case_name: test}
+    """)
+    result = requests_session.post(
+        greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
+    assert result.json().get('message') == "Missing !Policy tag"
+    assert result.status_code == 400
