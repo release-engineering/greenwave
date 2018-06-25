@@ -10,6 +10,7 @@ from greenwave.policies import (
     RuleSatisfied,
     TestResultMissing,
     TestResultFailed,
+    InvalidGatingYaml
 )
 from greenwave.utils import load_policies
 
@@ -341,3 +342,116 @@ rules:
                 )
                 with pytest.raises(RuntimeError, match=expected_error):
                     policy.check(nvr, results, waivers)
+
+
+def test_remote_rule_malformed_yaml(tmpdir):
+    """ Testing the RemoteRule with a malformed gating.yaml file """
+
+    nvr = 'nethack-1.2.3-1.el9000'
+
+    serverside_fragment = """
+--- !Policy
+id: "taskotron_release_critical_tasks_with_remoterule"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+subject_type: koji_build
+rules:
+  - !RemoteRule {}
+        """
+
+    remote_fragments = ["""
+--- !Policy
+   : "some-policy-from-a-random-packager"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """, """
+--- !Policy
+id: "some-policy-from-a-random-packager"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+rules:
+  - !RemoteRule {test_case_name: dist.upgradepath}
+        """]
+
+    for remote_fragment in remote_fragments:
+        p = tmpdir.join('gating.yaml')
+        p.write(serverside_fragment)
+        app = create_app('greenwave.config.TestingConfig')
+        with app.app_context():
+            with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
+                with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                    f.return_value = remote_fragment
+                    policies = load_policies(tmpdir.strpath)
+                    policy = policies[0]
+
+                    results, waivers = [], []
+                    decision = policy.check(nvr, results, waivers)
+                    assert len(decision) == 1
+                    assert isinstance(decision[0], InvalidGatingYaml)
+                    assert decision[0].is_satisfied is False
+
+
+def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
+    """ Testing the RemoteRule with a malformed gating.yaml file
+    But this time waiving the error """
+
+    nvr = 'nethack-1.2.3-1.el9000'
+
+    serverside_fragment = """
+--- !Policy
+id: "taskotron_release_critical_tasks_with_remoterule"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+subject_type: koji_build
+rules:
+  - !RemoteRule {}
+        """
+
+    remote_fragments = ["""
+--- !Policy
+   : "some-policy-from-a-random-packager"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """, """
+--- !Policy
+id: "some-policy-from-a-random-packager"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_push_stable_with_remoterule
+rules:
+  - !RemoteRule {test_case_name: dist.upgradepath}
+        """]
+
+    for remote_fragment in remote_fragments:
+        p = tmpdir.join('gating.yaml')
+        p.write(serverside_fragment)
+        app = create_app('greenwave.config.TestingConfig')
+        with app.app_context():
+            with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
+                with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                    f.return_value = remote_fragment
+                    policies = load_policies(tmpdir.strpath)
+                    policy = policies[0]
+
+                    results = []
+                    waivers = [{
+                        'subject_type': 'koji_build',
+                        'subject_identifier': 'nethack-1.2.3-1.el9000',
+                        'subject': {'type': 'koji_build', 'item': 'nethack-1.2.3-1.el9000'},
+                        'testcase': 'invalid-gating-yaml',
+                        'product_version': 'fedora-26',
+                        'comment': 'Waiving the invalig gating.yaml file'
+                    }]
+                    decision = policy.check(nvr, results, waivers)
+                    assert len(decision) == 0
