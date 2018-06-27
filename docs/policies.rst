@@ -62,6 +62,8 @@ The document is a map (dictionary) with the following keys:
    passes this value when it asks Greenwave to decide whether a Bodhi update
    is ready to be pushed to the stable repositories.
 
+.. _subject_type:
+
 ``subject_type``
    When you ask Greenwave for a decision, you ask it about a specific software
    artefact (the "subject" of the decision). Each policy applies to some type

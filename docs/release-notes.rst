@@ -5,8 +5,41 @@ Release Notes
 Next Release
 ============
 
-* Old `remote-original-spec-nvr-rule` for extending policies (#75) renamed
-  to :ref:`remote-rule` (#220).
+* Policies require :ref:`subject_type <subject_type>` to be defined (#126).
+  Policy attributes `relevance_key` and `relevance_value` are no longer used
+  (#74). Both ``relevance_key: original_spec_nvr`` and ``relevance_value:
+  koji_build`` in policy files should be changed to ``subject_type:
+  koji_build``.
+
+* Messages for decisions contain single ``subject_type`` (:ref:`subject-types`)
+  and ``subject_identifier`` (#123).
+
+* Asking for a decision about a Bodhi update no longer requires to pass a list
+  of NVRs of the builds in the update. This is now done automatically by
+  querying Bodhi and applying the relevant policies for those builds as well.
+  The ``BODHI_URL`` config setting must be set for this feature to work.
+
+* Old ``RemoteOriginalSpecNvrRule`` for extending policies renamed to
+  ``RemoteRule``. See :ref:`remote-rule` (#220).
+
+* Policy attribute ``id`` is now optional in ``gating.yaml`` (#217).
+
+* Policy attribute ``blacklist`` is now optional.
+
+* Settings ``greenwave_cache`` for fedmsg was dropped in favor of ``CACHE``
+  settings in ``settings.py``.
+
+* Verbose decisions contain ``satisfied_requirements`` (#124).
+
+* New endpoint :http:get:`/api/v1.0/about` deprecates
+  :http:get:`/api/v1.0/version` (#189).
+
+* Switch to Python 3 and drop Python 2 support.
+
+* HTTP status codes 502 and 504 are now returned for timeouts and connection
+  errors to related services (previously HTTP 500 was returned).
+
+* Fixed giving incorrect test decisions for multiple items.
 
 Greenwave 0.7.1
 ===============
@@ -21,7 +54,7 @@ Greenwave 0.7
 
 Released 10 May 2018.
 
-* New `remote-original-spec-nvr-rule` for extending policies (#75).
+* New ``RemoteOriginalSpecNvrRule`` for extending policies (#75).
 
 * In case Greenwave found no matching results for a decision, the summary text
   has been re-worded to be clearer and to indicate how many results were
