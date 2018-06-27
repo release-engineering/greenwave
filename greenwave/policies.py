@@ -318,7 +318,7 @@ class RemoteRule(Rule):
             policies = list(policies)
         except yaml.parser.ParserError as e:
             # if the yaml file is malformed we skip these policies
-            log.warning("Error parsing gating.yaml for package {}: {}".format(pkg_name, e))
+            log.warning("Error parsing gating.yaml for package %s: %s", pkg_name, e)
             return handle_misconfigured_gating_yaml(subject_type, subject_identifier, waivers)
         # policies in dist-git are always about a package
         for policy in policies:
