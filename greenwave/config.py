@@ -23,8 +23,8 @@ class Config(object):
     BODHI_URL = 'https://bodhi.fedoraproject.org/'
 
     # Options for outbound HTTP requests made by python-requests
-    DIST_GIT_BASE_URL = 'https://src.fedoraproject.org'
-    DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}/{pkg_name}/{rev}/gating.yaml'
+    DIST_GIT_BASE_URL = 'https://src.fedoraproject.org/'
+    DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}rpms/{pkg_name}/raw/{rev}/f/gating.yaml'
     KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
     REQUESTS_TIMEOUT = (6.1, 15)
     REQUESTS_VERIFY = True
