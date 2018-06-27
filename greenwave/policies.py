@@ -2,7 +2,14 @@
 
 from fnmatch import fnmatch
 import yaml
+import logging
 import greenwave.resources
+
+log = logging.getLogger(__name__)
+
+
+class DisallowedRuleError(RuntimeError):
+    pass
 
 
 def validate_policies(policies, disallowed_rules=None):
@@ -21,8 +28,8 @@ def validate_policies(policies, disallowed_rules=None):
                                    'is not an instance of Rule' % rule)
             for disallowed_rule in disallowed_rules:
                 if isinstance(rule, disallowed_rule):
-                    raise RuntimeError('Policies are not configured properly as rule %s '
-                                       'is an instance of %s' % (rule, disallowed_rule))
+                    raise DisallowedRuleError('Policies are not configured properly as rule %s '
+                                              'is an instance of %s' % (rule, disallowed_rule))
 
 
 def subject_type_identifier_to_item(subject_type, subject_identifier):
@@ -152,6 +159,22 @@ class TestResultFailed(RuleNotSatisfied):
         }
 
 
+class InvalidGatingYaml(RuleNotSatisfied):
+
+    def __init__(self, subject_type, subject_identifier, test_case_name):
+        self.subject_type = subject_type
+        self.subject_identifier = subject_identifier
+        self.test_case_name = test_case_name
+
+    def to_json(self):
+        return {
+            'type': 'invalid-gating-yaml',
+            'testcase': self.test_case_name,
+            'subject_type': self.subject_type,
+            'subject_identifier': self.subject_identifier
+        }
+
+
 class TestResultPassed(RuleSatisfied):
     """
     A required test case passed (that is, its outcome in ResultsDB was
@@ -217,6 +240,8 @@ def summarize_answers(answers):
         return 'all required tests passed'
     failure_count = len([answer for answer in answers if isinstance(answer, TestResultFailed)])
     missing_count = len([answer for answer in answers if isinstance(answer, TestResultMissing)])
+    invalid_gating_yaml = any(answer for answer in answers
+                              if isinstance(answer, InvalidGatingYaml))
     if failure_count and missing_count:
         return '{} of {} required tests failed, {} result{} missing'.format(
             failure_count, len(answers), missing_count, 's' if missing_count > 1 else '')
@@ -224,6 +249,8 @@ def summarize_answers(answers):
         return '{} of {} required tests failed'.format(failure_count, len(answers))
     elif missing_count:
         return '{} of {} required test results missing'.format(missing_count, len(answers))
+    elif invalid_gating_yaml:
+        return 'misconfigured gating.yaml file'
     return 'inexplicable result'
 
 
@@ -261,6 +288,14 @@ class Rule(yaml.YAMLObject):
         raise NotImplementedError()
 
 
+def handle_misconfigured_gating_yaml(subject_type, subject_identifier, waivers):
+    if any((d['testcase'] == 'invalid-gating-yaml' and d['subject']['type'] == subject_type and
+            d['subject']['item'] == subject_identifier) for d in waivers):
+        return []
+    else:
+        return InvalidGatingYaml(subject_type, subject_identifier, 'invalid-gating-yaml')
+
+
 class RemoteRule(Rule):
     yaml_tag = '!RemoteRule'
     yaml_loader = yaml.SafeLoader
@@ -277,9 +312,14 @@ class RemoteRule(Rule):
             # greenwave extension file not found
             return []
 
-        policies = yaml.safe_load_all(response)
-        # policies is a generator, so listifying it
-        policies = list(policies)
+        try:
+            policies = yaml.safe_load_all(response)
+            # policies is a generator, so listifying it
+            policies = list(policies)
+        except yaml.parser.ParserError as e:
+            # if the yaml file is malformed we skip these policies
+            log.warning("Error parsing gating.yaml for package {}: {}".format(pkg_name, e))
+            return handle_misconfigured_gating_yaml(subject_type, subject_identifier, waivers)
         # policies in dist-git are always about a package
         for policy in policies:
             policy.subject_type = 'koji_build'
@@ -287,7 +327,12 @@ class RemoteRule(Rule):
             policy_id = getattr(policy, 'id', 'untitled')
             # Prefix the id for better error reporting.
             policy.id = 'dist-git-gating-policy-{}-{}'.format(policy_id, pkg_name)
-        validate_policies(policies, [RemoteRule])
+        try:
+            validate_policies(policies, [RemoteRule])
+        except DisallowedRuleError:
+            log.warning('Policies are not configured properly as there is a policy '
+                        'that is an instance of RemoteRule')
+            return handle_misconfigured_gating_yaml(subject_type, subject_identifier, waivers)
         answers = []
         for policy in policies:
             response = policy.check(subject_identifier, results, waivers)
