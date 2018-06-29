@@ -16,6 +16,7 @@ gating points in a software delivery pipeline, based on test results stored in
    :caption: Contents:
 
    policies
+   package-specific-policies
    api
    dev-guide
    release-notes

@@ -246,25 +246,3 @@ Examples:
 Greenwave checks if a gating.yaml file exists in the specified repo, and, if it
 does, it pulls it down, loads it, and uses it to additionally evaluate the
 subject of the decision.
-
-The policies inside the gating.yaml file follow all the direction of normal
-policies, except for the "id" key that it is optional and the "subject_type"
-that shouldn't be defined - the value is always ``koji_build``.
-
-
-.. _tolerate-invalid-gating-yaml:
-
-Tolerate an invalid gating.yaml file
-------------------------------------
-
-A gating.yaml file is considered invalid if it has an invalid syntax (yaml
-parser errors), if it contains a RemoteRule rule or if it is an invalid Policy
-file.
-If this situation happens Greenwave will return a negative response in the
-decision API (policies_satisfied == False and summary == misconfigured
-gating.yaml file) and it will not be possible to ship the build.
-
-To skip this problem, it is possible to submit a waiver with the tool
-`waiverdb-cli <https://pagure.io/docs/waiverdb/>`_. This waiver must have
-``testcase`` equal to ``invalid-gating-yaml``. It is not necessary to have
-a result in Resultsdb for this testcase.
