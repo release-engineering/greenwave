@@ -176,21 +176,8 @@ PackageSpecificBuild
 RemoteRule
 ----------
 
-   This rule allows the packager to configure some additional policies in a
-   gating.yaml file configured in the repo.
-   Greenwave checks if the file exists, and, if it does it pulls it down,
-   loads it, and uses it to additionally evaluate the subject of the decision.
-   
-   To use this feature it is required to configure ``KOJI_BASE_URL``,
-   ``DIST_GIT_BASE_URL`` and ``DIST_GIT_URL_TEMPLATE``.
-   
-   Examples:
-
-   .. code-block:: console
-   
-      DIST_GIT_BASE_URL = 'https://src.fedoraproject.org'
-      DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}/{pkg_name}/{rev}/gating.yaml'
-      KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub' 
+   See the :ref:`remoterule-configure-additional-policies` section below for
+   some information about how RemoteRule works and how to configure it.
 
 
 Testing your policy changes
@@ -218,3 +205,66 @@ Greenwave for a decision:
    >       "decision_context": "bodhi_update_push_stable",
    >       "subject": [{"item": "akonadi-calendar-tools-17.12.1-1.fc27",
    >                    "type": "koji_build"}]}'
+
+
+
+.. _remoterule-configure-additional-policies:
+
+RemoteRule: configure additional policies
+=========================================
+
+This rule allows the packager to configure some additional policies in a
+:file:`gating.yaml` file configured in the repo.
+To "activate" this feature is necessary to configure a policy among the
+others policies configured in the default directory.
+Here's an example of a RemoteRule:
+
+.. code-block:: console
+
+   --- !Policy
+   id: "test_remoterule"
+   product_versions:
+     - fedora-29
+   decision_context: osci_compose_gate
+   subject_type: koji_build
+   blacklist: []
+   rules:
+     - !RemoteRule {}
+
+
+It is also required to configure ``KOJI_BASE_URL``, ``DIST_GIT_BASE_URL``
+and ``DIST_GIT_URL_TEMPLATE`` in the configuration settings.
+
+Examples:
+
+.. code-block:: console
+
+   DIST_GIT_BASE_URL = 'https://src.fedoraproject.org/'
+   DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}rpms/{pkg_name}/raw/{rev}/f/gating.yaml'
+   KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
+
+Greenwave checks if a gating.yaml file exists in the specified repo, and, if it
+does, it pulls it down, loads it, and uses it to additionally evaluate the
+subject of the decision.
+
+The policies inside the gating.yaml file follow all the direction of normal
+policies, except for the "id" key that it is optional and the "subject_type"
+that shouldn't be defined - the value is always ``koji_build``.
+
+
+.. _tolerate-invalid-gating-yaml:
+
+Tolerate an invalid gating.yaml file
+------------------------------------
+
+A gating.yaml file is considered invalid if it has an invalid syntax (yaml
+parser errors), if it contains a RemoteRule rule or if it is an invalid Policy
+file.
+If this situation happens Greenwave will return a negative response in the
+decision API (policies_satisfied == False and summary == misconfigured
+gating.yaml file) and it will not be possible to ship the build.
+
+To skip this problem, it is possible to submit a waiver with the tool
+`waiverdb-cli <https://pagure.io/docs/waiverdb/>`_. This waiver must have
+``testcase`` equal to ``invalid-gating-yaml``. It is not necessary to have
+a result in Resultsdb for this testcase.
