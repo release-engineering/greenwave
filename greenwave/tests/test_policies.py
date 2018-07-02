@@ -267,7 +267,8 @@ rules:
     p.write(serverside_fragment)
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = ('rpms', 'nethack')
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = remote_fragment
                 policies = load_policies(tmpdir.strpath)
@@ -329,7 +330,8 @@ rules:
     p.write(serverside_fragment)
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = ('rpms', 'nethack')
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = remote_fragment
                 policies = load_policies(tmpdir.strpath)
@@ -384,7 +386,8 @@ rules:
         p.write(serverside_fragment)
         app = create_app('greenwave.config.TestingConfig')
         with app.app_context():
-            with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
+            with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+                scm.return_value = ('rpms', 'nethack')
                 with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                     f.return_value = remote_fragment
                     policies = load_policies(tmpdir.strpath)
@@ -438,7 +441,8 @@ rules:
         p.write(serverside_fragment)
         app = create_app('greenwave.config.TestingConfig')
         with app.app_context():
-            with mock.patch('greenwave.resources.retrieve_rev_from_koji'):
+            with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+                scm.return_value = ('rpms', 'nethack')
                 with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                     f.return_value = remote_fragment
                     policies = load_policies(tmpdir.strpath)

@@ -240,7 +240,7 @@ Examples:
 .. code-block:: console
 
    DIST_GIT_BASE_URL = 'https://src.fedoraproject.org/'
-   DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}rpms/{pkg_name}/raw/{rev}/f/gating.yaml'
+   DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}{pkg_namespace}/{pkg_name}/raw/{rev}/f/gating.yaml'
    KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
 
 Greenwave checks if a gating.yaml file exists in the specified repo, and, if it

@@ -26,8 +26,8 @@ requests_session = requests.Session()
 
 @cached
 @greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
-def retrieve_rev_from_koji(nvr):
-    """ Retrieve cached rev from koji using the nrv """
+def retrieve_scm_from_koji(nvr):
+    """ Retrieve cached rev and namespace from koji using the nvr """
     proxy = xmlrpc.client.ServerProxy(current_app.config['KOJI_BASE_URL'])
     build = proxy.getBuild(nvr)
 
@@ -36,19 +36,32 @@ def retrieve_rev_from_koji(nvr):
             build, nvr, current_app.config['KOJI_BASE_URL']))
 
     try:
-        url = urlparse(build['extra']['source']['original_url'])
+        original_url = build['extra']['source']['original_url']
+        url = urlparse(original_url)
+
         if not url.scheme.startswith('git'):
-            raise BadGateway('Error occurred looking for the "rev" in koji.')
-        return url.fragment
+            raise BadGateway('Unable to extract scm from koji.  '
+                             '%s doesn\'t begin with git://' % url)
+
+        if url.netloc not in current_app.config['DIST_GIT_BASE_URL']:
+            raise BadGateway('Unable to extract scm from koji.  '
+                             '%s is an unrecognized scm domain.' % url)
+
+        rev = url.fragment
+        namespace = url.path.split('/')[-2]
+        return namespace, rev
     except Exception:
-        raise BadGateway('Error occurred looking for the "rev" in koji.')
+        error = 'Error occurred looking for the "rev" in koji.'
+        log.exception(error)
+        raise BadGateway(error)
 
 
 @cached
-def retrieve_yaml_remote_rule(rev, pkg_name):
+def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace):
     """ Retrieve cached gating.yaml content for a given rev. """
     data = {
         "DIST_GIT_BASE_URL": current_app.config['DIST_GIT_BASE_URL'].rstrip('/') + '/',
+        "pkg_namespace": pkg_namespace,
         "pkg_name": pkg_name,
         "rev": rev
     }
