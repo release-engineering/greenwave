@@ -2,8 +2,10 @@
 Release Notes
 =============
 
-Next Release
-============
+Greenwave 0.8
+=============
+
+Released 3 July 2018.
 
 * Policies require :ref:`subject_type <subject_type>` to be defined (#126).
   Policy attributes `relevance_key` and `relevance_value` are no longer used
@@ -22,12 +24,24 @@ Next Release
 * Old ``RemoteOriginalSpecNvrRule`` for extending policies renamed to
   ``RemoteRule``. See :ref:`remote-rule` (#220).
 
-* Policy attribute ``id`` is now optional in ``gating.yaml`` (#217).
+* The documentation now includes a section targeted at package maintainers to
+  explain how they can define package-specific policies (#222). See 
+  :doc:`package-specific-policies`.
+
+* Policy attribute ``id`` is now optional in :file:`gating.yaml` (#217).
 
 * Policy attribute ``blacklist`` is now optional.
 
+* In case a package's :file:`gating.yaml` file is invalid or malformed,
+  Greenwave will now return an unsatisfied decision with an unsatisfied 
+  requirement of type ``invalid-gating-yaml``. This can be waived in order to 
+  allow a package to proceed through a gating point in spite of the invalid 
+  :file:`gating.yaml` file. Previously, Greenwave would return a 500 error 
+  response and it was not possible to waive the invalid :file:`gating.yaml` 
+  file. (#221)
+
 * Settings ``greenwave_cache`` for fedmsg was dropped in favor of ``CACHE``
-  settings in ``settings.py``.
+  settings in :file:`settings.py`.
 
 * Verbose decisions contain ``satisfied_requirements`` (#124).
 
@@ -37,7 +51,7 @@ Next Release
 * Switch to Python 3 and drop Python 2 support.
 
 * HTTP status codes 502 and 504 are now returned for timeouts and connection
-  errors to related services (previously HTTP 500 was returned).
+  errors to related services. Previously HTTP 500 was returned (#203).
 
 * Fixed giving incorrect test decisions for multiple items.
 

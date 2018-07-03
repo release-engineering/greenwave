@@ -24,7 +24,7 @@ if git status --porcelain | grep -q '^.M' ; then
     exit 1
 fi
 
-if ! grep -q --fixed-strings "$name $version" "$release_notes_file"; then
+if ! grep -q --fixed-strings "$name ${version%.*}" "$release_notes_file"; then
     echo "Section \"$name $version\" not found in \"$release_notes_file\"."
     echo "Please update release notes."
     exit 1
