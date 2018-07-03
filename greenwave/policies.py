@@ -305,8 +305,8 @@ class RemoteRule(Rule):
             return []
 
         pkg_name = subject_identifier.rsplit('-', 2)[0]
-        rev = greenwave.resources.retrieve_rev_from_koji(subject_identifier)
-        response = greenwave.resources.retrieve_yaml_remote_rule(rev, pkg_name)
+        pkg_namespace, rev = greenwave.resources.retrieve_scm_from_koji(subject_identifier)
+        response = greenwave.resources.retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace)
 
         if response is None:
             # greenwave extension file not found
