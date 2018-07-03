@@ -97,6 +97,11 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                         self.fedmsg_config['greenwave_api_url'] + '/decision',
                         headers={'Content-Type': 'application/json'},
                         data=json.dumps(data))
+
+                    if not response.ok:
+                        log.error(response.text)
+                        response.raise_for_status()
+
                     decision = response.json()
 
                     # get old decision
@@ -107,7 +112,11 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                         self.fedmsg_config['greenwave_api_url'] + '/decision',
                         headers={'Content-Type': 'application/json'},
                         data=json.dumps(data))
-                    response.raise_for_status()
+
+                    if not response.ok:
+                        log.error(response.text)
+                        response.raise_for_status()
+
                     old_decision = response.json()
 
                     if decision != old_decision:
