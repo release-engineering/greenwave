@@ -221,6 +221,7 @@ def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server, bodhi):
     with server_subprocess(
             name='greenwave',
             port=5005,
+            source_path='.',
             settings_content=settings_content,
             start_server_arguments=start_server_arguments,
             tmpdir_factory=tmpdir_factory) as url:
