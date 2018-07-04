@@ -101,7 +101,14 @@ def retrieve_builds_in_update(update_id):
     response = requests_session.get(update_info_url,
                                     headers={'Accept': 'application/json'},
                                     timeout=timeout, verify=verify)
-    response.raise_for_status()
+
+    # Ignore failures to retrieve Bodhi update.
+    if not response.ok:
+        log.warning(
+            'Making a decision about Bodhi update %s failed: %r',
+            update_id, response)
+        return []
+
     return [build['nvr'] for build in response.json()['update']['builds']]
 
 
@@ -168,6 +175,9 @@ def retrieve_results(subject_type, subject_identifier):
 # NOTE - not cached, for now.
 @greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_waivers(product_version, subject_type, subject_identifiers):
+    if not subject_identifiers:
+        return []
+
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']
     filters = [{

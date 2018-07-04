@@ -475,6 +475,32 @@ def test_bodhi_push_update_stable_policy(
     assert res_data['unsatisfied_requirements'] == []
 
 
+def test_bodhi_nonexistent_bodhi_update(
+        requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS:
+        testdatabuilder.create_result(item=nvr,
+                                      testcase_name=testcase_name,
+                                      outcome='PASSED')
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject_type': 'bodhi_update',
+        'subject_identifier': 'FEDORA-2000-deadbeaf',
+    }
+    r = requests_session.post(
+        greenwave_server + 'api/v1.0/decision',
+        headers={'Content-Type': 'application/json'},
+        data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied'] is True
+    assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
+    assert res_data['summary'] == 'no tests are required'
+    assert res_data['unsatisfied_requirements'] == []
+
+
 def test_multiple_results_in_a_subject(
         requests_session, greenwave_server, testdatabuilder):
     """
