@@ -2,6 +2,13 @@
 Release Notes
 =============
 
+Greenwave 0.8.1
+===============
+
+Released 4 July 2018.
+
+* Failure to retrieve a Bodhi update when making a decision is now ignored.
+
 Greenwave 0.8
 =============
 
