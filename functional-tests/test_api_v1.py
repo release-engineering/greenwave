@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import json
+import pytest
 
 from greenwave import __version__
 
@@ -15,6 +16,16 @@ OPENQA_SCENARIOS = [
     'scenario1',
     'scenario2',
 ]
+
+
+@pytest.mark.smoke
+def test_any_policies_loaded(requests_session, greenwave_server):
+    r = requests_session.get(greenwave_server + 'api/v1.0/policies',
+                             headers={'Content-Type': 'application/json'})
+    assert r.status_code == 200
+    body = r.json()
+    policies = body['policies']
+    assert len(policies) > 0
 
 
 def test_inspect_policies(requests_session, greenwave_server):
@@ -43,12 +54,14 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert any(p['rules'] == expected_rules for p in policies)
 
 
+@pytest.mark.smoke
 def test_version_endpoint(requests_session, greenwave_server):
     r = requests_session.get(greenwave_server + 'api/v1.0/version')
     assert r.status_code == 200
     assert {'version': __version__} == r.json()
 
 
+@pytest.mark.smoke
 def test_about_endpoint_jsonp(requests_session, greenwave_server):
     r = requests_session.get(greenwave_server + 'api/v1.0/about?callback=bac123')
     assert r.status_code == 200
@@ -56,6 +69,7 @@ def test_about_endpoint_jsonp(requests_session, greenwave_server):
     assert '"version": "%s"' % __version__ in r.text
 
 
+@pytest.mark.smoke
 def test_version_redirect(requests_session, greenwave_server):
     r = requests_session.get(greenwave_server + 'api/v1.0/version')
     assert r.status_code == 200
@@ -63,6 +77,7 @@ def test_version_redirect(requests_session, greenwave_server):
     assert r.url.endswith('about')
 
 
+@pytest.mark.smoke
 def test_cannot_make_decision_without_product_version(requests_session, greenwave_server):
     data = {
         'decision_context': 'bodhi_update_push_stable',
@@ -76,6 +91,7 @@ def test_cannot_make_decision_without_product_version(requests_session, greenwav
     assert 'Missing required product version' == r.json()['message']
 
 
+@pytest.mark.smoke
 def test_cannot_make_decision_without_decision_context(requests_session, greenwave_server):
     data = {
         'product_version': 'fedora-26',
@@ -89,6 +105,7 @@ def test_cannot_make_decision_without_decision_context(requests_session, greenwa
     assert 'Missing required decision context' == r.json()['message']
 
 
+@pytest.mark.smoke
 def test_cannot_make_decision_without_subject_type(requests_session, greenwave_server):
     data = {
         'decision_context': 'bodhi_update_push_stable',
@@ -102,6 +119,7 @@ def test_cannot_make_decision_without_subject_type(requests_session, greenwave_s
     assert 'Missing required "subject_type" parameter' == r.json()['message']
 
 
+@pytest.mark.smoke
 def test_cannot_make_decision_without_subject_identifier(requests_session, greenwave_server):
     data = {
         'decision_context': 'bodhi_update_push_stable',
@@ -115,6 +133,7 @@ def test_cannot_make_decision_without_subject_identifier(requests_session, green
     assert 'Missing required "subject_identifier" parameter' == r.json()['message']
 
 
+@pytest.mark.smoke
 def test_cannot_make_decision_with_invalid_subject(requests_session, greenwave_server):
     data = {
         'decision_context': 'bodhi_update_push_stable',
@@ -139,6 +158,7 @@ def test_cannot_make_decision_with_invalid_subject(requests_session, greenwave_s
     assert 'Invalid subject, must be a list of dicts' == r.json()['message']
 
 
+@pytest.mark.smoke
 def test_404_for_invalid_product_version(requests_session, greenwave_server, testdatabuilder):
     update = testdatabuilder.create_bodhi_update(build_nvrs=[testdatabuilder.unique_nvr()])
     data = {
@@ -156,6 +176,7 @@ def test_404_for_invalid_product_version(requests_session, greenwave_server, tes
     assert expected == r.json()['message']
 
 
+@pytest.mark.smoke
 def test_404_for_invalid_decision_context(requests_session, greenwave_server, testdatabuilder):
     update = testdatabuilder.create_bodhi_update(build_nvrs=[testdatabuilder.unique_nvr()])
     data = {
@@ -173,6 +194,7 @@ def test_404_for_invalid_decision_context(requests_session, greenwave_server, te
     assert expected == r.json()['message']
 
 
+@pytest.mark.smoke
 def test_415_for_missing_request_content_type(requests_session, greenwave_server):
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               data=json.dumps({}))
@@ -181,12 +203,15 @@ def test_415_for_missing_request_content_type(requests_session, greenwave_server
     assert expected == r.json()['message']
 
 
+@pytest.mark.smoke
 def test_invalid_payload(requests_session, greenwave_server):
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data='not a json')
     assert r.status_code == 400
-    assert "Failed to decode JSON object" in r.json()['message']
+    message = r.json()['message']
+    assert "Failed to decode JSON object" in message or \
+        "sent a request that this server could not understand" in message
 
 
 def test_make_a_decision_on_passed_result(requests_session, greenwave_server, testdatabuilder):
