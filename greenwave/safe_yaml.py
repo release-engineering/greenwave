@@ -90,8 +90,8 @@ class SafeYAMLList(SafeYAMLAttribute):
     def default_value(self):
         return []
 
-    def to_json(self, values):
-        return [self._item_to_json(value) for value in values]
+    def to_json(self, value):
+        return [self._item_to_json(item) for item in value]
 
     def _item_to_json(self, value):
         if isinstance(value, SafeYAMLObject):
