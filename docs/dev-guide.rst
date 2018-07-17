@@ -48,12 +48,20 @@ functional tests like this:
 
 .. code-block:: console
 
-   $ PYTHONPATH=. py.test-3 functional-tests/
+   $ py.test-3 functional-tests/
 
 The functional tests assume you have ResultsDB and WaiverDB git checkouts in
 :file:`../resultsdb` and :file:`../waiverdb` respectively. You can tell it to
 find them in a different location by passing ``RESULTSDB`` or ``WAIVERDB``
 environment variables.
+
+You should run smoke test after deploying on stage:
+
+.. code-block:: console
+
+    $ export GREENWAVE_TEST_URL=https://greenwave.stg.fedoraproject.org/
+    $ export WAIVERDB_TEST_URL=https://waiverdb.stg.fedoraproject.org/
+    $ py.test-3 functional-tests -m smoke
 
 Docker Compose
 ==============
