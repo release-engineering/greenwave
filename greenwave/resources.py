@@ -36,8 +36,7 @@ def retrieve_scm_from_koji(nvr):
             build, nvr, current_app.config['KOJI_BASE_URL']))
 
     try:
-        original_url = build['extra']['source']['original_url']
-        url = urlparse(original_url)
+        url = urlparse(build['source'])
 
         if not url.scheme.startswith('git'):
             raise BadGateway('Unable to extract scm from koji.  '
