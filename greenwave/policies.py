@@ -2,6 +2,7 @@
 
 from fnmatch import fnmatch
 import logging
+import re
 import greenwave.resources
 
 from greenwave.safe_yaml import (
@@ -291,6 +292,11 @@ class RemoteRule(Rule):
 
         pkg_name = subject_identifier.rsplit('-', 2)[0]
         pkg_namespace, rev = greenwave.resources.retrieve_scm_from_koji(subject_identifier)
+        # if the element is actually a container and not a pkg there will be a "-container"
+        # string at the end of the "pkg_name" and it will not match with the one in the
+        # gating.yaml URL
+        if pkg_namespace == 'containers':
+            pkg_name = re.sub('-container$', '', pkg_name)
         response = greenwave.resources.retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace)
 
         if response is None:
