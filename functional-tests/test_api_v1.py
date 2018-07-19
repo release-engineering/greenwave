@@ -36,7 +36,7 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 7
+    assert len(policies) == 8
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)
@@ -891,3 +891,65 @@ def test_validate_gating_yaml_missing_tag(requests_session, greenwave_server):
         greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
     assert result.json().get('message') == "Missing !Policy tag"
     assert result.status_code == 400
+
+
+def test_make_a_decision_about_compose_all_variants_architectures(
+        requests_session, greenwave_server, testdatabuilder):
+    compose_id = testdatabuilder.unique_compose_id()
+
+    failed_results = testdatabuilder.create_rtt_compose_result(
+        compose_id=compose_id,
+        variant='BaseOS',
+        architecture='ppc64',
+        outcome='FAILED')
+
+    testdatabuilder.create_rtt_compose_result(
+        compose_id=compose_id,
+        variant='BaseOS',
+        architecture='x86_64',
+        outcome='PASSED')
+
+    data = {
+        'decision_context': 'rtt_compose_gate',
+        'product_version': 'rhel-something',
+        'subject_type': 'compose',
+        'subject_identifier': compose_id,
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert not res_data['policies_satisfied']
+    assert res_data['unsatisfied_requirements'] == [{
+        'item': {'productmd.compose.id': compose_id},
+        'result_id': failed_results['id'],
+        'scenario': None,
+        'testcase': 'rtt.acceptance.validation',
+        'type': 'test-result-failed'
+    }]
+
+
+def test_make_a_decision_about_compose_new_variants_architectures(
+        requests_session, greenwave_server, testdatabuilder):
+    compose_id = testdatabuilder.unique_compose_id()
+
+    for arch, outcome in [('ppc64', 'FAILED'), ('ppc64', 'PASSED'), ('x86_64', 'PASSED')]:
+        testdatabuilder.create_rtt_compose_result(
+            compose_id=compose_id,
+            variant='BaseOS',
+            architecture=arch,
+            outcome=outcome)
+
+    data = {
+        'decision_context': 'rtt_compose_gate',
+        'product_version': 'rhel-something',
+        'subject_type': 'compose',
+        'subject_identifier': compose_id,
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied']

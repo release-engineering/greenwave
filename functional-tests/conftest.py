@@ -274,6 +274,18 @@ class TestDataBuilder(object):
             data['data']['scenario'] = scenario
         return self._create_result(data)
 
+    def create_rtt_compose_result(self, compose_id, outcome, variant, architecture):
+        data = {
+            'testcase': {'name': 'rtt.acceptance.validation'},
+            'outcome': outcome,
+            'data': {
+                'productmd.compose.id': [compose_id],
+                'system_variant': [variant],
+                'system_architecture': [architecture],
+            }
+        }
+        return self._create_result(data)
+
     def create_koji_build_result(self, nvr, testcase_name, outcome, type_='koji_build'):
         data = {
             'testcase': {'name': testcase_name},

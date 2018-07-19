@@ -360,21 +360,32 @@ class PassingTestCaseRule(Rule):
             return TestResultMissingWaived(
                 subject_type, subject_identifier, self.test_case_name, self.scenario)
 
+        # For compose make decisions based on all architectures and variants.
+        if subject_type == 'compose':
+            visited_arch_variants = set()
+            answers = []
+            for result in matching_results:
+                result_data = result['data']
+
+                # Items under test result "data" are lists which are unhashable
+                # types in Python. This converts anything that is stored there
+                # to a string so we don't have to care about the stored value.
+                arch_variant = (
+                    str(result_data.get('system_architecture')),
+                    str(result_data.get('system_variant')))
+
+                if arch_variant not in visited_arch_variants:
+                    visited_arch_variants.add(arch_variant)
+                    answers.append(
+                        self._answer_for_result(result, waivers, subject_type, subject_identifier))
+
+            return answers
+
         # If we find multiple matching results, we always use the first one which
         # will be the latest chronologically, because ResultsDB always returns
         # results ordered by `submit_time` descending.
         matching_result = matching_results[0]
-        if matching_result['outcome'] in ['PASSED', 'INFO']:
-            return TestResultPassed(self.test_case_name, matching_result['id'])
-
-        # XXX limit who is allowed to waive
-        if any(w['subject'] == dict([(key, value[0])
-               for key, value in matching_result['data'].items()]) and
-               w['testcase'] == matching_result['testcase']['name'] and
-               w['waived'] for w in waivers):
-            return TestResultPassed(self.test_case_name, matching_result['id'])
-        return TestResultFailed(subject_type, subject_identifier, self.test_case_name,
-                                self.scenario, matching_result['id'])
+        return self._answer_for_result(matching_result, waivers, subject_type, subject_identifier)
 
     def to_json(self):
         return {
@@ -382,6 +393,19 @@ class PassingTestCaseRule(Rule):
             'test_case_name': self.test_case_name,
             'scenario': self.scenario,
         }
+
+    def _answer_for_result(self, result, waivers, subject_type, subject_identifier):
+        if result['outcome'] in ['PASSED', 'INFO']:
+            return TestResultPassed(self.test_case_name, result['id'])
+
+        # XXX limit who is allowed to waive
+        if any(w['subject'] == dict([(key, value[0])
+               for key, value in result['data'].items()]) and
+               w['testcase'] == result['testcase']['name'] and
+               w['waived'] for w in waivers):
+            return TestResultPassed(self.test_case_name, result['id'])
+        return TestResultFailed(subject_type, subject_identifier, self.test_case_name,
+                                self.scenario, result['id'])
 
 
 class PackageSpecificRule(Rule):
