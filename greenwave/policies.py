@@ -230,8 +230,12 @@ def summarize_answers(answers):
     if not answers:
         return 'no tests are required'
 
-    failure_count = len([answer for answer in answers if isinstance(answer, TestResultFailed)])
+    failure_count = len([answer for answer in answers if isinstance(answer, RuleNotSatisfied)])
     missing_count = len([answer for answer in answers if isinstance(answer, TestResultMissing)])
+
+    # Missing results are also failures but we will distinguish between those
+    # two in summary message.
+    failure_count -= missing_count
 
     if failure_count and missing_count:
         return '{} of {} required tests failed, {} result{} missing'.format(
