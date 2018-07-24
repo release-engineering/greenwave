@@ -175,7 +175,10 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 })
                 old_decision = greenwave.resources.retrieve_decision(greenwave_url, data)
 
-                if decision != old_decision:
+                if decision == old_decision:
+                    log.debug('Skipped emitting fedmsg, decision did not change: {}'.format(
+                        decision))
+                else:
                     decision.update({
                         'subject_type': subject_type,
                         'subject_identifier': subject_identifier,
