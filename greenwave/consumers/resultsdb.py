@@ -83,6 +83,8 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         _type = _decode(data.get('type'))
         if _type == 'bodhi_update' and 'item' in data:
             yield ('bodhi_update', _decode(data['item']))
+        if _type == 'compose' and 'item' in data:
+            yield ('compose', _decode(data['item']))
         if 'productmd.compose.id' in data:
             yield ('compose', _decode(data['productmd.compose.id']))
         if (_type == 'koji_build' and 'item' in data or

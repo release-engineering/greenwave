@@ -57,3 +57,31 @@ def test_announcement_subjects_for_brew_build():
             subjects = list(cls.announcement_subjects(message))
 
     assert subjects == [('koji_build', 'glibc-1.0-3.fc27')]
+
+
+def test_announcement_subjects_for_autocloud_compose():
+    cls = greenwave.consumers.resultsdb.ResultsDBHandler
+    app = greenwave.app_factory.create_app()
+    message = {
+        'msg': {
+            'task': {
+                'item': 'Fedora-AtomicHost-28_Update-20180723.1839.x86_64.qcow2',
+                'type': 'compose',
+                'name': 'compose.install_no_user'
+            },
+            'result': {
+                'prev_outcome': None,
+                'outcome': 'PASSED',
+                'id': 23004689,
+                'submit_time': '2018-07-23 21:07:38 UTC',
+                'log_url': 'https://apps.fedoraproject.org/autocloud/jobs/9238/output'
+            }
+        }
+    }
+
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_update_for_build') as f:
+            f.return_value = None
+            subjects = list(cls.announcement_subjects(message))
+
+    assert subjects == [('compose', 'Fedora-AtomicHost-28_Update-20180723.1839.x86_64.qcow2')]

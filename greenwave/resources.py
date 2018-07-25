@@ -166,6 +166,7 @@ def retrieve_results(subject_type, subject_identifier):
         results.extend(retrieve_item_results({'original_spec_nvr': subject_identifier}))
     elif subject_type == 'compose':
         results.extend(retrieve_item_results({'productmd.compose.id': subject_identifier}))
+        results.extend(retrieve_item_results({'type': 'compose', 'item': subject_identifier}))
     else:
         raise RuntimeError('Unhandled subject type %r' % subject_type)
     return results
