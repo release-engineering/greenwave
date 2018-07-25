@@ -2,6 +2,33 @@
 Release Notes
 =============
 
+Greenwave 0.9.0
+===============
+
+Released 25 July 2018.
+
+* Content of :file:`gating.yaml` can be verified by posting it to new endpoint
+  :http:post:`/api/v1.0/validate-gating-yaml` (#217).
+
+  ::
+
+    curl --data-binary '@redhat.yaml' \
+        https://greenwave-web-greenwave.app.os.fedoraproject.org/api/v1.0/validate-gating-yaml
+
+* Parsing of policies and :file:`gating.yaml` is now more type-safe.
+
+* Decision for compose is based on results with give compose ID for all
+  architecture/variant combinations (these are stored in results as
+  ``system_architecture`` and ``system_variant``). Previously only single
+  latest result was considered.
+
+* Summary messages with an "invalid gating.yaml" failed test are clearer about
+  the failing tests (#260).
+
+* Decision update messages are emitted for old compose tests.
+
+* Retrieving :file:`gating.yaml` file for containers is fixed.
+
 Greenwave 0.8.1
 ===============
 
