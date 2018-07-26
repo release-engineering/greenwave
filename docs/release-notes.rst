@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+Greenwave 0.9.1
+===============
+
+Released 26 July 2018.
+
+* Removing useless check in the RemoteRule feature that is blocking the
+  decision.
+
 Greenwave 0.9.0
 ===============
 
