@@ -42,10 +42,6 @@ def retrieve_scm_from_koji(nvr):
             raise BadGateway('Unable to extract scm from koji.  '
                              '%s doesn\'t begin with git://' % url)
 
-        if url.netloc not in current_app.config['DIST_GIT_BASE_URL']:
-            raise BadGateway('Unable to extract scm from koji.  '
-                             '%s is an unrecognized scm domain.' % url)
-
         rev = url.fragment
         namespace = url.path.split('/')[-2]
         return namespace, rev
