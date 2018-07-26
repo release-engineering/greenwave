@@ -442,7 +442,8 @@ def test_invalidate_new_result_with_no_preexisting_cache(
         #'topic_prefix.environment.waiver.new',
     ]
     handler.consume(message)
-    handler.cache.delete.assert_not_called()
+    cache_key = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
+    handler.cache.delete.assert_called_once_with(cache_key)
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')

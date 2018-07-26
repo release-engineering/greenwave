@@ -31,11 +31,13 @@ def _invalidate_results_cache(
     """
     key = greenwave.resources.results_cache_key(
         subject_type, subject_identifier, testcase)
-    if not cache.get(key):
-        log.debug("No cache value found for %r", key)
-    else:
-        log.debug("Invalidating cache for %r", key)
+
+    log.debug("Invalidating cache for %r", key)
+
+    try:
         cache.delete(key)
+    except KeyError:
+        log.debug("No cache value found for %r", key)
 
 
 class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
