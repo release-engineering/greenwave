@@ -20,7 +20,7 @@ Released 25 July 2018.
 
   ::
 
-    curl --data-binary '@redhat.yaml' \
+    curl --data-binary '@gating.yaml' \
         https://greenwave-web-greenwave.app.os.fedoraproject.org/api/v1.0/validate-gating-yaml
 
 * Parsing of policies and :file:`gating.yaml` is now more type-safe.
