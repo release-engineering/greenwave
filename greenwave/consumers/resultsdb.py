@@ -138,13 +138,23 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             result_id (int): A result ID to ignore for comparison.
             testcase (munch.Munch): The name of a testcase to consider.
         """
+        # Also need to apply policies for each build in the update.
+        if subject_type == 'bodhi_update':
+            subject_types = set([subject_type, 'koji_build'])
+        else:
+            subject_types = set([subject_type])
 
         # Build a set of all policies which might apply to this new results
         applicable_policies = set()
         for policy in current_app.config['policies']:
-            for rule in policy.rules:
-                if getattr(rule, 'test_case_name', None) == testcase:
+            if policy.subject_type in subject_types:
+                testcases = (
+                    getattr(rule, 'test_case_name', None)
+                    for rule in policy.rules)
+
+                if testcase in testcases:
                     applicable_policies.add(policy)
+
         log.debug("messaging: found %i applicable policies of %i for testcase %r",
                   len(applicable_policies), len(current_app.config['policies']), testcase)
 
@@ -169,13 +179,18 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                     'subject_type': subject_type,
                     'subject_identifier': subject_identifier,
                 }
-                decision = greenwave.resources.retrieve_decision(greenwave_url, data)
 
-                # get old decision
-                data.update({
-                    'ignore_result': [result_id],
-                })
-                old_decision = greenwave.resources.retrieve_decision(greenwave_url, data)
+                try:
+                    decision = greenwave.resources.retrieve_decision(greenwave_url, data)
+
+                    # get old decision
+                    data.update({
+                        'ignore_result': [result_id],
+                    })
+                    old_decision = greenwave.resources.retrieve_decision(greenwave_url, data)
+                except requests.exceptions.HTTPError as e:
+                    log.exception('Failed to retrieve decision for data=%s, error: %s', data, e)
+                    continue
 
                 if decision == old_decision:
                     log.debug('Skipped emitting fedmsg, decision did not change: %s', decision)

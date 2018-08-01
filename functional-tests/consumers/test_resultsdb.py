@@ -643,3 +643,48 @@ def test_consume_legacy_result(
         'previous': old_decision,
     }
     mock_fedmsg.assert_any_call(topic='decision.update', msg=second_msg)
+
+
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+def test_no_message_for_nonapplicable_policies(
+        mock_fedmsg, load_config, requests_session, greenwave_server,
+        testdatabuilder):
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
+    nvr = testdatabuilder.unique_nvr()
+    # One result gets the decision in a certain state.
+    testdatabuilder.create_result(item=nvr,
+                                  testcase_name='a_package_test',
+                                  outcome='FAILED')
+    # Recording a new version of the same result shouldn't change our decision at all.
+    new_result = testdatabuilder.create_result(
+        item=nvr,
+        testcase_name='a_package_test',
+        outcome='PASSED')
+    message = {
+        'body': {
+            'topic': 'resultsdb.result.new',
+            'msg': {
+                'id': new_result['id'],
+                'outcome': 'PASSED',
+                'testcase': {
+                    'name': 'a_package_test',
+                },
+                'data': {
+                    'item': [nvr],
+                    'type': ['koji_build'],
+                }
+            }
+        }
+    }
+    hub = mock.MagicMock()
+    hub.config = {
+        'environment': 'environment',
+        'topic_prefix': 'topic_prefix',
+    }
+    handler = resultsdb.ResultsDBHandler(hub)
+    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler.consume(message)
+    # No message should be published as the decision is unchanged since we
+    # are still missing the required tests.
+    mock_fedmsg.assert_not_called()
