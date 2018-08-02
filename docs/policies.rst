@@ -217,6 +217,27 @@ This rule allows the packager to configure some additional policies in a
 :file:`gating.yaml` file configured in the repo.
 To "activate" this feature is necessary to configure a policy among the
 others policies configured in the default directory.
+
+If you want to add a policy for the Fedora Greenwave, you need to change
+this file committing and pushing a change with the new policy:
+https://infrastructure.fedoraproject.org/cgit/ansible.git/tree/roles/openshift-apps/greenwave/templates/configmap.yml
+
+Then you need to login to batcave and run the ansible repo to apply the
+changes:
+
+::
+
+        sudo rbac-playbook openshift-apps/greenwave.yml
+
+If you have permission problems ask in the IRC freenode channel
+#fedora-apps.
+
+You can:
+
+* add a rule to an existing Policy
+* add a Policy
+
+
 Here's an example of a RemoteRule:
 
 .. code-block:: console
@@ -232,17 +253,20 @@ Here's an example of a RemoteRule:
      - !RemoteRule {}
 
 
-It is also required to configure ``KOJI_BASE_URL``, ``DIST_GIT_BASE_URL``
-and ``DIST_GIT_URL_TEMPLATE`` in the configuration settings.
+Once the code is pushed, Greenwave will start to check if there is a
+gating.yaml file in your dist-git repo. If you didn't configure any
+gating.yaml file nothing will change.
 
-Examples:
+Greenwave will check if a gating.yaml exists, if it does, it pulls it
+down, loads it, and uses it to additionally evaluate the subject of the
+decision.
+
+Greenwave requires these configuration parameters ``KOJI_BASE_URL``,
+``DIST_GIT_BASE_URL`` and ``DIST_GIT_URL_TEMPLATE``. Here's the default
+for the Fedora instance:
 
 .. code-block:: console
 
    DIST_GIT_BASE_URL = 'https://src.fedoraproject.org/'
    DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}{pkg_namespace}/{pkg_name}/raw/{rev}/f/gating.yaml'
    KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
-
-Greenwave checks if a gating.yaml file exists in the specified repo, and, if it
-does, it pulls it down, loads it, and uses it to additionally evaluate the
-subject of the decision.
