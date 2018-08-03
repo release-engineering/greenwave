@@ -62,6 +62,16 @@ blacklist: []
 rules:
   - !RemoteRule {}
 
+--- !Policy
+id: "bodhi_update_with_a_package_test"
+product_versions:
+  - fedora-26
+decision_context: bodhi_update_with_a_package_test
+subject_type: bodhi_update
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: a_package_test}
+
 # No Fedora product has *actually* used an empty policy like this,
 # but we cover it in our tests for completeness.
 --- !Policy
