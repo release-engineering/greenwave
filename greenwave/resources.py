@@ -28,27 +28,43 @@ requests_session = requests.Session()
 @greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_scm_from_koji(nvr):
     """ Retrieve cached rev and namespace from koji using the nvr """
-    proxy = xmlrpc.client.ServerProxy(current_app.config['KOJI_BASE_URL'])
+    koji_url = current_app.config['KOJI_BASE_URL']
+    proxy = xmlrpc.client.ServerProxy(koji_url)
     build = proxy.getBuild(nvr)
+    return retrieve_scm_from_koji_build(nvr, build, koji_url)
 
+
+def retrieve_scm_from_koji_build(nvr, build, koji_url):
     if not build:
-        raise BadGateway("Found %s when looking for %s at %s" % (
-            build, nvr, current_app.config['KOJI_BASE_URL']))
+        raise BadGateway(
+            'Failed to find Koji build for "{}" at "{}"'.format(nvr, koji_url))
 
-    try:
-        url = urlparse(build['source'])
+    source = build.get('source')
+    if not source:
+        raise BadGateway(
+            'Failed to retrieve SCM URL from Koji build "{}" at "{}" '
+            '(expected SCM URL in "source" attribute)'
+            .format(nvr, koji_url))
 
-        if not url.scheme.startswith('git'):
-            raise BadGateway('Unable to extract scm from koji.  '
-                             '%s doesn\'t begin with git://' % url)
+    url = urlparse(source)
 
-        rev = url.fragment
-        namespace = url.path.split('/')[-2]
-        return namespace, rev
-    except Exception:
-        error = 'Error occurred looking for the "rev" in koji.'
-        log.exception(error)
-        raise BadGateway(error)
+    path_components = url.path.rsplit('/', 2)
+    if len(path_components) < 3:
+        raise BadGateway(
+            'Failed to parse SCM URL "{}" from Koji build "{}" at "{}" '
+            '(expected second to last component to be namespace)'
+            .format(source, nvr, koji_url))
+
+    namespace = path_components[-2]
+
+    rev = url.fragment
+    if not rev:
+        raise BadGateway(
+            'Failed to parse SCM URL "{}" from Koji build "{}" at "{}" '
+            '(missing URL fragment with SCM revision information)'
+            .format(source, nvr, koji_url))
+
+    return namespace, rev
 
 
 @cached
