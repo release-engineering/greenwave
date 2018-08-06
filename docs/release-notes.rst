@@ -2,6 +2,17 @@
 Release Notes
 =============
 
+Greenwave 0.9.2
+===============
+
+Released 06 August 2018.
+
+* Small code improvement: removed unsed variable.
+
+* Fixed retrieving old decisions when publishing a new message about a
+  decision change (when received a message about a new result) and
+  improved the logging for errors in case of exception.
+
 Greenwave 0.9.1
 ===============
 
