@@ -21,8 +21,6 @@ import greenwave.cache
 import greenwave.resources
 from greenwave.api_v1 import subject_type_identifier_to_list
 
-requests_session = requests.Session()
-
 
 log = logging.getLogger(__name__)
 
