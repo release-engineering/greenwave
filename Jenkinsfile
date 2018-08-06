@@ -28,9 +28,7 @@ node('fedora-27') {
         sh 'DEV=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example make -C docs html'
         archiveArtifacts artifacts: 'docs/_build/html/**'
     }
-    /* Can't use GIT_BRANCH because of this issue https://issues.jenkins-ci.org/browse/JENKINS-35230 */
-    def git_branch = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
-    if (git_branch == 'master') {
+    if (scmVars.GIT_BRANCH == 'origin/master') {
         stage('Publish Docs') {
             sshagent (credentials: ['pagure-greenwave-deploy-key']) {
                 sh '''
