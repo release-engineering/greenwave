@@ -100,7 +100,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
                     if not response.ok:
                         log.error(response.text)
-                        response.raise_for_status()
+                        continue
 
                     decision = response.json()
 
@@ -115,7 +115,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
                     if not response.ok:
                         log.error(response.text)
-                        response.raise_for_status()
+                        continue
 
                     old_decision = response.json()
 
