@@ -2,6 +2,16 @@
 Release Notes
 =============
 
+Greenwave 0.9.3
+===============
+
+Released 08 August 2018.
+
+* Fixed doc publication.
+
+* Fixed Waiverdb consumer: preventing it to stop when an error occurs
+  when analyzing if a decision change is required.
+
 Greenwave 0.9.2
 ===============
 
