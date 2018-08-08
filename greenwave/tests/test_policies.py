@@ -68,6 +68,53 @@ rules:
     assert isinstance(decision[0], RuleSatisfied)
 
 
+def test_waive_brew_koji_mismatch(tmpdir):
+    """ Ensure that a koji_build waiver can match a brew-build result
+
+    Note that 'brew-build' in the result does not match 'koji_build' in the
+    waiver.  Even though these are different strings, this should work.
+    """
+
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: some_id
+product_versions:
+- irrelevant
+decision_context: test
+subject_type: koji_build
+rules:
+  - !PassingTestCaseRule {test_case_name: sometest}
+        """)
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+
+    result = {
+        u'data': {
+            u'item': [u'some_nevr'],
+            u'type': [u'brew-build'],
+        },
+        u'id': 6336180,
+        u'outcome': u'FAILED',
+        u'testcase': {u'name': u'sometest'},
+    }
+    waiver = {
+        u'subject_identifier': u'some_nevr',
+        u'subject_type': u'koji_build',
+        u'testcase': u'sometest',
+        u'waived': True,
+    }
+
+    item, results, waivers = 'some_nevr', [result], [waiver]
+    decision = policy.check(item, results, [])
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultFailed)
+
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], RuleSatisfied)
+
+
 def test_package_specific_rule(tmpdir):
     p = tmpdir.join('fedora.yaml')
     p.write("""
@@ -92,7 +139,10 @@ rules:
     # That a matching, failing result can fail
     results = [{
         'id': 123,
-        'item': 'nethack-1.2.3-1.el9000',
+        'data': {
+            'item': 'nethack-1.2.3-1.el9000',
+            'type': 'koji_build',
+        },
         'testcase': {'name': 'sometest'},
         'outcome': 'FAILED',
     }]
@@ -103,7 +153,10 @@ rules:
     # That a matching, passing result can pass
     results = [{
         'id': 123,
-        'item': 'nethack-1.2.3-1.el9000',
+        'data': {
+            'item': 'nethack-1.2.3-1.el9000',
+            'type': 'koji_build',
+        },
         'testcase': {'name': 'sometest'},
         'outcome': 'PASSED',
     }]
@@ -142,7 +195,10 @@ rules:
     # Ensure that fnmatch globs work in the negative.
     results = [{
         'id': 123,
-        'item': 'nethack-1.2.3-1.el9000',
+        'data': {
+            'item': 'nethack-1.2.3-1.el9000',
+            'type': 'koji_build',
+        },
         'testcase': {'name': 'sometest'},
         'outcome': 'FAILED',
     }]
@@ -153,7 +209,10 @@ rules:
     # Ensure that fnmatch globs work in the positive.
     results = [{
         'id': 123,
-        'item': 'nethack-1.2.3-1.el9000',
+        'data': {
+            'item': 'nethack-1.2.3-1.el9000',
+            'type': 'koji_build',
+        },
         'testcase': {'name': 'sometest'},
         'outcome': 'SUCCESS',
     }]

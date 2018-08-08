@@ -402,11 +402,14 @@ class PassingTestCaseRule(Rule):
         if result['outcome'] in ['PASSED', 'INFO']:
             return TestResultPassed(self.test_case_name, result['id'])
 
-        # XXX limit who is allowed to waive
-        if any(w['subject'] == dict([(key, value[0])
-               for key, value in result['data'].items()]) and
-               w['testcase'] == result['testcase']['name'] and
-               w['waived'] for w in waivers):
+        # TODO limit who is allowed to waive
+
+        matching_waivers = [w for w in waivers if (
+            w['subject_type'] == subject_type and
+            w['subject_identifier'] == result['data']['item'][0] and
+            w['testcase'] == result['testcase']['name']
+        )]
+        if matching_waivers:
             return TestResultPassed(self.test_case_name, result['id'])
         return TestResultFailed(subject_type, subject_identifier, self.test_case_name,
                                 self.scenario, result['id'])
