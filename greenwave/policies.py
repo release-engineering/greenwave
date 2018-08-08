@@ -407,7 +407,8 @@ class PassingTestCaseRule(Rule):
         matching_waivers = [w for w in waivers if (
             w['subject_type'] == subject_type and
             w['subject_identifier'] == result['data']['item'][0] and
-            w['testcase'] == result['testcase']['name']
+            w['testcase'] == result['testcase']['name'] and
+            w['waived'] is True
         )]
         if matching_waivers:
             return TestResultPassed(self.test_case_name, result['id'])

@@ -114,6 +114,12 @@ rules:
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
+    # Also, be sure that negative waivers work.
+    waivers[0]['waived'] = False
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultFailed)
+
 
 def test_package_specific_rule(tmpdir):
     p = tmpdir.join('fedora.yaml')
