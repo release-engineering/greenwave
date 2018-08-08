@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+Greenwave 0.9.4
+===============
+
+Released 08 August 2018
+
+* Fixed a bug in waiver processing that failed to
+  match koji_build waivers with brew-build results.
+
 Greenwave 0.9.3
 ===============
 
@@ -88,7 +96,7 @@ Released 3 July 2018.
   ``RemoteRule``. See :ref:`remote-rule` (#220).
 
 * The documentation now includes a section targeted at package maintainers to
-  explain how they can define package-specific policies (#222). See 
+  explain how they can define package-specific policies (#222). See
   :doc:`package-specific-policies`.
 
 * Policy attribute ``id`` is now optional in :file:`gating.yaml` (#217).
@@ -96,11 +104,11 @@ Released 3 July 2018.
 * Policy attribute ``blacklist`` is now optional.
 
 * In case a package's :file:`gating.yaml` file is invalid or malformed,
-  Greenwave will now return an unsatisfied decision with an unsatisfied 
-  requirement of type ``invalid-gating-yaml``. This can be waived in order to 
-  allow a package to proceed through a gating point in spite of the invalid 
-  :file:`gating.yaml` file. Previously, Greenwave would return a 500 error 
-  response and it was not possible to waive the invalid :file:`gating.yaml` 
+  Greenwave will now return an unsatisfied decision with an unsatisfied
+  requirement of type ``invalid-gating-yaml``. This can be waived in order to
+  allow a package to proceed through a gating point in spite of the invalid
+  :file:`gating.yaml` file. Previously, Greenwave would return a 500 error
+  response and it was not possible to waive the invalid :file:`gating.yaml`
   file. (#221)
 
 * Settings ``greenwave_cache`` for fedmsg was dropped in favor of ``CACHE``
