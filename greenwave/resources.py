@@ -46,12 +46,12 @@ class ResultsRetriever(object):
     """
     Retrieves results from cache or ResultsDB.
     """
-    def __init__(self, cache, ignore_results):
+    def __init__(self, cache, ignore_results, timeout, verify, url):
         self.cache = cache
         self.ignore_results = ignore_results
-        self.timeout = current_app.config['REQUESTS_TIMEOUT']
-        self.verify = current_app.config['REQUESTS_VERIFY']
-        self.url = current_app.config['RESULTSDB_API_URL']
+        self.timeout = timeout
+        self.verify = verify
+        self.url = url
         self.all_results = []
 
     def all_retrieved_results(self):

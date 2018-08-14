@@ -327,7 +327,12 @@ def make_decision():
                 subject_type, decision_context, product_version))
 
     answers = []
-    results_retriever = ResultsRetriever(current_app.cache, ignore_results)
+    results_retriever = ResultsRetriever(
+        cache=current_app.cache,
+        ignore_results=ignore_results,
+        timeout=current_app.config['REQUESTS_TIMEOUT'],
+        verify=current_app.config['REQUESTS_VERIFY'],
+        url=current_app.config['RESULTSDB_API_URL'])
     waivers = retrieve_waivers(product_version, subject_type, [subject_identifier])
     waivers = [w for w in waivers if w['id'] not in ignore_waivers]
 
