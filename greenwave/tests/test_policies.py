@@ -145,6 +145,51 @@ rules:
     assert isinstance(decision[0], TestResultFailed)
 
 
+def test_waive_bodhi_update(tmpdir):
+    """ Ensure that a koji_build waiver can match a brew-build result
+
+    Note that 'brew-build' in the result does not match 'koji_build' in the
+    waiver.  Even though these are different strings, this should work.
+    """
+
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: some_id
+product_versions:
+- irrelevant
+decision_context: test
+subject_type: bodhi_update
+rules:
+  - !PassingTestCaseRule {test_case_name: sometest}
+        """)
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+
+    item = 'some_bodhi_update'
+    results = DummyResultsRetriever(item, 'sometest', 'FAILED', 'bodhi_update')
+    waivers = [{
+        u'subject_identifier': item,
+        u'subject_type': 'bodhi_update',
+        u'testcase': 'sometest',
+        u'waived': True,
+    }]
+
+    decision = policy.check(item, results, [])
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultFailed)
+
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], RuleSatisfied)
+
+    # Also, be sure that negative waivers work.
+    waivers[0]['waived'] = False
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultFailed)
+
+
 def test_package_specific_rule(tmpdir):
     p = tmpdir.join('fedora.yaml')
     p.write("""
