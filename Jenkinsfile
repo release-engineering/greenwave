@@ -14,8 +14,11 @@ node('master'){
 timestamps {
 node('fedora-27') {
     checkout scm
-    sh 'sudo dnf -y builddep greenwave.spec'
-    sh 'sudo dnf -y install python3-flake8 python3-pylint python3-sphinx python3-sphinxcontrib-httpdomain'
+    sh '''
+    sudo dnf -y builddep greenwave.spec
+    sudo dnf -y install python3-flake8 python3-pylint python3-sphinx \
+        python3-sphinxcontrib-httpdomain python3-pytest-cov
+    '''
     /* Needed to get the latest /etc/mock/fedora-28-x86_64.cfg */
     sh 'sudo dnf -y update mock-core-configs'
     stage('Invoke Flake8') {
@@ -23,6 +26,27 @@ node('fedora-27') {
     }
     stage('Invoke Pylint') {
         sh 'pylint-3 --reports=n greenwave'
+    }
+    stage('Run unit tests') {
+    // Yes, this is also done while building the RPM, but we need coverage
+        sh '''
+        rm -rf htmlcov coverage.xml
+        pytest-3 greenwave/tests/ \
+            --cov-config .coveragerc --cov=greenwave \
+            --cov-report term --cov-report xml --cov-report html
+        '''
+        archiveArtifacts artifacts: 'htmlcov/**,coverage.xml'
+        step([
+            $class: 'CoberturaPublisher',
+            autoUpdateHealth: false,
+            autoUpdateStability: false,
+            coberturaReportFile: 'coverage.xml',
+            failUnhealthy: false,
+            failUnstable: false,
+            maxNumberOfBuilds: 0,
+            onlyStable: false,
+            zoomCoverageChart: false
+        ])
     }
     stage('Build Docs') {
         sh 'DEV=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example make -C docs html'
