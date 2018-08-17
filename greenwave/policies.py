@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 from fnmatch import fnmatch
+import itertools
 import logging
 import re
 import greenwave.resources
@@ -262,7 +263,7 @@ class Rule(SafeYAMLObject):
 
     This base class is not used directly.
     """
-    def check(self, subject_type, subject_identifier, results, waivers):
+    def check(self, subject_type, subject_identifier, results_retriever, waivers):
         """
         Evaluate this policy rule for the given item.
 
@@ -271,7 +272,8 @@ class Rule(SafeYAMLObject):
                 (for example, 'koji_build', 'bodhi_update', ...)
             subject_identifier (str): Item we are making a decision about (for
                 example, Koji build NVR, Bodhi update id, ...)
-            results (list): List of result objects looked up in ResultsDB for this item.
+            results_retriever (ResultsRetriever): Object for retrieving data
+                from ResultsDB.
             waivers (list): List of waiver objects looked up in WaiverDB for the results.
 
         Returns:
@@ -290,7 +292,7 @@ class RemoteRule(Rule):
     yaml_tag = '!RemoteRule'
     safe_yaml_attributes = {}
 
-    def check(self, subject_type, subject_identifier, results, waivers):
+    def check(self, subject_type, subject_identifier, results_retriever, waivers):
         if subject_type != 'koji_build':
             return []
 
@@ -320,7 +322,7 @@ class RemoteRule(Rule):
 
         answers = []
         for policy in policies:
-            response = policy.check(subject_identifier, results, waivers)
+            response = policy.check(subject_identifier, results_retriever, waivers)
             if isinstance(response, list):
                 answers.extend(response)
             else:
@@ -345,19 +347,20 @@ class PassingTestCaseRule(Rule):
         'scenario': SafeYAMLString(optional=True),
     }
 
-    def check(self, subject_type, subject_identifier, results, waivers):
-        matching_results = [
-            r for r in results if r['testcase']['name'] == self.test_case_name]
+    def check(self, subject_type, subject_identifier, results_retriever, waivers):
+        matching_results = results_retriever.retrieve(
+            subject_type, subject_identifier, self.test_case_name)
         matching_waivers = [
             w for w in waivers if (w['testcase'] == self.test_case_name and w['waived'] is True)]
 
-        # Rules may optionally specify a scenario to limit applicability.
-        if self.scenario:
-            matching_results = [r for r in matching_results if self.scenario in
-                                r['data'].get('scenario', [])]
+        if self.scenario is not None:
+            matching_results = (
+                result for result in matching_results
+                if self.scenario in result['data']['scenario'])
 
-        # Investigate the absence of results first.
-        if not matching_results:
+        # Investigate the absence of result first.
+        latest_result = next(matching_results, None)
+        if not latest_result:
             if not matching_waivers:
                 return TestResultMissing(subject_type, subject_identifier, self.test_case_name,
                                          self.scenario)
@@ -366,6 +369,7 @@ class PassingTestCaseRule(Rule):
 
         # For compose make decisions based on all architectures and variants.
         if subject_type == 'compose':
+            matching_results = itertools.chain([latest_result], matching_results)
             visited_arch_variants = set()
             answers = []
             for result in matching_results:
@@ -388,8 +392,8 @@ class PassingTestCaseRule(Rule):
         # If we find multiple matching results, we always use the first one which
         # will be the latest chronologically, because ResultsDB always returns
         # results ordered by `submit_time` descending.
-        matching_result = matching_results[0]
-        return self._answer_for_result(matching_result, waivers, subject_type, subject_identifier)
+        return self._answer_for_result(
+            latest_result, waivers, subject_type, subject_identifier)
 
     def to_json(self):
         return {
@@ -399,7 +403,7 @@ class PassingTestCaseRule(Rule):
         }
 
     def _answer_for_result(self, result, waivers, subject_type, subject_identifier):
-        if result['outcome'] in ['PASSED', 'INFO']:
+        if result['outcome'] in ('PASSED', 'INFO'):
             return TestResultPassed(self.test_case_name, result['id'])
 
         # TODO limit who is allowed to waive
@@ -429,7 +433,7 @@ class PackageSpecificRule(Rule):
         'repos': SafeYAMLList(str),
     }
 
-    def check(self, subject_type, subject_identifier, results, waivers):
+    def check(self, subject_type, subject_identifier, results_retriever, waivers):
         """ Check that the subject passes testcase for the given results, but
         only if the subject is a build of a package name configured for
         this rule, specified by "repos".  Any of the repos may be a glob.
@@ -453,7 +457,7 @@ class PackageSpecificRule(Rule):
         rule = PassingTestCaseRule()
         # pylint: disable=attribute-defined-outside-init
         rule.test_case_name = self.test_case_name
-        return rule.check(subject_type, subject_identifier, results, waivers)
+        return rule.check(subject_type, subject_identifier, results_retriever, waivers)
 
     def to_json(self):
         return {
@@ -492,7 +496,7 @@ class Policy(SafeYAMLObject):
                 self._applies_to_product_version(product_version) and
                 subject_type == self.subject_type)
 
-    def check(self, subject_identifier, results, waivers):
+    def check(self, subject_identifier, results_retriever, waivers):
         # If an item is about a package and it is in the blacklist, return RuleSatisfied()
         if self.subject_type == 'koji_build':
             name = subject_identifier.rsplit('-', 2)[0]
@@ -500,7 +504,7 @@ class Policy(SafeYAMLObject):
                 return [BlacklistedInPolicy(subject_identifier) for rule in self.rules]
         answers = []
         for rule in self.rules:
-            response = rule.check(self.subject_type, subject_identifier, results, waivers)
+            response = rule.check(self.subject_type, subject_identifier, results_retriever, waivers)
             if isinstance(response, list):
                 answers.extend(response)
             else:

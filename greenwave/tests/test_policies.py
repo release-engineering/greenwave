@@ -16,8 +16,40 @@ from greenwave.policies import (
     TestResultFailed,
     InvalidGatingYaml
 )
+from greenwave.resources import ResultsRetriever
 from greenwave.utils import load_policies
 from greenwave.safe_yaml import SafeYAMLError
+
+
+class DummyResultsRetriever(ResultsRetriever):
+    def __init__(
+            self, subject_identifier=None, testcase=None, outcome='PASSED',
+            subject_type='koji_build'):
+        super(DummyResultsRetriever, self).__init__(
+            cache=mock.Mock(),
+            ignore_results=[],
+            timeout=0,
+            verify=False,
+            url='')
+        self.subject_identifier = subject_identifier
+        self.subject_type = subject_type
+        self.testcase = testcase
+        self.outcome = outcome
+
+    def _make_request(self, params):
+        if (params.get('item') == self.subject_identifier and
+                params.get('type') == self.subject_type and
+                params.get('testcases') == self.testcase):
+            return [{
+                'id': 123,
+                'data': {
+                    'item': [self.subject_identifier],
+                    'type': [self.subject_type],
+                },
+                'testcase': {'name': self.testcase},
+                'outcome': self.outcome,
+            }]
+        return []
 
 
 def test_summarize_answers():
@@ -56,7 +88,7 @@ rules:
     policy = policies[0]
 
     # Ensure that absence of a result is failure.
-    item, results, waivers = {}, [], []
+    item, results, waivers = {}, DummyResultsRetriever(), []
     decision = policy.check(item, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultMissing)
@@ -89,15 +121,7 @@ rules:
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
-    result = {
-        u'data': {
-            u'item': [u'some_nevr'],
-            u'type': [u'brew-build'],
-        },
-        u'id': 6336180,
-        u'outcome': u'FAILED',
-        u'testcase': {u'name': u'sometest'},
-    }
+    results = DummyResultsRetriever('some_nevr', 'sometest', 'FAILED', 'brew-build')
     waiver = {
         u'subject_identifier': u'some_nevr',
         u'subject_type': u'koji_build',
@@ -105,7 +129,52 @@ rules:
         u'waived': True,
     }
 
-    item, results, waivers = 'some_nevr', [result], [waiver]
+    item, waivers = 'some_nevr', [waiver]
+    decision = policy.check(item, results, [])
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultFailed)
+
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], RuleSatisfied)
+
+    # Also, be sure that negative waivers work.
+    waivers[0]['waived'] = False
+    decision = policy.check(item, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultFailed)
+
+
+def test_waive_bodhi_update(tmpdir):
+    """ Ensure that a koji_build waiver can match a brew-build result
+
+    Note that 'brew-build' in the result does not match 'koji_build' in the
+    waiver.  Even though these are different strings, this should work.
+    """
+
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: some_id
+product_versions:
+- irrelevant
+decision_context: test
+subject_type: bodhi_update
+rules:
+  - !PassingTestCaseRule {test_case_name: sometest}
+        """)
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+
+    item = 'some_bodhi_update'
+    results = DummyResultsRetriever(item, 'sometest', 'FAILED', 'bodhi_update')
+    waivers = [{
+        u'subject_identifier': item,
+        u'subject_type': 'bodhi_update',
+        u'testcase': 'sometest',
+        u'waived': True,
+    }]
+
     decision = policy.check(item, results, [])
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
@@ -137,94 +206,52 @@ rules:
     policy = policies[0]
 
     # Ensure that we fail with no results
-    results, waivers = [], []
+    results, waivers = DummyResultsRetriever(), []
     decision = policy.check('nethack-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultMissing)
 
     # That a matching, failing result can fail
-    results = [{
-        'id': 123,
-        'data': {
-            'item': 'nethack-1.2.3-1.el9000',
-            'type': 'koji_build',
-        },
-        'testcase': {'name': 'sometest'},
-        'outcome': 'FAILED',
-    }]
+    results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest', 'FAILED')
     decision = policy.check('nethack-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
     # That a matching, passing result can pass
-    results = [{
-        'id': 123,
-        'data': {
-            'item': 'nethack-1.2.3-1.el9000',
-            'type': 'koji_build',
-        },
-        'testcase': {'name': 'sometest'},
-        'outcome': 'PASSED',
-    }]
+    results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest')
     decision = policy.check('nethack-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
     # That a non-matching passing result is ignored.
-    results = [{
-        'id': 123,
-        'item': 'foobar-1.2.3-1.el9000',
-        'testcase': {'name': 'sometest'},
-        'outcome': 'PASSED',
-    }]
+    results = DummyResultsRetriever('foobar-1.2.3-1.el9000', 'sometest')
     decision = policy.check('foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
     # That a non-matching failing result is ignored.
-    results = [{
-        'id': 123,
-        'item': 'foobar-1.2.3-1.el9000',
-        'testcase': {'name': 'sometest'},
-        'outcome': 'FAILED',
-    }]
+    results = DummyResultsRetriever('foobar-1.2.3-1.el9000', 'sometest', 'FAILED')
     decision = policy.check('foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)  # ooooh.
 
     # Ensure that fnmatch globs work in absence
-    results, waivers = [], []
+    results, waivers = DummyResultsRetriever(), []
     decision = policy.check('python-foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultMissing)
 
     # Ensure that fnmatch globs work in the negative.
-    results = [{
-        'id': 123,
-        'data': {
-            'item': 'nethack-1.2.3-1.el9000',
-            'type': 'koji_build',
-        },
-        'testcase': {'name': 'sometest'},
-        'outcome': 'FAILED',
-    }]
+    results = DummyResultsRetriever('python-foobar-1.2.3-1.el9000', 'sometest', 'FAILED')
     decision = policy.check('python-foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
     # Ensure that fnmatch globs work in the positive.
-    results = [{
-        'id': 123,
-        'data': {
-            'item': 'nethack-1.2.3-1.el9000',
-            'type': 'koji_build',
-        },
-        'testcase': {'name': 'sometest'},
-        'outcome': 'SUCCESS',
-    }]
+    results = DummyResultsRetriever('python-foobar-1.2.3-1.el9000', 'sometest')
     decision = policy.check('python-foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
-    assert isinstance(decision[0], TestResultFailed)
+    assert isinstance(decision[0], RuleSatisfied)
 
 
 def test_load_policies():
@@ -351,29 +378,19 @@ rules:
                 waivers = []
 
                 # Ensure that presence of a result is success.
-                results = [{
-                    "id": 12345,
-                    "data": {"original_spec_nvr": [nvr]},
-                    "testcase": {"name": "dist.upgradepath"},
-                    "outcome": "PASSED"
-                }]
+                results = DummyResultsRetriever(nvr, 'dist.upgradepath')
                 decision = policy.check(nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
 
                 # Ensure that absence of a result is failure.
-                results = []
+                results = DummyResultsRetriever()
                 decision = policy.check(nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultMissing)
 
                 # And that a result with a failure, is a failure.
-                results = [{
-                    "id": 12345,
-                    "data": {"original_spec_nvr": [nvr]},
-                    "testcase": {"name": "dist.upgradepath"},
-                    "outcome": "FAILED"
-                }]
+                results = DummyResultsRetriever(nvr, 'dist.upgradepath', 'FAILED')
                 decision = policy.check(nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)

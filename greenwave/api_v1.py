@@ -4,7 +4,7 @@ from flask import Blueprint, request, current_app, jsonify, url_for, redirect
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType, InternalServerError
 from greenwave import __version__
 from greenwave.policies import summarize_answers, RemotePolicy, RemoteRule
-from greenwave.resources import retrieve_results, retrieve_waivers, retrieve_builds_in_update
+from greenwave.resources import ResultsRetriever, retrieve_waivers, retrieve_builds_in_update
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
 
@@ -327,13 +327,17 @@ def make_decision():
                 subject_type, decision_context, product_version))
 
     answers = []
-    results = retrieve_results(subject_type, subject_identifier)
-    results = [r for r in results if r['id'] not in ignore_results]
+    results_retriever = ResultsRetriever(
+        cache=current_app.cache,
+        ignore_results=ignore_results,
+        timeout=current_app.config['REQUESTS_TIMEOUT'],
+        verify=current_app.config['REQUESTS_VERIFY'],
+        url=current_app.config['RESULTSDB_API_URL'])
     waivers = retrieve_waivers(product_version, subject_type, [subject_identifier])
     waivers = [w for w in waivers if w['id'] not in ignore_waivers]
 
     for policy in subject_policies:
-        answers.extend(policy.check(subject_identifier, results, waivers))
+        answers.extend(policy.check(subject_identifier, results_retriever, waivers))
 
     if build_policies:
         build_nvrs = retrieve_builds_in_update(subject_identifier)
@@ -343,17 +347,13 @@ def make_decision():
         waivers.extend(nvrs_waivers)
 
         for nvr in build_nvrs:
-            nvr_results = retrieve_results('koji_build', nvr)
-            nvr_results = [r for r in nvr_results if r['id'] not in ignore_results]
-            results.extend(nvr_results)
-
             nvr_waivers = [
                 item for item in nvrs_waivers
                 if nvr == item.get('subject_identifier')
             ]
 
             for policy in build_policies:
-                answers.extend(policy.check(nvr, nvr_results, nvr_waivers))
+                answers.extend(policy.check(nvr, results_retriever, nvr_waivers))
 
     res = {
         'policies_satisfied': all(answer.is_satisfied for answer in answers),
@@ -364,7 +364,7 @@ def make_decision():
     }
     if verbose:
         res.update({
-            'results': results,
+            'results': results_retriever.all_retrieved_results(),
             'waivers': waivers,
             'satisfied_requirements':
                 [answer.to_json() for answer in answers if answer.is_satisfied],

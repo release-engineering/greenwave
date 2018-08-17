@@ -320,8 +320,8 @@ def test_invalidate_new_result_with_mocked_cache(
         #'topic_prefix.environment.waiver.new',
     ]
     handler.consume(message)
-    expected = 'greenwave.resources:retrieve_results|koji_build %s' % nvr
-    handler.cache.delete.assert_called_once_with(expected)
+    cache_key = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
+    handler.cache.delete.assert_called_once_with(cache_key)
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
@@ -369,7 +369,7 @@ def test_invalidate_new_result_with_real_cache(
                 'id': 'whatever',
                 'outcome': 'doesn\'t matter',
                 'testcase': {
-                    'name': 'dist.rpmdeplint'
+                    'name': 'dist.abicheck'
                 },
                 'data': {
                     'item': [nvr],
@@ -442,7 +442,8 @@ def test_invalidate_new_result_with_no_preexisting_cache(
         #'topic_prefix.environment.waiver.new',
     ]
     handler.consume(message)
-    handler.cache.delete.assert_not_called()
+    cache_key = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
+    handler.cache.delete.assert_called_once_with(cache_key)
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
