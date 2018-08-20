@@ -1,6 +1,7 @@
 /*
  * SPDX-License-Identifier: GPL-2.0+
  */
+import groovy.json.*
 
 // 'global' var to store git info
 def scmVars
@@ -9,11 +10,44 @@ try { // massive try{} catch{} around the entire build for failure notifications
 
 node('master'){
     scmVars = checkout scm
+    scmVars.GIT_BRANCH_NAME = scmVars.GIT_BRANCH.split('/')[-1]  // origin/pr/1234 -> 1234
+
+    // setting build display name
+    def branch = scmVars.GIT_BRANCH_NAME
+    if ( branch == 'master' ) {
+        echo 'Building master'
+        currentBuild.displayName = 'master'
+    }
+    else if (branch ==~ /[0-9]+/) {
+        def pagureUrl = "https://pagure.io/greenwave/pull-request/${branch}"
+        def pagureLink = """<a href="${pagureUrl}">PR-${branch}</a>"""
+        try {
+            def response = httpRequest "https://pagure.io/api/0/greenwave/pull-request/${branch}"
+            // Note for future use: JsonSlurper() is not serialiazble (returns a LazyMap) and
+            // therefore we cannot save this back into the global scmVars. We could use
+            // JsonSlurperClassic() which returns a hash map, but would need to allow this in
+            // the jenkins script approval.
+            def content = new JsonSlurper().parseText(response.content)
+            pagureLink = """<a href="${pagureUrl}">${content.title}</a>"""
+        } catch (Exception e) {
+            echo 'Error using pagure API:'
+            echo e.message
+            // ignoring this...
+        }
+        echo "Building PR #${branch}: ${pagureUrl}"
+        currentBuild.displayName = "PR #${branch}"
+        currentBuild.description = pagureLink
+    }
 }
 
 timestamps {
 node('fedora-27') {
     checkout scm
+    scmVars.GIT_AUTHOR_EMAIL = sh (
+        script: 'git --no-pager show -s --format=\'%ae\'',
+        returnStdout: true
+    ).trim()
+
     sh '''
     sudo dnf -y builddep greenwave.spec
     sudo dnf -y install python3-flake8 python3-pylint python3-sphinx \
@@ -282,30 +316,38 @@ node('docker') {
 } finally {
     // if result hasn't been set to failure by this point, its a success.
     def currentResult = currentBuild.result ?: 'SUCCESS'
+    def branch = scmVars.GIT_BRANCH_NAME
 
     // send pass/fail email
-    if (ownership.job.ownershipEnabled) {
-        def previousResult = currentBuild.previousBuild?.result
-        def SUBJECT = ''
-        def BODY = "${env.BUILD_URL}"
+    def SUBJECT = ''
+    if ( branch ==~ /[0-9]+/) {
+        if (currentResult == 'FAILURE' ){
+            SUBJECT = "Jenkins job ${env.JOB_NAME}, PR #${branch} failed."
+        } else {
+            SUBJECT = "Jenkins job ${env.JOB_NAME}, PR #${branch} passed."
+        }
+    } else if (currentResult == 'FAILURE') {
+        SUBJECT = "Jenkins job ${env.JOB_NAME} #${env.BUILD_NUMBER} failed."
+    }
 
-        if (previousResult == 'FAILURE' && currentResult == 'SUCCESS') {
-            SUBJECT = "Jenkins job ${env.JOB_NAME} #${env.BUILD_NUMBER} fixed."
-        }
-        else if (previousResult == 'SUCCESS' && currentResult == 'FAILURE' ) {
-            SUBJECT = "Jenkins job ${env.JOB_NAME} #${env.BUILD_NUMBER} failed."
-        }
+    def RECIEPENT = scmVars.GIT_AUTHOR_EMAIL
+    if (ownership.job.ownershipEnabled && branch == 'master') {
+        RECIEPENT = ownership.job.primaryOwnerEmail
+    }
 
-        if (SUBJECT != '') {
-            emailext to: ownership.job.primaryOwnerEmail,
-                     subject: SUBJECT,
-                     body: BODY
-        }
+    def BODY = "Build URL: ${env.BUILD_URL}"
+    if (branch ==~ /[0-9]+/){
+        BODY = BODY + "\nPull Request: https://pagure.io/greenwave/pull-request/${branch}"
+    }
+
+    if (SUBJECT != '') {
+        emailext to: RECIEPENT,
+                 subject: SUBJECT,
+                 body: BODY
     }
 
     // update Pagure PR status
-    def pagurePR = scmVars.GIT_BRANCH.split('/')[-1]  // origin/pr/1234 -> 1234
-    if (pagurePR ==~ /[0-9]+/) {  // PR's will only be numbers on pagure
+    if (branch ==~ /[0-9]+/) {  // PR's will only be numbers on pagure
         def resultPercent = (currentResult == 'SUCCESS') ? '100' : '0'
         def resultComment = (currentResult == 'SUCCESS') ? 'Build passed.' : 'Build failed.'
         def pagureRepo = new URL(scmVars.GIT_URL).getPath() - ~/^\// - ~/.git$/  // https://pagure.io/my-repo.git -> my-repo
@@ -315,7 +357,7 @@ node('docker') {
             propagate: false,
             parameters: [
                 // [$class: 'StringParameterValue', name: 'PAGURE_REPO', value: 'https://pagure.io'],  // not needed if https://pagure.io
-                [$class: 'StringParameterValue', name: 'PAGURE_PR', value: pagurePR],
+                [$class: 'StringParameterValue', name: 'PAGURE_PR', value: branch],
                 [$class: 'StringParameterValue', name: 'PAGURE_REPO', value: pagureRepo],
                 [$class: 'StringParameterValue', name: 'PERCENT_PASSED', value: resultPercent],
                 [$class: 'StringParameterValue', name: 'COMMENT', value: resultComment],
