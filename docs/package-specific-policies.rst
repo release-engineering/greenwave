@@ -21,7 +21,7 @@ Here is an example :file:`gating.yaml` file:
 
    --- !Policy
    product_versions:
-     - fedora-26
+     - fedora-*
    decision_context: bodhi_update_push_testing
    rules:
      - !PassingTestCaseRule {test_case_name: dist.depcheck}
