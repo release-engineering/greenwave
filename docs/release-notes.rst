@@ -2,6 +2,20 @@
 Release Notes
 =============
 
+Greenwave 0.9.5
+===============
+
+Released 20 August 2018
+
+* Waivers with `waived=false` don't waive failed test results (this was broken
+  in previous versions).
+
+* Error messages for retrieving `gating.yaml` are more specific so package
+  maintainers can discover errors early.
+
+* Performance is improved by doing smaller and more specific queries to
+  ResultsDB only when needed (#117).
+
 Greenwave 0.9.4
 ===============
 
