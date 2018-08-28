@@ -212,7 +212,7 @@ node('fedora-27') {
 
     stage('Perform functional tests') {
         openshift.withCluster('Upshift') {
-            openshift.doAs('upshift-greenwave-test-jenkins-credentials') {
+            openshift.withCredentials('upshift-greenwave-test-jenkins-credentials') {
                 openshift.withProject('greenwave-test') {
                     def rtemplate = readYaml file: 'openshift/resultsdb-test-template.yaml'
                     // TODO: move this image to the factory2 project in the docker registry
