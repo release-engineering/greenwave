@@ -36,7 +36,7 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 9
+    assert len(policies) == 10
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)
@@ -953,3 +953,38 @@ def test_make_a_decision_about_compose_new_variants_architectures(
     assert r.status_code == 200
     res_data = r.json()
     assert res_data['policies_satisfied']
+
+
+def test_make_a_decision_for_bodhi_with_verbose_flag(
+        requests_session, greenwave_server, testdatabuilder):
+    """
+    Bodhi uses verbose flag to get all results.
+    """
+    nvrs = [
+        testdatabuilder.unique_nvr(),
+        testdatabuilder.unique_nvr(),
+    ]
+
+    results = []
+    for nvr in reversed(nvrs):
+        for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS:
+            results.append(testdatabuilder.create_result(
+                item=nvr, testcase_name=testcase_name, outcome='PASSED'))
+
+    update = testdatabuilder.create_bodhi_update(build_nvrs=nvrs)
+    data = {
+        'decision_context': 'bodhi_update_push_stable_with_no_rules',
+        'product_version': 'fedora-28',
+        'subject_type': 'bodhi_update',
+        'subject_identifier': update['updateid'],
+        'verbose': True,
+    }
+
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
+    assert r.status_code == 200
+    res_data = r.json()
+
+    assert len(res_data['results']) == len(TASKTRON_RELEASE_CRITICAL_TASKS) * len(nvrs)
+    assert res_data['results'] == list(reversed(results))
+    assert res_data['waivers'] == []
+    assert res_data['satisfied_requirements'] == []

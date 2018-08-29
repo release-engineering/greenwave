@@ -39,6 +39,11 @@ def _invalidate_results_cache(
     except KeyError:
         log.debug("No cache value found for %r", key)
 
+    # Also invalidate query results without test case name.
+    if testcase:
+        _invalidate_results_cache(
+            cache, subject_type, subject_identifier, testcase=None)
+
 
 class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
     """
