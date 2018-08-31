@@ -359,15 +359,15 @@ def make_decision():
         'policies_satisfied': all(answer.is_satisfied for answer in answers),
         'summary': summarize_answers(answers),
         'applicable_policies': [policy.id for policy in applicable_policies],
-        'unsatisfied_requirements': [answer.to_json() for answer in answers
-                                     if not answer.is_satisfied],
+        'satisfied_requirements':
+            [answer.to_json() for answer in answers if answer.is_satisfied],
+        'unsatisfied_requirements':
+            [answer.to_json() for answer in answers if not answer.is_satisfied],
     }
     if verbose:
         res.update({
             'results': results_retriever.all_retrieved_results(),
             'waivers': waivers,
-            'satisfied_requirements':
-                [answer.to_json() for answer in answers if answer.is_satisfied],
         })
     resp = jsonify(res)
     resp = insert_headers(resp)

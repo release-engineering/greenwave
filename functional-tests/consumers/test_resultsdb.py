@@ -52,6 +52,13 @@ def test_consume_new_result(
         'policies_satisfied': False,
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
+        'satisfied_requirements': [
+            {
+                'result_id': result['id'],
+                'testcase': 'dist.rpmdeplint',
+                'type': 'test-result-passed',
+            },
+        ],
         'unsatisfied_requirements': [
             {
                 'testcase': 'dist.abicheck',
@@ -83,6 +90,7 @@ def test_consume_new_result(
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
             'summary': '3 of 3 required test results missing',
+            'satisfied_requirements': [],
             'unsatisfied_requirements': [
                 {
                     'testcase': 'dist.abicheck',
@@ -115,6 +123,13 @@ def test_consume_new_result(
         'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_testing',
         'product_version': 'fedora-*',
+        'satisfied_requirements': [
+            {
+                'result_id': result['id'],
+                'testcase': 'dist.rpmdeplint',
+                'type': 'test-result-passed',
+            },
+        ],
         'unsatisfied_requirements': [],
         'summary': 'all required tests passed',
         'subject': [
@@ -127,6 +142,7 @@ def test_consume_new_result(
             'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
             'policies_satisfied': False,
             'summary': '1 of 1 required test results missing',
+            'satisfied_requirements': [],
             'unsatisfied_requirements': [
                 {
                     'testcase': 'dist.rpmdeplint',
@@ -143,6 +159,13 @@ def test_consume_new_result(
         'policies_satisfied': False,
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
+        'satisfied_requirements': [
+            {
+                'result_id': result['id'],
+                'testcase': 'dist.rpmdeplint',
+                'type': 'test-result-passed',
+            },
+        ],
         'unsatisfied_requirements': [
             {
                 'testcase': 'dist.abicheck',
@@ -176,6 +199,7 @@ def test_consume_new_result(
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
             'summary': '3 of 3 required test results missing',
+            'satisfied_requirements': [],
             'unsatisfied_requirements': [
                 {
                     'testcase': 'dist.abicheck',
@@ -208,6 +232,13 @@ def test_consume_new_result(
         'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_testing',
         'product_version': 'fedora-*',
+        'satisfied_requirements': [
+            {
+                'result_id': result['id'],
+                'testcase': 'dist.rpmdeplint',
+                'type': 'test-result-passed',
+            },
+        ],
         'unsatisfied_requirements': [],
         'summary': 'all required tests passed',
         'subject': [
@@ -222,6 +253,7 @@ def test_consume_new_result(
             'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
             'policies_satisfied': False,
             'summary': '1 of 1 required test results missing',
+            'satisfied_requirements': [],
             'unsatisfied_requirements': [
                 {
                     'testcase': 'dist.rpmdeplint',
@@ -234,51 +266,6 @@ def test_consume_new_result(
             ],
         },
     }
-
-
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
-def test_no_message_for_unchanged_decision(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder):
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
-    nvr = testdatabuilder.unique_nvr()
-    # One result gets the decision in a certain state.
-    testdatabuilder.create_result(item=nvr,
-                                  testcase_name='dist.rpmdeplint',
-                                  outcome='PASSED')
-    # Recording a new version of the same result shouldn't change our decision at all.
-    new_result = testdatabuilder.create_result(
-        item=nvr,
-        testcase_name='dist.rpmdeplint',
-        outcome='PASSED')
-    message = {
-        'body': {
-            'topic': 'resultsdb.result.new',
-            'msg': {
-                'id': new_result['id'],
-                'outcome': 'PASSED',
-                'testcase': {
-                    'name': 'dist.rpmdeplint',
-                },
-                'data': {
-                    'item': [nvr],
-                    'type': ['koji_build'],
-                }
-            }
-        }
-    }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
-    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
-    handler.consume(message)
-    # No message should be published as the decision is unchanged since we
-    # are still missing the required tests.
-    mock_fedmsg.assert_not_called()
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
@@ -504,6 +491,11 @@ def test_consume_compose_id_result(
         'subject_identifier': compose_id,
         'summary': '1 of 2 required test results missing',
         'previous': old_decision,
+        'satisfied_requirements': [{
+            'result_id': result['id'],
+            'testcase': 'compose.install_no_user',
+            'type': 'test-result-passed'
+        }],
         'unsatisfied_requirements': [{
             'item': {'productmd.compose.id': compose_id},
             'subject_type': 'compose',
@@ -514,7 +506,7 @@ def test_consume_compose_id_result(
         ]
     }
 
-    mock_fedmsg.assert_any_call(topic='decision.update', msg=msg)
+    mock_fedmsg.assert_called_once_with(topic='decision.update', msg=msg)
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
@@ -576,6 +568,11 @@ def test_consume_legacy_result(
         'policies_satisfied': False,
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
+        'satisfied_requirements': [{
+            'result_id': result['id'],
+            'testcase': 'dist.rpmdeplint',
+            'type': 'test-result-passed'
+        }],
         'unsatisfied_requirements': [
             {
                 'testcase': 'dist.abicheck',
@@ -630,6 +627,11 @@ def test_consume_legacy_result(
         'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_testing',
         'product_version': 'fedora-*',
+        'satisfied_requirements': [{
+            'result_id': result['id'],
+            'testcase': 'dist.rpmdeplint',
+            'type': 'test-result-passed'
+        }],
         'unsatisfied_requirements': [],
         'summary': 'all required tests passed',
         'subject': [
