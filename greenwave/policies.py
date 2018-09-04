@@ -493,7 +493,7 @@ class Policy(SafeYAMLObject):
 
     def applies_to(self, decision_context, product_version, subject_type):
         return (decision_context == self.decision_context and
-                self._applies_to_product_version(product_version) and
+                self.applies_to_product_version(product_version) and
                 subject_type == self.subject_type)
 
     def check(self, subject_identifier, results_retriever, waivers):
@@ -511,7 +511,7 @@ class Policy(SafeYAMLObject):
                 answers.append(response)
         return answers
 
-    def _applies_to_product_version(self, product_version):
+    def applies_to_product_version(self, product_version):
         return any(fnmatch(product_version, version) for version in self.product_versions)
 
     @property

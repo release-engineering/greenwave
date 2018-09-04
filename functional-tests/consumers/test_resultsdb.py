@@ -13,7 +13,7 @@ def test_consume_new_result(
         mock_fedmsg, load_config, requests_session, greenwave_server,
         testdatabuilder):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
-    nvr = testdatabuilder.unique_nvr()
+    nvr = testdatabuilder.unique_nvr(product_version='fc26')
     update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     updateid = update['updateid']
     result = testdatabuilder.create_result(item=nvr,
@@ -122,7 +122,7 @@ def test_consume_new_result(
     assert actual_msgs_sent[1] == {
         'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_testing',
-        'product_version': 'fedora-*',
+        'product_version': 'fedora-26',
         'satisfied_requirements': [
             {
                 'result_id': result['id'],
@@ -531,7 +531,7 @@ def test_consume_legacy_result(
     """
 
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
-    nvr = testdatabuilder.unique_nvr()
+    nvr = testdatabuilder.unique_nvr(product_version='fc26')
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='dist.rpmdeplint',
                                            outcome='PASSED')
@@ -636,7 +636,7 @@ def test_consume_legacy_result(
     second_msg = {
         'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_testing',
-        'product_version': 'fedora-*',
+        'product_version': 'fedora-26',
         'satisfied_requirements': [{
             'result_id': result['id'],
             'testcase': 'dist.rpmdeplint',

@@ -11,6 +11,7 @@ to the message bus about the newly satisfied/unsatisfied policy.
 
 import collections
 import logging
+import re
 
 from flask import current_app
 import fedmsg.consumers
@@ -20,8 +21,63 @@ import greenwave.app_factory
 import greenwave.resources
 from greenwave.api_v1 import subject_type_identifier_to_list
 
+import xmlrpc.client
+
 
 log = logging.getLogger(__name__)
+
+
+def _guess_product_version(toparse, koji_build=False):
+    if toparse == 'rawhide' or toparse.startswith('Fedora-Rawhide'):
+        return 'fedora-rawhide'
+
+    product_version = None
+    if toparse.startswith('f') and koji_build:
+        product_version = 'fedora-'
+    elif toparse.startswith('epel'):
+        product_version = 'epel-'
+    elif toparse.startswith('el'):
+        product_version = 'rhel-'
+    elif toparse.startswith('fc') or toparse.startswith('Fedora'):
+        product_version = 'fedora-'
+
+    if product_version:
+        # seperate the prefix from the number
+        result = list(filter(None, '-'.join(re.split(r'(\d+)', toparse)).split('-')))
+        if len(result) >= 2:
+            try:
+                int(result[1])
+                product_version += result[1]
+                return product_version
+            except ValueError:
+                pass
+
+    return None
+
+
+def _subject_product_version(subject_identifier, subject_type):
+    if subject_type == 'koji_build':
+        try:
+            short_prod_version = subject_identifier.split('.')[-1]
+            return _guess_product_version(short_prod_version, koji_build=True)
+        except KeyError:
+            pass
+
+    if subject_type == "compose":
+        return _guess_product_version(subject_identifier)
+
+    koji_base_url = current_app.config['KOJI_BASE_URL']
+    if koji_base_url:
+        proxy = xmlrpc.client.ServerProxy(koji_base_url)
+        try:
+            build = proxy.getBuild(subject_identifier)
+            if build:
+                target = proxy.getTaskRequest(build['task_id'])[1]
+                return _guess_product_version(target, koji_build=True)
+        except KeyError:
+            pass
+        except xmlrpc.client.Fault:
+            pass
 
 
 def _invalidate_results_cache(
@@ -180,9 +236,14 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         # Given all of our applicable policies, build a map of all decision
         # context we know about, and which product versions they relate to.
         decision_contexts = collections.defaultdict(set)
+        product_version = _subject_product_version(subject_identifier, subject_type)
         for policy in applicable_policies:
-            versions = set(policy.product_versions)
-            decision_contexts[policy.decision_context].update(versions)
+            if not product_version or policy.applies_to_product_version(product_version):
+                if product_version:
+                    versions = set([product_version])
+                else:
+                    versions = set(policy.product_versions)
+                decision_contexts[policy.decision_context].update(versions)
         log.debug("messaging: found %i decision contexts", len(decision_contexts))
 
         # For every context X version combination, ask greenwave if this new
@@ -226,5 +287,4 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                     })
                     log.debug('Emitted a fedmsg, %r, on the "%s" topic', decision,
                               'greenwave.decision.update')
-                    print('--------------------', decision['satisfied_requirements'])
                     fedmsg.publish(topic='decision.update', msg=decision)

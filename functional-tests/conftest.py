@@ -249,11 +249,11 @@ class TestDataBuilder(object):
         self.distgit_url = distgit_url
         self._counter = itertools.count(1)
 
-    def unique_nvr(self, name='glibc'):
-        return '{}-1.0-{}.el7'.format(name, next(self._counter))
+    def unique_nvr(self, name='glibc', product_version='el7'):
+        return '{}-1.0-{}.{}'.format(name, next(self._counter), product_version)
 
     def unique_compose_id(self):
-        return 'Fedora-9000-19700101.n.{}'.format(next(self._counter))
+        return 'Fedora-Rawhide-19700101.n.{}'.format(next(self._counter))
 
     def _create_result(self, data):
         response = self.requests_session.post(
