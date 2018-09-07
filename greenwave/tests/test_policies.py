@@ -369,7 +369,7 @@ rules:
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
         with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = ('rpms', 'nethack')
+            scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = remote_fragment
                 policies = load_policies(tmpdir.strpath)
@@ -422,7 +422,7 @@ rules:
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
         with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = ('rpms', 'nethack')
+            scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = remote_fragment
                 policies = load_policies(tmpdir.strpath)
@@ -478,7 +478,7 @@ rules:
         app = create_app('greenwave.config.TestingConfig')
         with app.app_context():
             with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-                scm.return_value = ('rpms', 'nethack')
+                scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
                 with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                     f.return_value = remote_fragment
                     policies = load_policies(tmpdir.strpath)
@@ -533,7 +533,7 @@ rules:
         app = create_app('greenwave.config.TestingConfig')
         with app.app_context():
             with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-                scm.return_value = ('rpms', 'nethack')
+                scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
                 with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                     f.return_value = remote_fragment
                     policies = load_policies(tmpdir.strpath)

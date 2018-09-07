@@ -15,9 +15,10 @@ def test_retrieve_scm_from_rpm_build():
         'nvr': nvr,
         'source': 'git+https://src.fedoraproject.org/rpms/nethack.git#0c1a84e0e8a152897003bd7e27b3f407ff6ba040' # noqa
     }
-    namespace, rev = retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
+    namespace, pkg_name, rev = retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
     assert namespace == 'rpms'
     assert rev == '0c1a84e0e8a152897003bd7e27b3f407ff6ba040'
+    assert pkg_name == 'nethack'
 
 
 def test_retrieve_scm_from_container_build():
@@ -26,9 +27,10 @@ def test_retrieve_scm_from_container_build():
         'nvr': nvr,
         'source': 'git://pkgs.devel.redhat.com/containers/golang-github-openshift-prometheus-alert-buffer#46af2f8efbfb0a4e7e7d5676f4efb997f72d4b8c' # noqa
     }
-    namespace, rev = retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
+    namespace, pkg_name, rev = retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
     assert namespace == 'containers'
     assert rev == '46af2f8efbfb0a4e7e7d5676f4efb997f72d4b8c'
+    assert pkg_name == 'golang-github-openshift-prometheus-alert-buffer'
 
 
 def test_retrieve_scm_from_nonexistent_build():

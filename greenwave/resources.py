@@ -7,6 +7,7 @@ waiverdb, etc..).
 """
 
 import logging
+import re
 import json
 import requests
 import urllib3.exceptions
@@ -177,7 +178,9 @@ def retrieve_scm_from_koji_build(nvr, build, koji_url):
             '(missing URL fragment with SCM revision information)'
             .format(source, nvr, koji_url))
 
-    return namespace, rev
+    pkg_name = url.path.split('/')[-1]
+    pkg_name = re.sub(r'\.git$', '', pkg_name)
+    return namespace, pkg_name, rev
 
 
 @cached

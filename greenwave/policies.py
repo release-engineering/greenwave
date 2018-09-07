@@ -296,8 +296,8 @@ class RemoteRule(Rule):
         if subject_type != 'koji_build':
             return []
 
-        pkg_name = subject_identifier.rsplit('-', 2)[0]
-        pkg_namespace, rev = greenwave.resources.retrieve_scm_from_koji(subject_identifier)
+        pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
+            subject_identifier)
         # if the element is actually a container and not a pkg there will be a "-container"
         # string at the end of the "pkg_name" and it will not match with the one in the
         # gating.yaml URL
