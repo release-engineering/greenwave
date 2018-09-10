@@ -18,6 +18,7 @@ import requests
 
 import greenwave.app_factory
 from greenwave.api_v1 import subject_type_identifier_to_list
+from greenwave.monitoring import publish_decision_exceptions_waiver_counter
 
 requests_session = requests.Session()
 
@@ -82,6 +83,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                     self._publish_decision_changes('bodhi_update', updateid, msg['id'],
                                                    product_version, testcase)
 
+    @publish_decision_exceptions_waiver_counter.count_exceptions()
     def _publish_decision_changes(self, subject_type, subject_identifier, waiver_id,
                                   product_version, testcase):
         for policy in self.flask_app.config['policies']:

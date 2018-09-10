@@ -3,3 +3,4 @@ requests
 PyYAML
 dogpile.cache
 fedmsg[consumers]
+prometheus_client
