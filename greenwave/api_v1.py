@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-from flask import Blueprint, request, current_app, jsonify, url_for, redirect
+from flask import Blueprint, request, current_app, jsonify, url_for, redirect, Response
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType, InternalServerError
+from prometheus_client import generate_latest
 from greenwave import __version__
 from greenwave.policies import summarize_answers, RemotePolicy, RemoteRule
 from greenwave.resources import ResultsRetriever, retrieve_waivers, retrieve_builds_in_update
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
+from greenwave.monitoring import registry, decision_exception_counter, decision_latency
+
 
 api = (Blueprint('api_v1', __name__))
 
@@ -157,6 +160,8 @@ def make_decision_options():
 
 
 @api.route('/decision', methods=['POST'])
+@decision_exception_counter.count_exceptions()
+@decision_latency.time()
 @jsonp
 def make_decision():
     """
@@ -431,3 +436,8 @@ def validate_gating_yaml_post():
         raise BadRequest('No policies defined')
 
     return jsonify({'message': 'All OK'})
+
+
+@api.route('/metrics', methods=['GET'])
+def metrics():
+    return Response(generate_latest(registry))

@@ -20,12 +20,14 @@ BuildRequires:  python3-requests
 BuildRequires:  python3-PyYAML
 BuildRequires:  python3-dogpile-cache
 BuildRequires:  python3-fedmsg
+BuildRequires:  python3-prometheus_client
 BuildArch:      noarch
 Requires:  python3-flask
 Requires:  python3-requests
 Requires:  python3-PyYAML
 Requires:  python3-dogpile-cache
 Requires:  python3-fedmsg
+Requires:  python3-prometheus_client
 
 %description
 Greenwave is a service for gating on automated tests by querying ResultsDB and

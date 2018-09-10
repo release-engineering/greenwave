@@ -20,6 +20,7 @@ import requests
 import greenwave.app_factory
 import greenwave.resources
 from greenwave.api_v1 import subject_type_identifier_to_list
+from greenwave.monitoring import publish_decision_exceptions_result_counter
 
 import xmlrpc.client
 
@@ -204,6 +205,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 self._publish_decision_changes(subject_type, subject_identifier,
                                                result_id, testcase)
 
+    @publish_decision_exceptions_result_counter.count_exceptions()
     def _publish_decision_changes(self, subject_type, subject_identifier, result_id, testcase):
         """
         Process the given subject and publish a message if the decision is changed.
