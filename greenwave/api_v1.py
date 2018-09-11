@@ -354,6 +354,8 @@ def make_decision():
 
             for policy in build_policies:
                 answers.extend(policy.check(nvr, results_retriever, nvr_waivers))
+    else:
+        build_nvrs = []
 
     res = {
         'policies_satisfied': all(answer.is_satisfied for answer in answers),
@@ -363,8 +365,13 @@ def make_decision():
                                      if not answer.is_satisfied],
     }
     if verbose:
+        # Retrieve test results for all items when verbose output is requested.
+        results = list(results_retriever.retrieve(subject_type, subject_identifier))
+        for nvr in build_nvrs:
+            results += results_retriever.retrieve('koji_build', nvr)
+
         res.update({
-            'results': results_retriever.all_retrieved_results(),
+            'results': results,
             'waivers': waivers,
             'satisfied_requirements':
                 [answer.to_json() for answer in answers if answer.is_satisfied],

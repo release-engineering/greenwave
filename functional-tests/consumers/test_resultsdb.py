@@ -320,8 +320,13 @@ def test_invalidate_new_result_with_mocked_cache(
         #'topic_prefix.environment.waiver.new',
     ]
     handler.consume(message)
-    cache_key = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
-    handler.cache.delete.assert_called_once_with(cache_key)
+    cache_key1 = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
+    cache_key2 = 'greenwave.resources:CachedResults|koji_build {} None'.format(nvr)
+    handler.cache.delete.assert_has_calls([
+        mock.call(cache_key1),
+        mock.call(cache_key2)
+    ])
+    assert handler.cache.delete.call_count == 2
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
@@ -442,8 +447,13 @@ def test_invalidate_new_result_with_no_preexisting_cache(
         #'topic_prefix.environment.waiver.new',
     ]
     handler.consume(message)
-    cache_key = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
-    handler.cache.delete.assert_called_once_with(cache_key)
+    cache_key1 = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
+    cache_key2 = 'greenwave.resources:CachedResults|koji_build {} None'.format(nvr)
+    handler.cache.delete.assert_has_calls([
+        mock.call(cache_key1),
+        mock.call(cache_key2)
+    ])
+    assert handler.cache.delete.call_count == 2
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')

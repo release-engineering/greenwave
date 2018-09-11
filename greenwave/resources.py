@@ -53,22 +53,13 @@ class ResultsRetriever(object):
         self.timeout = timeout
         self.verify = verify
         self.url = url
-        self.all_results = []
 
-    def all_retrieved_results(self):
-        """
-        Returns all results retrieved from cache or ResultsDB by this instance.
-        """
-        return sorted(self.all_results, key=lambda x: x['id'], reverse=True)
-
-    def retrieve(self, subject_type, subject_identifier, testcase):
+    def retrieve(self, subject_type, subject_identifier, testcase=None):
         """
         Return generator over results.
         """
         for result in self._retrieve_helper(subject_type, subject_identifier, testcase):
             if result['id'] not in self.ignore_results:
-                if result not in self.all_results:
-                    self.all_results.append(result)
                 yield result
 
     def _retrieve_helper(self, subject_type, subject_identifier, testcase):
@@ -101,10 +92,12 @@ class ResultsRetriever(object):
 
     def _retrieve_page(self, page, subject_type, subject_identifier, testcase):
         params = {
-            'testcases': testcase,
             'limit': 1,
             'page': page,
         }
+
+        if testcase:
+            params['testcases'] = testcase
 
         results = []
         if subject_type == 'bodhi_update':
