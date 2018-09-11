@@ -2,6 +2,23 @@
 Release Notes
 =============
 
+Greenwave 0.9.6
+===============
+
+Released 11 September 2018
+
+* Fetching all results when querying ResultsDB if the verbose flag
+  is `true`.
+
+* Fix wrong retrieving of the gating.yaml file for the RemoteRule
+  feature. Greenwave was using the NVR to guess the pkg/container
+  name to get the repo url for the gating.yaml file. This was not
+  always right. Now Greenwave will use the source link in the build
+  received from koji/brew.
+
+* Always report in the decision message the information about the
+  satisfied requirements.
+
 Greenwave 0.9.5
 ===============
 
