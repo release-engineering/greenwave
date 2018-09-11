@@ -226,4 +226,5 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                     })
                     log.debug('Emitted a fedmsg, %r, on the "%s" topic', decision,
                               'greenwave.decision.update')
+                    print('--------------------', decision['satisfied_requirements'])
                     fedmsg.publish(topic='decision.update', msg=decision)

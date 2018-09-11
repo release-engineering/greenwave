@@ -20,14 +20,23 @@ def test_consume_new_waiver(
     nvr = testdatabuilder.unique_nvr()
     update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     updateid = update['updateid']
-    result = testdatabuilder.create_result(item=nvr,
-                                           testcase_name='dist.abicheck',
-                                           outcome='FAILED')
+
+    failing_test = TASKTRON_RELEASE_CRITICAL_TASKS[0]
+    result = testdatabuilder.create_result(
+        item=nvr,
+        testcase_name=failing_test,
+        outcome='FAILED')
+
     # The rest passed
-    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
-        testdatabuilder.create_result(item=nvr,
-                                      testcase_name=testcase_name,
-                                      outcome='PASSED')
+    passing_tests = TASKTRON_RELEASE_CRITICAL_TASKS[1:]
+    results = [
+        testdatabuilder.create_result(
+            item=nvr,
+            testcase_name=testcase_name,
+            outcome='PASSED')
+        for testcase_name in passing_tests
+    ]
+
     testcase = str(result['testcase']['name'])
     waiver = testdatabuilder.create_waiver(nvr=nvr,
                                            testcase_name=testcase,
@@ -59,11 +68,23 @@ def test_consume_new_waiver(
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
             'summary': '1 of 3 required tests failed',
+            'satisfied_requirements': [
+                {
+                    'result_id': results[0]['id'],
+                    'testcase': passing_tests[0],
+                    'type': 'test-result-passed'
+                },
+                {
+                    'result_id': results[1]['id'],
+                    'testcase': passing_tests[1],
+                    'type': 'test-result-passed'
+                }
+            ],
             'unsatisfied_requirements': [
                 {
                     'result_id': result['id'],
                     'item': {'item': nvr, 'type': 'koji_build'},
-                    'testcase': 'dist.abicheck',
+                    'testcase': failing_test,
                     'type': 'test-result-failed',
                     'scenario': None,
                 },
@@ -75,6 +96,23 @@ def test_consume_new_waiver(
         ],
         'subject_type': 'koji_build',
         'subject_identifier': nvr,
+        'satisfied_requirements': [
+            {
+                'result_id': result['id'],
+                'testcase': failing_test,
+                'type': 'test-result-passed'
+            },
+            {
+                'result_id': results[0]['id'],
+                'testcase': passing_tests[0],
+                'type': 'test-result-passed'
+            },
+            {
+                'result_id': results[1]['id'],
+                'testcase': passing_tests[1],
+                'type': 'test-result-passed'
+            }
+        ],
         'unsatisfied_requirements': [],
         'summary': 'all required tests passed',
         'testcase': testcase,
@@ -89,11 +127,23 @@ def test_consume_new_waiver(
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
             'summary': '1 of 3 required tests failed',
+            'satisfied_requirements': [
+                {
+                    'result_id': results[0]['id'],
+                    'testcase': passing_tests[0],
+                    'type': 'test-result-passed'
+                },
+                {
+                    'result_id': results[1]['id'],
+                    'testcase': passing_tests[1],
+                    'type': 'test-result-passed'
+                }
+            ],
             'unsatisfied_requirements': [
                 {
                     'result_id': result['id'],
                     'item': {'item': nvr, 'type': 'koji_build'},
-                    'testcase': 'dist.abicheck',
+                    'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
                     'type': 'test-result-failed',
                     'scenario': None,
                 },
@@ -107,6 +157,23 @@ def test_consume_new_waiver(
         ],
         'subject_type': 'bodhi_update',
         'subject_identifier': updateid,
+        'satisfied_requirements': [
+            {
+                'result_id': result['id'],
+                'testcase': failing_test,
+                'type': 'test-result-passed'
+            },
+            {
+                'result_id': results[0]['id'],
+                'testcase': passing_tests[0],
+                'type': 'test-result-passed'
+            },
+            {
+                'result_id': results[1]['id'],
+                'testcase': passing_tests[1],
+                'type': 'test-result-passed'
+            }
+        ],
         'unsatisfied_requirements': [],
         'summary': 'all required tests passed',
         'testcase': testcase,
