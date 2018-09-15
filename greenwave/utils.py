@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import functools
-import glob
 import logging
 import os
 import time
@@ -11,7 +10,6 @@ from flask import jsonify, current_app, request
 from flask.config import Config
 from requests import ConnectionError, Timeout
 from werkzeug.exceptions import HTTPException
-import greenwave.policies
 
 log = logging.getLogger(__name__)
 
@@ -101,27 +99,7 @@ def load_config(config_obj=None):
     if os.environ.get('SECRET_KEY'):
         config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
-    log.debug("config: Loading policies from %r", config['POLICIES_DIR'])
-    config['policies'] = load_policies(config['POLICIES_DIR'])
-
     return config
-
-
-def load_policies(policies_dir):
-    """
-    Load Greenwave policies from the given policies directory.
-
-    :param str policies_dir: A path points to the policies directory.
-    :return: A list of policies.
-
-    """
-    policy_pathnames = glob.glob(os.path.join(policies_dir, '*.yaml'))
-    policies = []
-    for policy_pathname in policy_pathnames:
-        with open(policy_pathname, 'r') as f:
-            policies.extend(greenwave.policies.Policy.safe_load_all(f))
-    log.debug("Loaded %i policies from %s", len(policies), policies_dir)
-    return policies
 
 
 def insert_headers(response):

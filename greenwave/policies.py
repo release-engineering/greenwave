@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 from fnmatch import fnmatch
+import glob
 import itertools
 import logging
+import os
 import re
 import greenwave.resources
 
@@ -15,6 +17,23 @@ from greenwave.safe_yaml import (
 )
 
 log = logging.getLogger(__name__)
+
+
+def load_policies(policies_dir):
+    """
+    Load Greenwave policies from the given policies directory.
+
+    :param str policies_dir: A path points to the policies directory.
+    :return: A list of policies.
+
+    """
+    policy_pathnames = glob.glob(os.path.join(policies_dir, '*.yaml'))
+    policies = []
+    for policy_pathname in policy_pathnames:
+        with open(policy_pathname, 'r') as f:
+            policies.extend(greenwave.policies.Policy.safe_load_all(f))
+    log.debug("Loaded %i policies from %s", len(policies), policies_dir)
+    return policies
 
 
 class DisallowedRuleError(RuntimeError):
