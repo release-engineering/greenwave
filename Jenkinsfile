@@ -41,7 +41,7 @@ node('master'){
 }
 
 timestamps {
-node('fedora-27') {
+node('fedora-28') {
     checkout scm
     scmVars.GIT_AUTHOR_EMAIL = sh (
         script: 'git --no-pager show -s --format=\'%ae\'',
@@ -118,14 +118,6 @@ node('fedora-27') {
      * time, which will error out. */
     stage('Build RPM') {
         parallel (
-            'F27': {
-                sh """
-                mkdir -p mock-result/f27
-                flock /etc/mock/fedora-27-x86_64.cfg \
-                /usr/bin/mock -v --enable-network --resultdir=mock-result/f27 -r fedora-27-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
-                """
-                archiveArtifacts artifacts: 'mock-result/f27/**'
-            },
             'F28': {
                 sh """
                 mkdir -p mock-result/f28
@@ -138,9 +130,6 @@ node('fedora-27') {
     }
     stage('Invoke Rpmlint') {
         parallel (
-            'F27': {
-                sh 'rpmlint -f rpmlint-config.py mock-result/f27/*.rpm'
-            },
             'F28': {
                 sh 'rpmlint -f rpmlint-config.py mock-result/f28/*.rpm'
             },
@@ -188,7 +177,7 @@ node('docker') {
     }
 }
 
-node('fedora-27') {
+node('fedora-28') {
     checkout scm
 
     /* Install packages needed by the functional tests. */
