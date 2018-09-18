@@ -14,8 +14,6 @@ def test_consume_new_result(
         testdatabuilder):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr(product_version='fc26')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
-    updateid = update['updateid']
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='dist.rpmdeplint',
                                            outcome='PASSED')
@@ -44,8 +42,7 @@ def test_consume_new_result(
     assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
     handler.consume(message)
 
-    # We expect 4 messages altogether.
-    assert len(mock_fedmsg.mock_calls) == 4
+    assert len(mock_fedmsg.mock_calls) == 2
     assert all(call[2]['topic'] == 'decision.update' for call in mock_fedmsg.mock_calls)
     actual_msgs_sent = [call[2]['msg'] for call in mock_fedmsg.mock_calls]
     assert actual_msgs_sent[0] == {
@@ -137,117 +134,6 @@ def test_consume_new_result(
         ],
         'subject_type': 'koji_build',
         'subject_identifier': nvr,
-        'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
-        'previous': {
-            'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
-            'policies_satisfied': False,
-            'summary': '1 of 1 required test results missing',
-            'satisfied_requirements': [],
-            'unsatisfied_requirements': [
-                {
-                    'testcase': 'dist.rpmdeplint',
-                    'item': {'item': nvr, 'type': 'koji_build'},
-                    'subject_type': 'koji_build',
-                    'subject_identifier': nvr,
-                    'type': 'test-result-missing',
-                    'scenario': None,
-                },
-            ],
-        },
-    }
-    assert actual_msgs_sent[2] == {
-        'policies_satisfied': False,
-        'decision_context': 'bodhi_update_push_stable',
-        'product_version': 'fedora-26',
-        'satisfied_requirements': [
-            {
-                'result_id': result['id'],
-                'testcase': 'dist.rpmdeplint',
-                'type': 'test-result-passed',
-            },
-        ],
-        'unsatisfied_requirements': [
-            {
-                'testcase': 'dist.abicheck',
-                'item': {'item': nvr, 'type': 'koji_build'},
-                'subject_type': 'koji_build',
-                'subject_identifier': nvr,
-                'type': 'test-result-missing',
-                'scenario': None,
-            },
-            {
-                'testcase': 'dist.upgradepath',
-                'item': {'item': nvr, 'type': 'koji_build'},
-                'subject_type': 'koji_build',
-                'subject_identifier': nvr,
-                'type': 'test-result-missing',
-                'scenario': None,
-            }
-        ],
-        'summary': '2 of 3 required test results missing',
-        'subject': [
-            {'item': updateid, 'type': 'bodhi_update'},
-            {'item': nvr, 'type': 'koji_build'},
-            {'original_spec_nvr': nvr},
-        ],
-        'subject_type': 'bodhi_update',
-        'subject_identifier': updateid,
-        'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
-                                'taskotron_release_critical_tasks'],
-        'previous': {
-            'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
-                                    'taskotron_release_critical_tasks'],
-            'policies_satisfied': False,
-            'summary': '3 of 3 required test results missing',
-            'satisfied_requirements': [],
-            'unsatisfied_requirements': [
-                {
-                    'testcase': 'dist.abicheck',
-                    'item': {'item': nvr, 'type': 'koji_build'},
-                    'subject_type': 'koji_build',
-                    'subject_identifier': nvr,
-                    'type': 'test-result-missing',
-                    'scenario': None,
-                },
-                {
-                    'testcase': 'dist.rpmdeplint',
-                    'item': {'item': nvr, 'type': 'koji_build'},
-                    'subject_type': 'koji_build',
-                    'subject_identifier': nvr,
-                    'type': 'test-result-missing',
-                    'scenario': None,
-                },
-                {
-                    'testcase': 'dist.upgradepath',
-                    'item': {'item': nvr, 'type': 'koji_build'},
-                    'subject_type': 'koji_build',
-                    'subject_identifier': nvr,
-                    'type': 'test-result-missing',
-                    'scenario': None,
-                },
-            ],
-        },
-    }
-    assert actual_msgs_sent[3] == {
-        'policies_satisfied': True,
-        'decision_context': 'bodhi_update_push_testing',
-        'product_version': 'fedora-*',
-        'satisfied_requirements': [
-            {
-                'result_id': result['id'],
-                'testcase': 'dist.rpmdeplint',
-                'type': 'test-result-passed',
-            },
-        ],
-        'unsatisfied_requirements': [],
-        'summary': 'all required tests passed',
-        'subject': [
-            {'item': updateid, 'type': 'bodhi_update'},
-            {'item': nvr, 'type': 'koji_build'},
-            {'original_spec_nvr': nvr},
-        ],
-        'subject_type': 'bodhi_update',
-        'subject_identifier': updateid,
         'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
         'previous': {
             'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],

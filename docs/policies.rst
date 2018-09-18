@@ -130,9 +130,8 @@ Greenwave can make decisions about the following types of software artefacts:
    A distribution update in `Bodhi`_. Updates are identified by their Bodhi
    update id, as in ``FEDORA-2018-ec7cb4d5eb``.
 
-   A Bodhi update contains one or more Koji builds. When Greenwave makes a
-   decision about a Bodhi update, it *also* considers any policies which apply
-   to Koji builds in that update.
+   To make decision about Koji builds in the update, they need to be explicitly
+   listed in decision query.
 
 ``compose``
    A distribution compose. The compose tool (typically Pungi) takes a snapshot

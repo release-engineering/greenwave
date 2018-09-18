@@ -12,7 +12,7 @@ import json
 import requests
 import urllib3.exceptions
 
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse
 import xmlrpc.client
 from flask import current_app
 from werkzeug.exceptions import BadGateway
@@ -205,55 +205,6 @@ def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace):
                                         timeout=60)
     response.raise_for_status()
     return response.content
-
-
-def retrieve_builds_in_update(update_id):
-    """
-    Queries Bodhi to find the list of builds in the given update.
-    Returns a list of build NVRs.
-    """
-    if not current_app.config['BODHI_URL']:
-        log.warning('Making a decision about Bodhi update %s '
-                    'but Bodhi integration is disabled! '
-                    'Assuming no builds in update',
-                    update_id)
-        return []
-    update_info_url = urljoin(current_app.config['BODHI_URL'],
-                              '/updates/{}'.format(update_id))
-    timeout = current_app.config['REQUESTS_TIMEOUT']
-    verify = current_app.config['REQUESTS_VERIFY']
-    response = requests_session.get(update_info_url,
-                                    headers={'Accept': 'application/json'},
-                                    timeout=timeout, verify=verify)
-
-    # Ignore failures to retrieve Bodhi update.
-    if not response.ok:
-        log.warning(
-            'Making a decision about Bodhi update %s failed: %r',
-            update_id, response)
-        return []
-
-    return [build['nvr'] for build in response.json()['update']['builds']]
-
-
-def retrieve_update_for_build(nvr):
-    """
-    Queries Bodhi to find the update which the given build is in (if any).
-    Returns a Bodhi updateid, or None if the build is not in any update.
-    """
-    updates_list_url = urljoin(current_app.config['BODHI_URL'], '/updates/')
-    params = {'builds': nvr}
-    timeout = current_app.config['REQUESTS_TIMEOUT']
-    verify = current_app.config['REQUESTS_VERIFY']
-    response = requests_session.get(updates_list_url,
-                                    params=params,
-                                    headers={'Accept': 'application/json'},
-                                    timeout=timeout, verify=verify)
-    response.raise_for_status()
-    matching_updates = response.json()['updates']
-    if matching_updates:
-        return matching_updates[0]['updateid']
-    return None
 
 
 # NOTE - not cached, for now.

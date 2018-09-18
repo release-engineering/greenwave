@@ -172,12 +172,6 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             else:
                 nvr = _decode(data['original_spec_nvr'])
             yield ('koji_build', nvr)
-            # If the result is for a build, it may also influence the decision
-            # about any update which the build is part of.
-            if current_app.config['BODHI_URL']:
-                updateid = greenwave.resources.retrieve_update_for_build(nvr)
-                if updateid is not None:
-                    yield ('bodhi_update', updateid)
 
     def consume(self, message):
         """

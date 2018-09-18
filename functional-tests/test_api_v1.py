@@ -162,36 +162,36 @@ def test_cannot_make_decision_with_invalid_subject(requests_session, greenwave_s
 
 @pytest.mark.smoke
 def test_404_for_invalid_product_version(requests_session, greenwave_server, testdatabuilder):
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[testdatabuilder.unique_nvr()])
+    nvr = testdatabuilder.unique_nvr()
     data = {
         'decision_context': 'bodhi_push_update_stable',
         'product_version': 'f26',  # not a real product version
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 404
-    expected = ('Cannot find any applicable policies for bodhi_update subjects '
+    expected = ('Cannot find any applicable policies for koji_build subjects '
                 'at gating point bodhi_push_update_stable in f26')
     assert expected == r.json()['message']
 
 
 @pytest.mark.smoke
 def test_404_for_invalid_decision_context(requests_session, greenwave_server, testdatabuilder):
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[testdatabuilder.unique_nvr()])
+    nvr = testdatabuilder.unique_nvr()
     data = {
         'decision_context': 'bodhi_push_update',  # missing the _stable part!
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 404
-    expected = ('Cannot find any applicable policies for bodhi_update subjects '
+    expected = ('Cannot find any applicable policies for koji_build subjects '
                 'at gating point bodhi_push_update in fedora-26')
     assert expected == r.json()['message']
 
@@ -222,12 +222,11 @@ def test_make_a_decision_on_passed_result(requests_session, greenwave_server, te
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
 
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
@@ -251,12 +250,11 @@ def test_make_a_decision_with_verbose_flag(requests_session, greenwave_server, t
         results.append(testdatabuilder.create_result(item=nvr,
                                                      testcase_name=testcase_name,
                                                      outcome='PASSED'))
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
         'verbose': True,
     }
 
@@ -291,12 +289,13 @@ def test_make_a_decision_with_verbose_flag_and_multiple_nvrs_with_results(
             results.append(testdatabuilder.create_result(
                 item=nvr, testcase_name=testcase_name, outcome='PASSED'))
 
-    update = testdatabuilder.create_bodhi_update(build_nvrs=build_nvrs)
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject': [
+            {'type': 'koji_build', 'item': nvr}
+            for nvr in build_nvrs
+        ],
         'verbose': True,
     }
 
@@ -324,12 +323,13 @@ def test_make_a_decision_with_verbose_flag_and_multiple_nvrs_with_waivers(
                 comment='This is fine')
             waivers.append(waiver)
 
-    update = testdatabuilder.create_bodhi_update(build_nvrs=build_nvrs)
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject': [
+            {'type': 'koji_build', 'item': nvr}
+            for nvr in build_nvrs
+        ],
         'verbose': True,
     }
 
@@ -359,12 +359,11 @@ def test_make_a_decision_on_failed_result_with_waiver(
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -383,12 +382,11 @@ def test_make_a_decision_on_failed_result(requests_session, greenwave_server, te
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
                                            outcome='FAILED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -426,12 +424,11 @@ def test_make_a_decision_on_queued_result(requests_session, greenwave_server, te
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
                                            outcome='QUEUED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -470,12 +467,11 @@ def test_make_a_decision_on_running_result(requests_session, greenwave_server, t
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
                                            outcome='RUNNING')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -511,12 +507,11 @@ def test_make_a_decision_on_running_result(requests_session, greenwave_server, t
 
 def test_make_a_decision_on_no_results(requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -543,13 +538,11 @@ def test_make_a_decision_on_no_results(requests_session, greenwave_server, testd
 
 def test_empty_policy_is_always_satisfied(
         requests_session, greenwave_server, testdatabuilder):
-    nvr = testdatabuilder.unique_nvr()
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-24',
         'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_identifier': 'FEDORA-2000-abcdef01',
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -570,12 +563,11 @@ def test_bodhi_push_update_stable_policy(
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -590,7 +582,7 @@ def test_bodhi_push_update_stable_policy(
     assert res_data['unsatisfied_requirements'] == []
 
 
-def test_bodhi_nonexistent_bodhi_update(
+def test_bodhi_nonexistent_bodhi_update_policy(
         requests_session, greenwave_server, testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
     for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS:
@@ -610,8 +602,7 @@ def test_bodhi_nonexistent_bodhi_update(
     assert r.status_code == 200
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
-    assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
-    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
+    assert res_data['applicable_policies'] == []
     assert res_data['summary'] == 'no tests are required'
     assert res_data['unsatisfied_requirements'] == []
 
@@ -635,12 +626,11 @@ def test_multiple_results_in_a_subject(
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -677,12 +667,11 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -805,12 +794,11 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
     }
     r_ = requests_session.post(greenwave_server + 'api/v1.0/decision',
                                headers={'Content-Type': 'application/json'},
@@ -864,12 +852,11 @@ def test_cached_false_positive(requests_session, greenwave_server, testdatabuild
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
         'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_identifier': 'FEDORA-2000-abcdef01',
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -903,12 +890,11 @@ def test_blacklist(requests_session, greenwave_server, testdatabuilder):
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
-    update = testdatabuilder.create_bodhi_update(build_nvrs=[nvr])
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
         'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject_identifier': 'FEDORA-2000-abcdef01',
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -1059,12 +1045,15 @@ def test_make_a_decision_for_bodhi_with_verbose_flag(
             results.append(testdatabuilder.create_result(
                 item=nvr, testcase_name=testcase_name, outcome='PASSED'))
 
-    update = testdatabuilder.create_bodhi_update(build_nvrs=nvrs)
     data = {
         'decision_context': 'bodhi_update_push_stable_with_no_rules',
         'product_version': 'fedora-28',
-        'subject_type': 'bodhi_update',
-        'subject_identifier': update['updateid'],
+        'subject': [
+            {'type': 'koji_build', 'item': nvr}
+            for nvr in nvrs
+        ] + [
+            {'type': 'bodhi_update', 'item': 'FEDORA-2000-abcdef01'}
+        ],
         'verbose': True,
     }
 

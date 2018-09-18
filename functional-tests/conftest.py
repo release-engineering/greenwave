@@ -169,23 +169,6 @@ def waiverdb_server(tmpdir_factory):
 
 
 @pytest.yield_fixture(scope='session')
-def bodhi():
-    start_server_arguments = [
-        'gunicorn-3',
-        '--bind=127.0.0.1:5677',
-        '--access-logfile=-',
-        'fake_bodhi:application'
-    ]
-
-    with server_subprocess(
-            name='bodhi',
-            port=5677,
-            source_path=os.path.dirname(__file__),
-            start_server_arguments=start_server_arguments) as url:
-        yield url
-
-
-@pytest.yield_fixture(scope='session')
 def distgit_server(tmpdir_factory):
     """ Creating a fake dist-git process. It is just a serving some files in a tmp dir """
     tmp_dir = tmpdir_factory.mktemp('distgit')
@@ -203,7 +186,7 @@ def distgit_server(tmpdir_factory):
 
 
 @pytest.yield_fixture(scope='session')
-def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server, bodhi):
+def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server):
     cache_file = tmpdir_factory.mktemp('greenwave').join('cache.dbm')
     settings_content = """
         CACHE = {
@@ -213,8 +196,7 @@ def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server, bodhi):
         }
         RESULTSDB_API_URL = '%sapi/v2.0'
         WAIVERDB_API_URL = '%sapi/v1.0'
-        BODHI_URL = %r
-        """ % (cache_file.strpath, resultsdb_server, waiverdb_server, bodhi)
+        """ % (cache_file.strpath, resultsdb_server, waiverdb_server)
 
     start_server_arguments = [
         'gunicorn-3',
@@ -245,11 +227,10 @@ class TestDataBuilder(object):
     ResultsDB and WaiverDB.
     """
 
-    def __init__(self, requests_session, resultsdb_url, waiverdb_url, bodhi_url, distgit_url):
+    def __init__(self, requests_session, resultsdb_url, waiverdb_url, distgit_url):
         self.requests_session = requests_session
         self.resultsdb_url = resultsdb_url
         self.waiverdb_url = waiverdb_url
-        self.bodhi_url = bodhi_url
         self.distgit_url = distgit_url
         self._counter = itertools.count(1)
 
@@ -331,18 +312,8 @@ class TestDataBuilder(object):
         response.raise_for_status()
         return response.json()
 
-    def create_bodhi_update(self, build_nvrs):
-        data = {'builds': [{'nvr': nvr} for nvr in build_nvrs]}
-        response = self.requests_session.post(
-            self.bodhi_url + 'updates/',
-            headers={'Content-Type': 'application/json'},
-            timeout=TEST_HTTP_TIMEOUT,
-            data=json.dumps(data))
-        response.raise_for_status()
-        return response.json()
-
 
 @pytest.fixture(scope='session')
-def testdatabuilder(requests_session, resultsdb_server, waiverdb_server, bodhi, distgit_server):
-    return TestDataBuilder(requests_session, resultsdb_server, waiverdb_server, bodhi,
+def testdatabuilder(requests_session, resultsdb_server, waiverdb_server, distgit_server):
+    return TestDataBuilder(requests_session, resultsdb_server, waiverdb_server,
                            distgit_server)

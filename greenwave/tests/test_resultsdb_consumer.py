@@ -11,60 +11,29 @@ from greenwave.policies import Policy
 
 def test_announcement_keys_decode_with_list():
     cls = greenwave.consumers.resultsdb.ResultsDBHandler
-    app = greenwave.app_factory.create_app()
     message = {'msg': {'data': {
         'original_spec_nvr': ['glibc-1.0-1.fc27'],
     }}}
-
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_update_for_build') as f:
-            f.return_value = None
-            subjects = list(cls.announcement_subjects(message))
+    subjects = list(cls.announcement_subjects(message))
 
     assert subjects == [('koji_build', 'glibc-1.0-1.fc27')]
-
-
-def test_announcement_subjects_include_bodhi_update():
-    cls = greenwave.consumers.resultsdb.ResultsDBHandler
-    app = greenwave.app_factory.create_app()
-    message = {'msg': {'data': {
-        'original_spec_nvr': ['glibc-1.0-2.fc27'],
-    }}}
-
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_update_for_build') as f:
-            f.return_value = 'FEDORA-27-12345678'
-            subjects = list(cls.announcement_subjects(message))
-
-    # Result was about a Koji build, but the build is in a Bodhi update.
-    # So we should announce decisions about both subjects.
-    assert subjects == [
-        ('koji_build', 'glibc-1.0-2.fc27'),
-        ('bodhi_update', 'FEDORA-27-12345678'),
-    ]
 
 
 def test_announcement_subjects_for_brew_build():
     # The 'brew-build' type appears internally within Red Hat. We treat it as an
     # alias of 'koji_build'.
     cls = greenwave.consumers.resultsdb.ResultsDBHandler
-    app = greenwave.app_factory.create_app()
     message = {'msg': {'data': {
         'type': 'brew-build',
         'item': ['glibc-1.0-3.fc27'],
     }}}
-
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_update_for_build') as f:
-            f.return_value = None
-            subjects = list(cls.announcement_subjects(message))
+    subjects = list(cls.announcement_subjects(message))
 
     assert subjects == [('koji_build', 'glibc-1.0-3.fc27')]
 
 
 def test_announcement_subjects_for_autocloud_compose():
     cls = greenwave.consumers.resultsdb.ResultsDBHandler
-    app = greenwave.app_factory.create_app()
     message = {
         'msg': {
             'task': {
@@ -81,16 +50,11 @@ def test_announcement_subjects_for_autocloud_compose():
             }
         }
     }
-
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_update_for_build') as f:
-            f.return_value = None
-            subjects = list(cls.announcement_subjects(message))
+    subjects = list(cls.announcement_subjects(message))
 
     assert subjects == [('compose', 'Fedora-AtomicHost-28_Update-20180723.1839.x86_64.qcow2')]
 
 
-@mock.patch('greenwave.resources.retrieve_update_for_build')
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')
 @mock.patch('greenwave.resources.retrieve_scm_from_koji')
@@ -101,8 +65,7 @@ def test_remote_rule_decision_change(
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
         mock_retrieve_decision,
-        mock_retrieve_results,
-        mock_retrieve_bodhi_update):
+        mock_retrieve_results):
     """
     Test publishing decision change message for test cases mentioned in
     gating.yaml.
@@ -135,7 +98,6 @@ def test_remote_rule_decision_change(
         'data': {'item': nvr, 'type': 'koji_build'},
     }
     mock_retrieve_results.return_value = [result]
-    mock_retrieve_bodhi_update.return_value = None
 
     def retrieve_decision(url, data):
         #pylint: disable=unused-argument
@@ -191,7 +153,6 @@ def test_remote_rule_decision_change(
     }
 
 
-@mock.patch('greenwave.resources.retrieve_update_for_build')
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')
 @mock.patch('greenwave.resources.retrieve_scm_from_koji')
@@ -202,8 +163,7 @@ def test_remote_rule_decision_change_not_matching(
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
         mock_retrieve_decision,
-        mock_retrieve_results,
-        mock_retrieve_bodhi_update):
+        mock_retrieve_results):
     """
     Test publishing decision change message for test cases mentioned in
     gating.yaml.
@@ -236,7 +196,6 @@ def test_remote_rule_decision_change_not_matching(
         'data': {'item': nvr, 'type': 'koji_build'},
     }
     mock_retrieve_results.return_value = [result]
-    mock_retrieve_bodhi_update.return_value = None
 
     def retrieve_decision(url, data):
         #pylint: disable=unused-argument

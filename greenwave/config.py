@@ -16,11 +16,6 @@ class Config(object):
 
     RESULTSDB_API_URL = 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0'
     WAIVERDB_API_URL = 'https://waiverdb.fedoraproject.org/api/v1.0'
-    # Greenwave queries Bodhi to map builds <-> updates,
-    # so that it can make decisions about updates based on results for builds.
-    # If you don't have Bodhi, set this to None
-    # (this effectively disables the 'bodhi_update' subject type).
-    BODHI_URL = 'https://bodhi.fedoraproject.org/'
 
     # Options for outbound HTTP requests made by python-requests
     DIST_GIT_BASE_URL = 'https://src.fedoraproject.org/'

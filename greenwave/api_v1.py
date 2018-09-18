@@ -5,7 +5,7 @@ from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType, Inte
 from prometheus_client import generate_latest
 from greenwave import __version__
 from greenwave.policies import summarize_answers, RemotePolicy, RemoteRule
-from greenwave.resources import ResultsRetriever, retrieve_waivers, retrieve_builds_in_update
+from greenwave.resources import ResultsRetriever, retrieve_waivers
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
 from greenwave.monitoring import (
@@ -18,7 +18,27 @@ from greenwave.monitoring import (
 api = (Blueprint('api_v1', __name__))
 
 
-def subject_list_to_type_identifier(subject):
+def _decision_subject(subject):
+    subject_type = subject.get('type')
+    subject_identifier = subject.get('item')
+
+    if subject_identifier:
+        if subject_type in ('bodhi_update', 'component-version', 'koji_build'):
+            return (subject_type, subject_identifier)
+
+        if subject_type == 'brew-build':
+            return ('koji_build', subject_identifier)
+
+    if 'productmd.compose.id' in subject:
+        return ('compose', subject['productmd.compose.id'])
+
+    if 'original_spec_nvr' in subject:
+        return ('koji_build', subject['original_spec_nvr'])
+
+    raise BadRequest('Unrecognised subject type: %r' % subject)
+
+
+def _decision_subjects_for_request(data):
     """
     Greenwave < 0.8 accepted a list of arbitrary dicts for the 'subject'.
     Now we expect a specific type and identifier.
@@ -28,29 +48,21 @@ def subject_list_to_type_identifier(subject):
     with WaiverDB < 0.11, but it accepts a single subject dict. Here we accept
     a list.
     """
-    if (not isinstance(subject, list) or not subject or
-            not all(isinstance(entry, dict) for entry in subject)):
-        raise BadRequest('Invalid subject, must be a list of dicts')
-    if any(entry.get('type') == 'bodhi_update' and 'item' in entry for entry in subject):
-        # Assume that all the other entries in the list are just for the
-        # builds which are in the Bodhi update. So really, the caller wants a
-        # decision about the Bodhi update. Ignore everything else. (Is this
-        # wise? Maybe not...)
-        identifier = [entry for entry in subject if entry.get('type') == 'bodhi_update'][0]['item']
-        return ('bodhi_update', identifier)
-    if len(subject) == 1 and 'productmd.compose.id' in subject[0]:
-        return ('compose', subject[0]['productmd.compose.id'])
-    # We don't know of any callers who would ask about subjects like this,
-    # but it's easy enough to handle here anyway:
-    if len(subject) == 1 and subject[0].get('type') == 'brew-build' and 'item' in subject[0]:
-        return ('koji_build', subject[0]['item'])
-    if len(subject) == 1 and subject[0].get('type') == 'koji_build' and 'item' in subject[0]:
-        return ('koji_build', subject[0]['item'])
-    if len(subject) == 1 and 'original_spec_nvr' in subject[0]:
-        return ('koji_build', subject[0]['original_spec_nvr'])
-    if len(subject) == 1 and subject[0].get('type') == 'component-version' and 'item' in subject[0]:
-        return ('component-version', subject[0]['item'])
-    raise BadRequest('Unrecognised subject type: %r' % subject)
+    if 'subject' in data:
+        subjects = data['subject']
+        if (not isinstance(subjects, list) or not subjects or
+                not all(isinstance(entry, dict) for entry in subjects)):
+            raise BadRequest('Invalid subject, must be a list of dicts')
+
+        for subject in subjects:
+            yield _decision_subject(subject)
+    else:
+        if 'subject_type' not in data:
+            raise BadRequest('Missing required "subject_type" parameter')
+        if 'subject_identifier' not in data:
+            raise BadRequest('Missing required "subject_identifier" parameter')
+
+        yield data['subject_type'], data['subject_identifier']
 
 
 def subject_type_identifier_to_list(subject_type, subject_identifier):
@@ -59,19 +71,15 @@ def subject_type_identifier_to_list(subject_type, subject_identifier):
     This is for backwards compatibility in emitted messages.
     """
     if subject_type == 'bodhi_update':
-        old_subject = [{'type': 'bodhi_update', 'item': subject_identifier}]
-        for nvr in retrieve_builds_in_update(subject_identifier):
-            old_subject.append({'type': 'koji_build', 'item': nvr})
-            old_subject.append({'original_spec_nvr': nvr})
-        return old_subject
-    elif subject_type == 'koji_build':
+        return [{'type': 'bodhi_update', 'item': subject_identifier}]
+    if subject_type == 'koji_build':
         return [{'type': 'koji_build', 'item': subject_identifier}]
-    elif subject_type == 'compose':
+    if subject_type == 'compose':
         return [{'productmd.compose.id': subject_identifier}]
-    elif subject_type == 'component-version':
+    if subject_type == 'component-version':
         return [{'type': 'component-version', 'item': subject_identifier}]
-    else:
-        raise BadRequest('Unrecognised subject type: %s' % subject_type)
+
+    raise BadRequest('Unrecognised subject type: %s' % subject_type)
 
 
 @api.route('/version', methods=['GET'])
@@ -291,20 +299,8 @@ def make_decision():
             raise BadRequest('Missing required decision context')
     else:
         raise UnsupportedMediaType('No JSON payload in request')
+
     data = request.get_json()
-
-    # Greenwave < 0.8
-    if 'subject' in data:
-        data['subject_type'], data['subject_identifier'] = \
-            subject_list_to_type_identifier(data['subject'])
-
-    if 'subject_type' not in data:
-        raise BadRequest('Missing required "subject_type" parameter')
-    if 'subject_identifier' not in data:
-        raise BadRequest('Missing required "subject_identifier" parameter')
-
-    subject_type = data['subject_type']
-    subject_identifier = data['subject_identifier']
     product_version = data['product_version']
     decision_context = data['decision_context']
     verbose = data.get('verbose', False)
@@ -324,54 +320,45 @@ def make_decision():
                                               "'DIST_GIT_URL_TEMPLATE' and KOJI_BASE_URL in "
                                               "your configuration.")
 
-    subject_policies = [policy for policy in current_app.config['policies']
-                        if policy.applies_to(decision_context, product_version, subject_type)]
-    if subject_type == 'bodhi_update':
-        # Also need to apply policies for each build in the update.
-        build_policies = [policy for policy in current_app.config['policies']
-                          if policy.applies_to(decision_context, product_version, 'koji_build')]
-    else:
-        build_policies = []
-    applicable_policies = subject_policies + build_policies
-    if not applicable_policies:
-        raise NotFound(
-            'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
-                subject_type, decision_context, product_version))
-
     answers = []
+    verbose_results = []
+    verbose_waivers = []
+    applicable_policies = []
     results_retriever = ResultsRetriever(
         cache=current_app.cache,
         ignore_results=ignore_results,
         timeout=current_app.config['REQUESTS_TIMEOUT'],
         verify=current_app.config['REQUESTS_VERIFY'],
         url=current_app.config['RESULTSDB_API_URL'])
-    waivers = retrieve_waivers(product_version, subject_type, [subject_identifier])
-    waivers = [w for w in waivers if w['id'] not in ignore_waivers]
 
-    for policy in subject_policies:
-        answers.extend(
-            policy.check(product_version, subject_identifier, results_retriever, waivers))
+    for subject_type, subject_identifier in _decision_subjects_for_request(data):
+        subject_policies = [
+            policy for policy in current_app.config['policies']
+            if policy.applies_to(decision_context, product_version, subject_type)]
+        if not subject_policies:
+            # Ignore non-existent policy for Bodhi updates.
+            if subject_type == 'bodhi_update':
+                continue
 
-    if build_policies:
-        build_nvrs = retrieve_builds_in_update(subject_identifier)
+            raise NotFound(
+                'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
+                    subject_type, decision_context, product_version))
 
-        nvrs_waivers = retrieve_waivers(product_version, 'koji_build', build_nvrs)
-        nvrs_waivers = [w for w in nvrs_waivers if w['id'] not in ignore_waivers]
-        waivers.extend(nvrs_waivers)
+        waivers = retrieve_waivers(product_version, subject_type, [subject_identifier])
+        waivers = [w for w in waivers if w['id'] not in ignore_waivers]
 
-        for nvr in build_nvrs:
-            nvr_waivers = [
-                item for item in nvrs_waivers
-                if nvr == item.get('subject_identifier')
-            ]
+        for policy in subject_policies:
+            answers.extend(
+                policy.check(product_version, subject_identifier, results_retriever, waivers))
 
-            for policy in build_policies:
-                answers.extend(
-                    policy.check(product_version, nvr, results_retriever, nvr_waivers))
-    else:
-        build_nvrs = []
+        applicable_policies.extend(subject_policies)
 
-    res = {
+        if verbose:
+            # Retrieve test results for all items when verbose output is requested.
+            verbose_results.extend(results_retriever.retrieve(subject_type, subject_identifier))
+            verbose_waivers.extend(waivers)
+
+    response = {
         'policies_satisfied': all(answer.is_satisfied for answer in answers),
         'summary': summarize_answers(answers),
         'applicable_policies': [policy.id for policy in applicable_policies],
@@ -380,17 +367,14 @@ def make_decision():
         'unsatisfied_requirements':
             [answer.to_json() for answer in answers if not answer.is_satisfied],
     }
-    if verbose:
-        # Retrieve test results for all items when verbose output is requested.
-        results = list(results_retriever.retrieve(subject_type, subject_identifier))
-        for nvr in build_nvrs:
-            results += results_retriever.retrieve('koji_build', nvr)
 
-        res.update({
-            'results': results,
-            'waivers': waivers,
+    if verbose:
+        response.update({
+            'results': verbose_results,
+            'waivers': verbose_waivers,
         })
-    resp = jsonify(res)
+
+    resp = jsonify(response)
     resp = insert_headers(resp)
     resp.status_code = 200
     return resp
