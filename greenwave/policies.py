@@ -416,6 +416,9 @@ class PassingTestCaseRule(Rule):
         )]
         if matching_waivers:
             return TestResultPassed(self.test_case_name, result['id'])
+        if result['outcome'] in ('QUEUED', 'RUNNING'):
+            return TestResultMissing(subject_type, subject_identifier, self.test_case_name,
+                                     self.scenario)
         return TestResultFailed(subject_type, subject_identifier, self.test_case_name,
                                 self.scenario, result['id'])
 
