@@ -8,6 +8,7 @@ from textwrap import dedent
 
 from greenwave.app_factory import create_app
 from greenwave.policies import (
+    load_policies,
     summarize_answers,
     Policy,
     RemotePolicy,
@@ -17,7 +18,6 @@ from greenwave.policies import (
     InvalidGatingYaml
 )
 from greenwave.resources import ResultsRetriever
-from greenwave.utils import load_policies
 from greenwave.safe_yaml import SafeYAMLError
 
 
