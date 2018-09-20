@@ -212,7 +212,8 @@ node('fedora-28') {
                     def resultsdbModels = openshift.process(
                         rtemplate,
                         '-p', "TEST_ID=${buildTag}",
-                        '-p', "RESULTSDB_IMAGE=${resultsdbImage}"
+                        '-p', "RESULTSDB_IMAGE=${resultsdbImage}",
+                        '-p', "RESULTSDB_ADDITIONAL_RESULT_OUTCOMES=['RUNNING', 'QUEUED']"
                     )
                     def wtemplate = readYaml file: 'openshift/waiverdb-test-template.yaml'
                     def waiverdbModels = openshift.process(
