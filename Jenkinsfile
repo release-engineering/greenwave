@@ -188,8 +188,9 @@ node('fedora-28') {
     sh 'sudo dnf -y builddep greenwave.spec'
 
     def openshiftHost = 'greenwave-test.cloud.upshift.engineering.redhat.com'
-    def waiverdbURL = "waiverdb-test-${env.BUILD_TAG}-web-${openshiftHost}"
-    def resultsdbURL = "resultsdb-test-${env.BUILD_TAG}-api-${openshiftHost}"
+    def buildTag = "${env.BUILD_TAG}".replace('jenkins-','')
+    def waiverdbURL = "waiverdb-test-${buildTag}-web-${openshiftHost}"
+    def resultsdbURL = "resultsdb-test-${buildTag}-api-${openshiftHost}"
 
     def resultsdbRepo = 'https://pagure.io/taskotron/resultsdb/raw/develop/f/openshift'
     def resultsdbTemplate = 'resultsdb-test-template.yaml'
@@ -208,18 +209,18 @@ node('fedora-28') {
                     def resultsdbImage = 'docker-registry.engineering.redhat.com/csomh/resultsdb:latest'
                     def resultsdbModels = openshift.process(
                         rtemplate,
-                        '-p', "TEST_ID=${env.BUILD_TAG}",
+                        '-p', "TEST_ID=${buildTag}",
                         '-p', "RESULTSDB_IMAGE=${resultsdbImage}"
                     )
                     def wtemplate = readYaml file: 'openshift/waiverdb-test-template.yaml'
                     def waiverdbModels = openshift.process(
                         wtemplate,
-                        '-p', "TEST_ID=${env.BUILD_TAG}",
+                        '-p', "TEST_ID=${buildTag}",
                         '-p', 'WAIVERDB_APP_VERSION=latest',
                         '-p', "RESULTSDB_API_URL=${resultsdbURL}",
                         '-p', "WAIVERDB_REPLICAS=1"
                     )
-                    def environment_label = "test-${env.BUILD_TAG}"
+                    def environment_label = "test-${buildTag}"
                     try {
                         openshift.create(resultsdbModels)
                         openshift.create(waiverdbModels)
