@@ -103,6 +103,8 @@ node('fedora-28') {
                 if [[ "$(git diff --cached --numstat | wc -l)" -eq 0 ]] ; then
                     exit 0 # No changes, nothing to commit
                 fi
+                git config user.name "Jenkins Job"
+                git config user.email "nobody@redhat.com"
                 git commit -m 'Automatic commit of docs built by Jenkins job ${env.JOB_NAME} #${env.BUILD_NUMBER}'
                 git push origin master
                 '''
