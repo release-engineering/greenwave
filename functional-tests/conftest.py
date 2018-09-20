@@ -122,6 +122,10 @@ def resultsdb_server(tmpdir_factory):
         PORT = 5001
         SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2:///%s'
         DEBUG = False
+        ADDITIONAL_RESULT_OUTCOMES = (
+            'QUEUED',
+            'RUNNING',
+        )
         """ % dbname
 
     init_db_arguments = ['python2', 'run_cli.py', 'init_db']
