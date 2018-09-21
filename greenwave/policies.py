@@ -51,6 +51,8 @@ def subject_type_identifier_to_item(subject_type, subject_identifier):
         return {'type': 'koji_build', 'item': subject_identifier}
     elif subject_type == 'compose':
         return {'productmd.compose.id': subject_identifier}
+    elif subject_type == 'component-version':
+        return {'type': 'component-version', 'item': subject_identifier}
     else:
         raise RuntimeError('Unrecognised subject type: %s' % subject_type)
 
@@ -488,7 +490,7 @@ class Policy(SafeYAMLObject):
         'decision_context': SafeYAMLString(),
         # TODO: Handle brew-build value better.
         'subject_type': SafeYAMLChoice(
-            'koji_build', 'bodhi_update', 'compose', 'brew-build'),
+            'koji_build', 'bodhi_update', 'compose', 'brew-build', 'component-version'),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
         'relevance_key': SafeYAMLString(optional=True),

@@ -44,6 +44,8 @@ def subject_list_to_type_identifier(subject):
         return ('koji_build', subject[0]['item'])
     if len(subject) == 1 and 'original_spec_nvr' in subject[0]:
         return ('koji_build', subject[0]['original_spec_nvr'])
+    if len(subject) == 1 and subject[0].get('type') == 'component-version' and 'item' in subject[0]:
+        return ('component-version', subject[0]['item'])
     raise BadRequest('Unrecognised subject type: %r' % subject)
 
 
@@ -62,6 +64,8 @@ def subject_type_identifier_to_list(subject_type, subject_identifier):
         return [{'type': 'koji_build', 'item': subject_identifier}]
     elif subject_type == 'compose':
         return [{'productmd.compose.id': subject_identifier}]
+    elif subject_type == 'component-version':
+        return [{'type': 'component-version', 'item': subject_identifier}]
     else:
         raise BadRequest('Unrecognised subject type: %s' % subject_type)
 
@@ -274,7 +278,6 @@ def make_decision():
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
     """  # noqa: E501
-
     if request.get_json():
         if ('product_version' not in request.get_json() or
                 not request.get_json()['product_version']):
