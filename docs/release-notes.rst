@@ -2,6 +2,23 @@
 Release Notes
 =============
 
+Greenwave 0.9.7
+===============
+
+Released 25 September 2018
+
+* Non-applicable requirements are no longer counted in decision
+  summary and are not listed in satisfied_requirements in decision
+  response. This makes some decisions easier to read.
+
+* Try to guess the product version in the decision change: omits to
+  publish an incorrect decision messages if it's possible to guess
+  the product version from the new test result subject.
+
+* Accepting and treating as absent new results with outcomes "QUEUED"
+  and "RUNNING" for resultsdb instances that support those outcomes.
+
+
 Greenwave 0.9.6
 ===============
 
