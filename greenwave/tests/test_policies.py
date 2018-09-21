@@ -768,3 +768,28 @@ def test_policies_to_json():
         'relevance_key': None,
         'relevance_value': None,
     }
+
+
+def test_policy_with_subject_type_component_version(tmpdir):
+    nv = '389-ds-base-1.4.0.10'
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: "test-new-subject-type"
+product_versions:
+- fedora-29
+decision_context: decision_context_test_component_version
+subject_type: component-version
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: test_for_new_type}
+        """)
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+
+    results = DummyResultsRetriever(nv, 'test_for_new_type', 'PASSED',
+                                    'component-version')
+    waivers = []
+    decision = policy.check(nv, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], RuleSatisfied)
