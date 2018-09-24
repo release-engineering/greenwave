@@ -205,24 +205,6 @@ class TestResultPassed(RuleSatisfied):
         }
 
 
-class TestCaseNotApplicable(RuleSatisfied):
-    """
-    A required test case is not applicable to given subject.
-    """
-    def __init__(self, subject_type, subject_identifier, test_case_name):
-        self.subject_type = subject_type
-        self.subject_identifier = subject_identifier
-        self.test_case_name = test_case_name
-
-    def to_json(self):
-        return {
-            'type': 'test-case-not-applicable',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject_type,
-            'subject_identifier': self.subject_identifier,
-        }
-
-
 class BlacklistedInPolicy(RuleSatisfied):
     """
     Package was blacklisted in policy.
@@ -470,11 +452,11 @@ class PackageSpecificRule(Rule):
         """
 
         if subject_type != 'koji_build':
-            return TestCaseNotApplicable(subject_type, subject_identifier, self.test_case_name)
+            return []
 
         pkg_name = subject_identifier.rsplit('-', 2)[0]
         if not any(fnmatch(pkg_name, repo) for repo in self.repos):
-            return TestCaseNotApplicable(subject_type, subject_identifier, self.test_case_name)
+            return []
 
         rule = PassingTestCaseRule()
         # pylint: disable=attribute-defined-outside-init

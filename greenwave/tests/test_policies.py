@@ -226,14 +226,12 @@ rules:
     # That a non-matching passing result is ignored.
     results = DummyResultsRetriever('foobar-1.2.3-1.el9000', 'sometest')
     decision = policy.check('foobar-1.2.3-1.el9000', results, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], RuleSatisfied)
+    assert decision == []
 
     # That a non-matching failing result is ignored.
     results = DummyResultsRetriever('foobar-1.2.3-1.el9000', 'sometest', 'FAILED')
     decision = policy.check('foobar-1.2.3-1.el9000', results, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], RuleSatisfied)  # ooooh.
+    assert decision == []
 
     # Ensure that fnmatch globs work in absence
     results, waivers = DummyResultsRetriever(), []
