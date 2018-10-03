@@ -24,24 +24,23 @@ def json_error(error):
 
     """
     if isinstance(error, HTTPException):
-        response = jsonify(message=error.description)
-        response.status_code = error.code
+        msg = error.description
+        status_code = error.code
+    elif isinstance(error, ConnectionError):
+        current_app.logger.exception('Connection error: {}'.format(error))
+        msg = 'Error connecting to upstream server: {}'.format(error)
+        status_code = 502
+    elif isinstance(error, Timeout):
+        current_app.logger.exception('Timeout error: {}'.format(error))
+        msg = 'Timeout connecting to upstream server: {}'.format(error)
+        status_code = 504
     else:
-        if isinstance(error, ConnectionError):
-            current_app.logger.exception('ConnectionError, returning 502 to user.')
-            msg = 'Error connecting to upstream server: {err}'
-            status_code = 502
-        elif isinstance(error, Timeout):
-            current_app.logger.exception('Timeout error, returning 504 to user.')
-            msg = 'Timeout connecting to upstream server: {err}'
-            status_code = 504
-        else:
-            current_app.logger.exception('Returning 500 to user.')
-            msg = '{err}'
-            status_code = 500
+        current_app.logger.exception('Unexpected server error: {}'.format(error))
+        msg = 'Server encountered unexpected error'
+        status_code = 500
 
-        response = jsonify(message=msg.format(err=error))
-        response.status_code = status_code
+    response = jsonify(message=msg)
+    response.status_code = status_code
 
     response = insert_headers(response)
 
