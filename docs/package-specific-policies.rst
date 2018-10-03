@@ -76,8 +76,6 @@ be this one:
         rules:
           - !PassingTestCaseRule {test_case_name: dist.depcheck}
 
-the decision_context it is not really important at the very moment.
-
 *NB*. It is not possible to insert a RemoteRule inside a gating.yaml file.
 This will provoke an error.
 

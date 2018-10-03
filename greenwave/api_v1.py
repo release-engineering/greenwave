@@ -345,7 +345,8 @@ def make_decision():
     waivers = [w for w in waivers if w['id'] not in ignore_waivers]
 
     for policy in subject_policies:
-        answers.extend(policy.check(subject_identifier, results_retriever, waivers))
+        answers.extend(
+            policy.check(product_version, subject_identifier, results_retriever, waivers))
 
     if build_policies:
         build_nvrs = retrieve_builds_in_update(subject_identifier)
@@ -361,7 +362,8 @@ def make_decision():
             ]
 
             for policy in build_policies:
-                answers.extend(policy.check(nvr, results_retriever, nvr_waivers))
+                answers.extend(
+                    policy.check(product_version, nvr, results_retriever, nvr_waivers))
     else:
         build_nvrs = []
 

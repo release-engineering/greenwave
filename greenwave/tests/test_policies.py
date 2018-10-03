@@ -89,13 +89,13 @@ rules:
 
     # Ensure that absence of a result is failure.
     item, results, waivers = {}, DummyResultsRetriever(), []
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('fedora-rawhide', item, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultMissing)
 
     # But also that waiving the absence works.
     waivers = [{'testcase': 'sometest', 'waived': True}]
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('fedora-rawhide', item, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
@@ -112,7 +112,7 @@ def test_waive_brew_koji_mismatch(tmpdir):
 --- !Policy
 id: some_id
 product_versions:
-- irrelevant
+- fedora-rawhide
 decision_context: test
 subject_type: koji_build
 rules:
@@ -130,17 +130,17 @@ rules:
     }
 
     item, waivers = 'some_nevr', [waiver]
-    decision = policy.check(item, results, [])
+    decision = policy.check('fedora-rawhide', item, results, [])
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('fedora-rawhide', item, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
     # Also, be sure that negative waivers work.
     waivers[0]['waived'] = False
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('fedora-rawhide', item, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
@@ -157,7 +157,7 @@ def test_waive_bodhi_update(tmpdir):
 --- !Policy
 id: some_id
 product_versions:
-- irrelevant
+- fedora-rawhide
 decision_context: test
 subject_type: bodhi_update
 rules:
@@ -175,17 +175,17 @@ rules:
         u'waived': True,
     }]
 
-    decision = policy.check(item, results, [])
+    decision = policy.check('fedora-rawhide', item, results, [])
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('fedora-rawhide', item, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
     # Also, be sure that negative waivers work.
     waivers[0]['waived'] = False
-    decision = policy.check(item, results, waivers)
+    decision = policy.check('fedora-rawhide', item, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
@@ -207,47 +207,47 @@ rules:
 
     # Ensure that we fail with no results
     results, waivers = DummyResultsRetriever(), []
-    decision = policy.check('nethack-1.2.3-1.el9000', results, waivers)
+    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultMissing)
 
     # That a matching, failing result can fail
     results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest', 'FAILED')
-    decision = policy.check('nethack-1.2.3-1.el9000', results, waivers)
+    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
     # That a matching, passing result can pass
     results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest')
-    decision = policy.check('nethack-1.2.3-1.el9000', results, waivers)
+    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
     # That a non-matching passing result is ignored.
     results = DummyResultsRetriever('foobar-1.2.3-1.el9000', 'sometest')
-    decision = policy.check('foobar-1.2.3-1.el9000', results, waivers)
+    decision = policy.check('rhel-9000', 'foobar-1.2.3-1.el9000', results, waivers)
     assert decision == []
 
     # That a non-matching failing result is ignored.
     results = DummyResultsRetriever('foobar-1.2.3-1.el9000', 'sometest', 'FAILED')
-    decision = policy.check('foobar-1.2.3-1.el9000', results, waivers)
+    decision = policy.check('rhel-9000', 'foobar-1.2.3-1.el9000', results, waivers)
     assert decision == []
 
     # Ensure that fnmatch globs work in absence
     results, waivers = DummyResultsRetriever(), []
-    decision = policy.check('python-foobar-1.2.3-1.el9000', results, waivers)
+    decision = policy.check('rhel-9000', 'python-foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultMissing)
 
     # Ensure that fnmatch globs work in the negative.
     results = DummyResultsRetriever('python-foobar-1.2.3-1.el9000', 'sometest', 'FAILED')
-    decision = policy.check('python-foobar-1.2.3-1.el9000', results, waivers)
+    decision = policy.check('rhel-9000', 'python-foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
     # Ensure that fnmatch globs work in the positive.
     results = DummyResultsRetriever('python-foobar-1.2.3-1.el9000', 'sometest')
-    decision = policy.check('python-foobar-1.2.3-1.el9000', results, waivers)
+    decision = policy.check('rhel-9000', 'python-foobar-1.2.3-1.el9000', results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
@@ -377,19 +377,19 @@ rules:
 
                 # Ensure that presence of a result is success.
                 results = DummyResultsRetriever(nvr, 'dist.upgradepath')
-                decision = policy.check(nvr, results, waivers)
+                decision = policy.check('fedora-26', nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
 
                 # Ensure that absence of a result is failure.
                 results = DummyResultsRetriever()
-                decision = policy.check(nvr, results, waivers)
+                decision = policy.check('fedora-26', nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultMissing)
 
                 # And that a result with a failure, is a failure.
                 results = DummyResultsRetriever(nvr, 'dist.upgradepath', 'FAILED')
-                decision = policy.check(nvr, results, waivers)
+                decision = policy.check('fedora-26', nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
 
@@ -428,7 +428,7 @@ rules:
 
                 results, waivers = [], []
                 expected_details = "Policy 'untitled': Attribute 'product_versions' is required"
-                decision = policy.check(nvr, results, waivers)
+                decision = policy.check('fedora-26', nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], InvalidGatingYaml)
                 assert decision[0].is_satisfied is False
@@ -483,7 +483,7 @@ rules:
                     policy = policies[0]
 
                     results, waivers = [], []
-                    decision = policy.check(nvr, results, waivers)
+                    decision = policy.check('fedora-26', nvr, results, waivers)
                     assert len(decision) == 1
                     assert isinstance(decision[0], InvalidGatingYaml)
                     assert decision[0].is_satisfied is False
@@ -546,7 +546,7 @@ rules:
                         'product_version': 'fedora-26',
                         'comment': 'Waiving the invalig gating.yaml file'
                     }]
-                    decision = policy.check(nvr, results, waivers)
+                    decision = policy.check('fedora-26', nvr, results, waivers)
                     assert len(decision) == 0
 
 
@@ -789,6 +789,6 @@ rules:
     results = DummyResultsRetriever(nv, 'test_for_new_type', 'PASSED',
                                     'component-version')
     waivers = []
-    decision = policy.check(nv, results, waivers)
+    decision = policy.check('fedora-29', nv, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
