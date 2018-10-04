@@ -17,7 +17,9 @@ multiprocess.MultiProcessCollector(registry)
 decision_exception_counter = Counter('total_decision_exceptions', ('All exceptions occurred in '
                                                                    'Greenwave "decision" API'),
                                      registry=registry)
-decision_latency = Histogram('decision_latency', 'Decision latency', registry=registry)
+decision_request_duration_seconds = Histogram('decision_request_duration_seconds',
+                                              'Decision latency',
+                                              registry=registry)
 publish_decision_exceptions_waiver_counter = Counter('publish_decision_exceptions_new_waiver',
                                                      ('All exceptions occurred in publishing a '
                                                       'message after a new waiver'),

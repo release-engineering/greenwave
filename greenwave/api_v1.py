@@ -8,7 +8,11 @@ from greenwave.policies import summarize_answers, RemotePolicy, RemoteRule
 from greenwave.resources import ResultsRetriever, retrieve_waivers, retrieve_builds_in_update
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
-from greenwave.monitoring import registry, decision_exception_counter, decision_latency
+from greenwave.monitoring import (
+    registry,
+    decision_exception_counter,
+    decision_request_duration_seconds,
+)
 
 
 api = (Blueprint('api_v1', __name__))
@@ -165,7 +169,7 @@ def make_decision_options():
 
 @api.route('/decision', methods=['POST'])
 @decision_exception_counter.count_exceptions()
-@decision_latency.time()
+@decision_request_duration_seconds.time()
 @jsonp
 def make_decision():
     """
