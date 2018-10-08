@@ -266,13 +266,13 @@ class Rule(SafeYAMLObject):
 
     This base class is not used directly.
     """
-    def check(self, subject_type, subject_identifier, results_retriever, waivers):
+    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
         """
         Evaluate this policy rule for the given item.
 
         Args:
-            subject_type (str): Type of thing we are making a decision about
-                (for example, 'koji_build', 'bodhi_update', ...)
+            policy (Policy): Parent policy of the rule
+            product_version (str): Product version we are making a decision about
             subject_identifier (str): Item we are making a decision about (for
                 example, Koji build NVR, Bodhi update id, ...)
             results_retriever (ResultsRetriever): Object for retrieving data
@@ -295,8 +295,8 @@ class RemoteRule(Rule):
     yaml_tag = '!RemoteRule'
     safe_yaml_attributes = {}
 
-    def check(self, subject_type, subject_identifier, results_retriever, waivers):
-        if subject_type != 'koji_build':
+    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
+        if policy.subject_type != 'koji_build':
             return []
 
         pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
@@ -315,21 +315,26 @@ class RemoteRule(Rule):
         try:
             policies = RemotePolicy.safe_load_all(response)
         except SafeYAMLError as e:
-            if any(waives_invalid_gating_yaml(waiver, subject_type, subject_identifier)
+            if any(waives_invalid_gating_yaml(waiver, policy.subject_type, subject_identifier)
                     for waiver in waivers):
                 return []
             return [
                 InvalidGatingYaml(
-                    subject_type, subject_identifier, 'invalid-gating-yaml', str(e))
+                    policy.subject_type, subject_identifier, 'invalid-gating-yaml', str(e))
             ]
 
         answers = []
-        for policy in policies:
-            response = policy.check(subject_identifier, results_retriever, waivers)
-            if isinstance(response, list):
-                answers.extend(response)
-            else:
-                answers.append(response)
+        for remote_policy in policies:
+            if remote_policy.applies_to(
+                    policy.decision_context, product_version, policy.subject_type):
+                response = remote_policy.check(
+                    product_version, subject_identifier, results_retriever, waivers)
+
+                if isinstance(response, list):
+                    answers.extend(response)
+                else:
+                    answers.append(response)
+
         return answers
 
     def to_json(self):
@@ -350,9 +355,9 @@ class PassingTestCaseRule(Rule):
         'scenario': SafeYAMLString(optional=True),
     }
 
-    def check(self, subject_type, subject_identifier, results_retriever, waivers):
+    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
         matching_results = results_retriever.retrieve(
-            subject_type, subject_identifier, self.test_case_name)
+            policy.subject_type, subject_identifier, self.test_case_name)
         matching_waivers = [
             w for w in waivers if (w['testcase'] == self.test_case_name and w['waived'] is True)]
 
@@ -365,13 +370,13 @@ class PassingTestCaseRule(Rule):
         latest_result = next(matching_results, None)
         if not latest_result:
             if not matching_waivers:
-                return TestResultMissing(subject_type, subject_identifier, self.test_case_name,
-                                         self.scenario)
+                return TestResultMissing(
+                    policy.subject_type, subject_identifier, self.test_case_name, self.scenario)
             return TestResultMissingWaived(
-                subject_type, subject_identifier, self.test_case_name, self.scenario)
+                policy.subject_type, subject_identifier, self.test_case_name, self.scenario)
 
         # For compose make decisions based on all architectures and variants.
-        if subject_type == 'compose':
+        if policy.subject_type == 'compose':
             matching_results = itertools.chain([latest_result], matching_results)
             visited_arch_variants = set()
             answers = []
@@ -387,8 +392,9 @@ class PassingTestCaseRule(Rule):
 
                 if arch_variant not in visited_arch_variants:
                     visited_arch_variants.add(arch_variant)
-                    answers.append(
-                        self._answer_for_result(result, waivers, subject_type, subject_identifier))
+                    answer = self._answer_for_result(
+                        result, waivers, policy.subject_type, subject_identifier)
+                    answers.append(answer)
 
             return answers
 
@@ -396,7 +402,7 @@ class PassingTestCaseRule(Rule):
         # will be the latest chronologically, because ResultsDB always returns
         # results ordered by `submit_time` descending.
         return self._answer_for_result(
-            latest_result, waivers, subject_type, subject_identifier)
+            latest_result, waivers, policy.subject_type, subject_identifier)
 
     def to_json(self):
         return {
@@ -439,7 +445,7 @@ class PackageSpecificRule(Rule):
         'repos': SafeYAMLList(str),
     }
 
-    def check(self, subject_type, subject_identifier, results_retriever, waivers):
+    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
         """ Check that the subject passes testcase for the given results, but
         only if the subject is a build of a package name configured for
         this rule, specified by "repos".  Any of the repos may be a glob.
@@ -453,7 +459,7 @@ class PackageSpecificRule(Rule):
         satisfied (ignored).
         """
 
-        if subject_type != 'koji_build':
+        if policy.subject_type != 'koji_build':
             return []
 
         pkg_name = subject_identifier.rsplit('-', 2)[0]
@@ -463,7 +469,7 @@ class PackageSpecificRule(Rule):
         rule = PassingTestCaseRule()
         # pylint: disable=attribute-defined-outside-init
         rule.test_case_name = self.test_case_name
-        return rule.check(subject_type, subject_identifier, results_retriever, waivers)
+        return rule.check(policy, product_version, subject_identifier, results_retriever, waivers)
 
     def to_json(self):
         return {
@@ -502,7 +508,7 @@ class Policy(SafeYAMLObject):
                 self.applies_to_product_version(product_version) and
                 subject_type == self.subject_type)
 
-    def check(self, subject_identifier, results_retriever, waivers):
+    def check(self, product_version, subject_identifier, results_retriever, waivers):
         # If an item is about a package and it is in the blacklist, return RuleSatisfied()
         if self.subject_type == 'koji_build':
             name = subject_identifier.rsplit('-', 2)[0]
@@ -510,7 +516,8 @@ class Policy(SafeYAMLObject):
                 return [BlacklistedInPolicy(subject_identifier) for rule in self.rules]
         answers = []
         for rule in self.rules:
-            response = rule.check(self.subject_type, subject_identifier, results_retriever, waivers)
+            response = rule.check(
+                self, product_version, subject_identifier, results_retriever, waivers)
             if isinstance(response, list):
                 answers.extend(response)
             else:
