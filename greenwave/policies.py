@@ -407,6 +407,9 @@ class PassingTestCaseRule(Rule):
 
     def _answer_for_result(self, result, waivers, subject_type, subject_identifier):
         if result['outcome'] in ('PASSED', 'INFO'):
+            log.debug('Test result passed for the result_id %s and testcase %s,'
+                      ' because the outcome is %s', result['id'], self.test_case_name,
+                      result['outcome'])
             return TestResultPassed(self.test_case_name, result['id'])
 
         # TODO limit who is allowed to waive
@@ -418,10 +421,19 @@ class PassingTestCaseRule(Rule):
             w['waived'] is True
         )]
         if matching_waivers:
+            log.debug('Found matching waivers for the result_id %s and the testcase %s,'
+                      ' so the Test result is PASSED', result['id'], self.test_case_name)
             return TestResultPassed(self.test_case_name, result['id'])
         if result['outcome'] in ('QUEUED', 'RUNNING'):
+            log.debug('Test result MISSING for the subject_type %s, subject_identifier %s and '
+                      'testcase %s, because the outcome is %s', subject_type, subject_identifier,
+                      self.test_case_name, result['outcome'])
             return TestResultMissing(subject_type, subject_identifier, self.test_case_name,
                                      self.scenario)
+        log.debug('Test result failed for the subject_type %s, subject_identifier %s and '
+                  'testcase %s, because the outcome is %s and it didn\'t match any of the '
+                  'previous cases', subject_type, subject_identifier,
+                  self.test_case_name, result['outcome'])
         return TestResultFailed(subject_type, subject_identifier, self.test_case_name,
                                 self.scenario, result['id'])
 
