@@ -21,6 +21,8 @@ import greenwave.app_factory
 import greenwave.resources
 from greenwave.api_v1 import subject_type_identifier_to_list
 from greenwave.monitoring import publish_decision_exceptions_result_counter
+from greenwave.policies import RemoteRule
+from greenwave.safe_yaml import SafeYAMLError
 
 import xmlrpc.client
 
@@ -223,7 +225,23 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         # Build a set of all policies which might apply to this new results
         applicable_policies = set()
+        remote_policies = set()
         for policy in current_app.config['policies']:
+            for rule in policy.rules:
+                if isinstance(rule, RemoteRule):
+                    try:
+                        for remote_policy in rule.get_policies(policy, subject_identifier):
+                            remote_policy.product_versions = set(
+                                remote_policy.product_versions).intersection(set(
+                                    policy.product_versions))
+                            if (remote_policy.product_versions and
+                                    remote_policy.decision_context == policy.decision_context):
+                                remote_policies = remote_policies.union(set([remote_policy]))
+                    except SafeYAMLError as e:
+                        pass
+
+        tmp_policies = remote_policies.union(current_app.config['policies'])
+        for policy in tmp_policies:
             if policy.subject_type in subject_types:
                 testcases = (
                     getattr(rule, 'test_case_name', None)
