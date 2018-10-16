@@ -130,6 +130,7 @@ def test_remote_rule_decision_change(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
 
     def retrieve_decision(url, data):
+        #pylint: disable=unused-argument
         if 'ignore_result' in data:
             return None
         return {}
@@ -222,6 +223,7 @@ def test_remote_rule_decision_change_not_matching(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
 
     def retrieve_decision(url, data):
+        #pylint: disable=unused-argument
         if 'ignore_result' in data:
             return None
         return {}
