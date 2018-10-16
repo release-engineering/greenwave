@@ -295,7 +295,7 @@ class RemoteRule(Rule):
     yaml_tag = '!RemoteRule'
     safe_yaml_attributes = {}
 
-    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
+    def get_policies(self, policy, subject_identifier):
         if policy.subject_type != 'koji_build':
             return []
 
@@ -312,8 +312,13 @@ class RemoteRule(Rule):
             # greenwave extension file not found
             return []
 
+        policies = RemotePolicy.safe_load_all(response)
+        return policies
+
+    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
+
         try:
-            policies = RemotePolicy.safe_load_all(response)
+            policies = self.get_policies(policy, subject_identifier)
         except SafeYAMLError as e:
             if any(waives_invalid_gating_yaml(waiver, policy.subject_type, subject_identifier)
                     for waiver in waivers):
