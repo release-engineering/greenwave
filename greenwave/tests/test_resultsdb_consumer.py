@@ -90,7 +90,8 @@ def test_announcement_subjects_for_autocloud_compose():
     assert subjects == [('compose', 'Fedora-AtomicHost-28_Update-20180723.1839.x86_64.qcow2')]
 
 
-@mock.patch('greenwave.resources.retrieve_update_for_build', return_value=None)
+@mock.patch('greenwave.resources.retrieve_update_for_build')
+@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')
 @mock.patch('greenwave.resources.retrieve_scm_from_koji')
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
@@ -100,7 +101,8 @@ def test_remote_rule_decision_change(
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
         mock_retrieve_decision,
-        testdatabuilder):
+        mock_retrieve_results,
+        mock_retrieve_bodhi_update):
     """
     Test publishing decision change message for test cases mentioned in
     gating.yaml.
@@ -125,9 +127,15 @@ def test_remote_rule_decision_change(
           - !RemoteRule {}
     """)
 
-    nvr = testdatabuilder.unique_nvr(product_version='rawhide')
-    result = testdatabuilder.create_result(
-        item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
+    nvr = 'nethack-1.2.3-1.rawhide'
+    result = {
+        'id': 1,
+        'testcase': {'name': 'dist.rpmdeplint'},
+        'outcome': 'PASSED',
+        'data': {'item': nvr, 'type': 'koji_build'},
+    }
+    mock_retrieve_results.return_value = [result]
+    mock_retrieve_bodhi_update.return_value = None
 
     def retrieve_decision(url, data):
         #pylint: disable=unused-argument
@@ -183,7 +191,8 @@ def test_remote_rule_decision_change(
     }
 
 
-@mock.patch('greenwave.resources.retrieve_update_for_build', return_value=None)
+@mock.patch('greenwave.resources.retrieve_update_for_build')
+@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')
 @mock.patch('greenwave.resources.retrieve_scm_from_koji')
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
@@ -193,7 +202,8 @@ def test_remote_rule_decision_change_not_matching(
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
         mock_retrieve_decision,
-        testdatabuilder):
+        mock_retrieve_results,
+        mock_retrieve_bodhi_update):
     """
     Test publishing decision change message for test cases mentioned in
     gating.yaml.
@@ -218,9 +228,15 @@ def test_remote_rule_decision_change_not_matching(
           - !RemoteRule {}
     """)
 
-    nvr = testdatabuilder.unique_nvr(product_version='rawhide')
-    result = testdatabuilder.create_result(
-        item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
+    nvr = 'nethack-1.2.3-1.rawhide'
+    result = {
+        'id': 1,
+        'testcase': {'name': 'dist.rpmdeplint'},
+        'outcome': 'PASSED',
+        'data': {'item': nvr, 'type': 'koji_build'},
+    }
+    mock_retrieve_results.return_value = [result]
+    mock_retrieve_bodhi_update.return_value = None
 
     def retrieve_decision(url, data):
         #pylint: disable=unused-argument
