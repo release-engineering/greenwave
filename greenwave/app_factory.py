@@ -5,13 +5,29 @@ import logging
 from flask import Flask
 from greenwave.api_v1 import api
 from greenwave.utils import json_error, load_config, sha1_mangle_key
-from greenwave.policies import load_policies
+from greenwave.policies import load_policies, RemoteRule
 
 from dogpile.cache import make_region
 from requests import ConnectionError, Timeout
 from werkzeug.exceptions import default_exceptions
 
 log = logging.getLogger(__name__)
+
+
+def _can_use_remote_rule(config):
+    return (
+        config.get('DIST_GIT_BASE_URL') and
+        config.get('DIST_GIT_URL_TEMPLATE') and
+        config.get('KOJI_BASE_URL')
+    )
+
+
+def _has_remote_rule(policies):
+    return any(
+        isinstance(rule, RemoteRule)
+        for policy in policies
+        for rule in policy.rules
+    )
 
 
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
@@ -25,6 +41,13 @@ def create_app(config_obj=None):
     policies_dir = app.config['POLICIES_DIR']
     log.debug("config: Loading policies from %r", policies_dir)
     app.config['policies'] = load_policies(policies_dir)
+
+    if not _can_use_remote_rule(app.config) and _has_remote_rule(app.config['policies']):
+        raise RuntimeError(
+            "If you want to apply a RemoteRule"
+            " you need to configure 'DIST_GIT_BASE_URL',"
+            "'DIST_GIT_URL_TEMPLATE' and KOJI_BASE_URL in "
+            "your configuration.")
 
     # register error handlers
     for code in default_exceptions.keys():
