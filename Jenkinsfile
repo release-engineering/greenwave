@@ -160,7 +160,7 @@ node('fedora-28') {
      * locally not in Openshift for now. */
     sh 'sudo dnf -y builddep greenwave.spec'
 
-    def openshiftHost = 'greenwave-test.cloud.upshift.engineering.redhat.com'
+    def openshiftHost = 'greenwave-test.cloud.paas.upshift.redhat.com'
     def buildTag = "${env.BUILD_TAG}".replace('jenkins-','')
     def waiverdbURL = "waiverdb-test-${buildTag}-web-${openshiftHost}"
     def resultsdbURL = "resultsdb-test-${buildTag}-api-${openshiftHost}"
@@ -174,7 +174,7 @@ node('fedora-28') {
     sh "curl ${waiverdbRepo}/${waiverdbTemplate} > openshift/${waiverdbTemplate}"
 
     stage('Perform functional tests') {
-        openshift.withCluster('Upshift') {
+        openshift.withCluster('Upshift-GA') {
             openshift.withCredentials('upshift-greenwave-test-jenkins-credentials') {
                 openshift.withProject('greenwave-test') {
                     def rtemplate = readYaml file: 'openshift/resultsdb-test-template.yaml'
