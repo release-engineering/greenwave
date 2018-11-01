@@ -2,6 +2,33 @@
 Release Notes
 =============
 
+Greenwave 0.9.8
+===============
+
+Released 17 October 2018
+
+* Adjust greenwave to support new PELC (Product Export License Control)
+  type: a new subject type is available: "component-version". Greenwave
+  is adjusted to accept this new type (PR #311).
+
+* Improved the user experience not returning exception details to
+  the user when calling the API.
+
+* Fixed issue #282: improved the RemoteRule feature, that allows the user
+  to define additional policies directly in the dist-git repo using a
+  gating.yaml file. Checking the decision_context and others in gating.yaml
+  files: use policies from remote gating.yaml files only if they match
+  `decision_context`, `product_version` and `subject_type` for current 
+  decision (as it's done for internal policies).
+
+* Adjust naming scheme for one prometheus metric according to the best
+  practices.
+
+* Bug fix (issue #318): Remote policies not considered for decision change.
+  Decision change message only respects policies configured locally on the
+  server and ignores RemoteRule rules.
+
+
 Greenwave 0.9.7
 ===============
 
