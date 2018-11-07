@@ -281,7 +281,12 @@ def make_decision():
         artefact we are making a decision about. The meaning of the identifier
         depends on the subject type.
         See :ref:`subject-types` for details of how each subject type is identified.
-    :jsonparam list subject: *Deprecated:* Pass 'subject_type' and 'subject_identifier' instead.
+    :jsonparam list subject: A list of items about which the caller is requesting a decision
+        used for querying ResultsDB and WaiverDB. Each item contains one or more key-value pairs
+        of 'data' key in ResultsDB API.
+        For example, [{"type": "koji_build", "item": "xscreensaver-5.37-3.fc27"}].
+        Use this for requesting decisions on multiple subjects at once. If used subject_type and
+        subject_identifier are ignored.
     :jsonparam bool verbose: A flag to return additional information.
     :jsonparam list ignore_result: A list of result ids that will be ignored when making
         the decision.
