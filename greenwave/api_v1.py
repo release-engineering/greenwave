@@ -328,7 +328,12 @@ def make_decision():
     for subject_type, subject_identifier in _decision_subjects_for_request(data):
         subject_policies = [
             policy for policy in current_app.config['policies']
-            if policy.applies_to(decision_context, product_version, subject_type)]
+            if policy.matches(
+                decision_context=decision_context,
+                product_version=product_version,
+                subject_type=subject_type)
+        ]
+
         if not subject_policies:
             # Ignore non-existent policy for Bodhi updates.
             if subject_type == 'bodhi_update':

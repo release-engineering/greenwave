@@ -284,6 +284,18 @@ class Rule(SafeYAMLObject):
         """
         raise NotImplementedError()
 
+    def matches(self, policy, **attributes):
+        """
+        Same as Policy.matches() for a rule attributes.
+
+        Args:
+            policy (Policy): Parent policy of the rule
+
+        Returns:
+            bool: True only if provided attributes matches the rule
+        """
+        return True
+
 
 def waives_invalid_gating_yaml(waiver, subject_type, subject_identifier):
     return (waiver['testcase'] == 'invalid-gating-yaml' and
@@ -295,7 +307,7 @@ class RemoteRule(Rule):
     yaml_tag = '!RemoteRule'
     safe_yaml_attributes = {}
 
-    def get_policies(self, policy, subject_identifier):
+    def _get_sub_policies(self, policy, subject_identifier):
         if policy.subject_type != 'koji_build':
             return []
 
@@ -313,12 +325,15 @@ class RemoteRule(Rule):
             return []
 
         policies = RemotePolicy.safe_load_all(response)
-        return policies
+        return [
+            sub_policy for sub_policy in policies
+            if sub_policy.decision_context == policy.decision_context
+        ]
 
     def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
 
         try:
-            policies = self.get_policies(policy, subject_identifier)
+            policies = self._get_sub_policies(policy, subject_identifier)
         except SafeYAMLError as e:
             if any(waives_invalid_gating_yaml(waiver, policy.subject_type, subject_identifier)
                     for waiver in waivers):
@@ -330,8 +345,7 @@ class RemoteRule(Rule):
 
         answers = []
         for remote_policy in policies:
-            if remote_policy.applies_to(
-                    policy.decision_context, product_version, policy.subject_type):
+            if remote_policy.matches_product_version(product_version):
                 response = remote_policy.check(
                     product_version, subject_identifier, results_retriever, waivers)
 
@@ -341,6 +355,23 @@ class RemoteRule(Rule):
                     answers.append(response)
 
         return answers
+
+    def matches(self, policy, **attributes):
+        subject_identifier = attributes.get('subject_identifier')
+        if not subject_identifier:
+            return True
+
+        sub_policies = []
+        try:
+            sub_policies = self._get_sub_policies(policy, subject_identifier)
+        except SafeYAMLError:
+            logging.exception(
+                'Failed to parse policies for %r', subject_identifier)
+        except Exception:
+            logging.exception(
+                'Failed to retrieve policies for %r', subject_identifier)
+
+        return any(sub_policy.matches(**attributes) for sub_policy in sub_policies)
 
     def to_json(self):
         return {
@@ -408,6 +439,10 @@ class PassingTestCaseRule(Rule):
         # results ordered by `submit_time` descending.
         return self._answer_for_result(
             latest_result, waivers, policy.subject_type, subject_identifier)
+
+    def matches(self, policy, **attributes):
+        testcase = attributes.get('testcase')
+        return not testcase or testcase == self.test_case_name
 
     def to_json(self):
         return {
@@ -488,6 +523,10 @@ class PackageSpecificRule(Rule):
         rule.test_case_name = self.test_case_name
         return rule.check(policy, product_version, subject_identifier, results_retriever, waivers)
 
+    def matches(self, policy, **attributes):
+        testcase = attributes.get('testcase')
+        return not testcase or testcase == self.test_case_name
+
     def to_json(self):
         return {
             'rule': self.__class__.__name__,
@@ -520,10 +559,29 @@ class Policy(SafeYAMLObject):
         'relevance_value': SafeYAMLString(optional=True),
     }
 
-    def applies_to(self, decision_context, product_version, subject_type):
-        return (decision_context == self.decision_context and
-                self.applies_to_product_version(product_version) and
-                subject_type == self.subject_type)
+    def matches(self, **attributes):
+        """
+        Returns True only if policy matches provided attributes.
+
+        If an attribute to match is missing it's treated as irrelevant, i.e."match anything".
+
+        Unknown attributes are ignored.
+
+        There must be at least one matching rule or no rules in the policy.
+        """
+        decision_context = attributes.get('decision_context')
+        if decision_context and decision_context != self.decision_context:
+            return False
+
+        product_version = attributes.get('product_version')
+        if product_version and not self.matches_product_version(product_version):
+            return False
+
+        subject_type = attributes.get('subject_type')
+        if subject_type and subject_type != self.subject_type:
+            return False
+
+        return not self.rules or any(rule.matches(self, **attributes) for rule in self.rules)
 
     def check(self, product_version, subject_identifier, results_retriever, waivers):
         # If an item is about a package and it is in the blacklist, return RuleSatisfied()
@@ -541,7 +599,7 @@ class Policy(SafeYAMLObject):
                 answers.append(response)
         return answers
 
-    def applies_to_product_version(self, product_version):
+    def matches_product_version(self, product_version):
         return any(fnmatch(product_version, version) for version in self.product_versions)
 
     @property
@@ -567,3 +625,31 @@ class RemotePolicy(Policy):
             if isinstance(rule, RemoteRule):
                 raise SafeYAMLError('RemoteRule is not allowed in remote policies')
         super().validate()
+
+
+def _applicable_decision_context_product_version_pairs(policies, **attributes):
+    applicable_policies = [
+        policy for policy in policies if policy.matches(**attributes)
+    ]
+
+    log.debug("found %i applicable policies of %i for: %r",
+              len(applicable_policies), len(policies), attributes)
+
+    product_version = attributes.get('product_version')
+    if product_version:
+        for policy in applicable_policies:
+            yield policy.decision_context, product_version
+    else:
+        for policy in applicable_policies:
+            # FIXME: This can returns product version patterns like 'fedora-*'.
+            for product_version in policy.product_versions:
+                yield policy.decision_context, product_version
+
+
+def applicable_decision_context_product_version_pairs(policies, **attributes):
+    contexts_product_versions = sorted(set(
+        _applicable_decision_context_product_version_pairs(
+            policies, **attributes)))
+
+    log.debug("found %i decision contexts", len(contexts_product_versions))
+    return contexts_product_versions

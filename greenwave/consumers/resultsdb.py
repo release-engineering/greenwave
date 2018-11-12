@@ -21,8 +21,7 @@ import greenwave.app_factory
 import greenwave.resources
 from greenwave.api_v1 import subject_type_identifier_to_list
 from greenwave.monitoring import publish_decision_exceptions_result_counter
-from greenwave.policies import RemoteRule
-from greenwave.safe_yaml import SafeYAMLError
+from greenwave.policies import applicable_decision_context_product_version_pairs
 
 import xmlrpc.client
 
@@ -211,94 +210,50 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             result_id (int): A result ID to ignore for comparison.
             testcase (munch.Munch): The name of a testcase to consider.
         """
-        # Also need to apply policies for each build in the update.
-        if subject_type == 'bodhi_update':
-            subject_types = set([subject_type, 'koji_build'])
-        else:
-            subject_types = set([subject_type])
-
-        # Build a set of all policies which might apply to this new results
-        applicable_policies = set()
-        remote_policies = set()
-        for policy in current_app.config['policies']:
-            for rule in policy.rules:
-                if isinstance(rule, RemoteRule):
-                    try:
-                        for remote_policy in rule.get_policies(policy, subject_identifier):
-                            remote_policy.product_versions = set(
-                                remote_policy.product_versions).intersection(set(
-                                    policy.product_versions))
-                            if (remote_policy.product_versions and
-                                    remote_policy.decision_context == policy.decision_context):
-                                remote_policies = remote_policies.union(set([remote_policy]))
-                    except SafeYAMLError as e:
-                        pass
-
-        tmp_policies = remote_policies.union(current_app.config['policies'])
-        for policy in tmp_policies:
-            if policy.subject_type in subject_types:
-                testcases = (
-                    getattr(rule, 'test_case_name', None)
-                    for rule in policy.rules)
-
-                if testcase in testcases:
-                    applicable_policies.add(policy)
-
-        log.debug("messaging: found %i applicable policies of %i for testcase %r",
-                  len(applicable_policies), len(current_app.config['policies']), testcase)
-
-        # Given all of our applicable policies, build a map of all decision
-        # context we know about, and which product versions they relate to.
-        decision_contexts = collections.defaultdict(set)
         product_version = _subject_product_version(subject_identifier, subject_type)
-        for policy in applicable_policies:
-            if not product_version or policy.applies_to_product_version(product_version):
-                if product_version:
-                    versions = set([product_version])
-                else:
-                    versions = set(policy.product_versions)
-                decision_contexts[policy.decision_context].update(versions)
-        log.debug("messaging: found %i decision contexts", len(decision_contexts))
+        policies = self.flask_app.config['policies']
+        contexts_product_versions = applicable_decision_context_product_version_pairs(
+            policies,
+            subject_type=subject_type,
+            subject_identifier=subject_identifier,
+            testcase=testcase,
+            product_version=product_version)
 
-        # For every context X version combination, ask greenwave if this new
-        # result pushes any decisions over a threshold.
-        for decision_context in sorted(decision_contexts.keys()):
-            product_versions = decision_contexts[decision_context]
-            for product_version in sorted(product_versions):
-                greenwave_url = self.fedmsg_config['greenwave_api_url'] + '/decision'
+        for decision_context, product_version in sorted(contexts_product_versions):
+            greenwave_url = self.fedmsg_config['greenwave_api_url'] + '/decision'
 
-                data = {
-                    'decision_context': decision_context,
-                    'product_version': product_version,
+            data = {
+                'decision_context': decision_context,
+                'product_version': product_version,
+                'subject_type': subject_type,
+                'subject_identifier': subject_identifier,
+            }
+
+            try:
+                decision = greenwave.resources.retrieve_decision(greenwave_url, data)
+
+                # get old decision
+                data.update({
+                    'ignore_result': [result_id],
+                })
+                old_decision = greenwave.resources.retrieve_decision(greenwave_url, data)
+            except requests.exceptions.HTTPError as e:
+                log.exception('Failed to retrieve decision for data=%s, error: %s', data, e)
+                continue
+
+            if decision == old_decision:
+                log.debug('Skipped emitting fedmsg, decision did not change: %s', decision)
+            else:
+                decision.update({
                     'subject_type': subject_type,
                     'subject_identifier': subject_identifier,
-                }
-
-                try:
-                    decision = greenwave.resources.retrieve_decision(greenwave_url, data)
-
-                    # get old decision
-                    data.update({
-                        'ignore_result': [result_id],
-                    })
-                    old_decision = greenwave.resources.retrieve_decision(greenwave_url, data)
-                except requests.exceptions.HTTPError as e:
-                    log.exception('Failed to retrieve decision for data=%s, error: %s', data, e)
-                    continue
-
-                if decision == old_decision:
-                    log.debug('Skipped emitting fedmsg, decision did not change: %s', decision)
-                else:
-                    decision.update({
-                        'subject_type': subject_type,
-                        'subject_identifier': subject_identifier,
-                        # subject is for backwards compatibility only:
-                        'subject': subject_type_identifier_to_list(subject_type,
-                                                                   subject_identifier),
-                        'decision_context': decision_context,
-                        'product_version': product_version,
-                        'previous': old_decision,
-                    })
-                    log.debug('Emitted a fedmsg, %r, on the "%s" topic', decision,
-                              'greenwave.decision.update')
-                    fedmsg.publish(topic='decision.update', msg=decision)
+                    # subject is for backwards compatibility only:
+                    'subject': subject_type_identifier_to_list(subject_type,
+                                                               subject_identifier),
+                    'decision_context': decision_context,
+                    'product_version': product_version,
+                    'previous': old_decision,
+                })
+                log.debug('Emitted a fedmsg, %r, on the "%s" topic', decision,
+                          'greenwave.decision.update')
+                fedmsg.publish(topic='decision.update', msg=decision)

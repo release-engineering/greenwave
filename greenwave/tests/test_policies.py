@@ -316,7 +316,12 @@ rules:
     load_policies(tmpdir.strpath)
 
 
-def test_product_versions_pattern(tmpdir):
+@pytest.mark.parametrize(('product_version', 'applies'), [
+    ('fedora-27', True),
+    ('fedora-28', True),
+    ('epel-7', False),
+])
+def test_product_versions_pattern(product_version, applies, tmpdir):
     p = tmpdir.join('fedora.yaml')
     p.write("""
 --- !Policy
@@ -325,14 +330,16 @@ product_versions:
   - fedora-*
 decision_context: dummy_context
 subject_type: bodhi_update
-rules: []
+rules:
+  - !PassingTestCaseRule {test_case_name: test}
         """)
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
-    assert policy.applies_to('dummy_context', 'fedora-27', 'bodhi_update')
-    assert policy.applies_to('dummy_context', 'fedora-28', 'bodhi_update')
-    assert not policy.applies_to('dummy_context', 'epel-7', 'bodhi_update')
+    assert applies == policy.matches(
+        decision_context='dummy_context',
+        product_version=product_version,
+        subject_type='bodhi_update')
 
 
 def test_remote_rule_policy(tmpdir):

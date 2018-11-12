@@ -18,6 +18,7 @@ import requests
 import greenwave.app_factory
 from greenwave.api_v1 import subject_type_identifier_to_list
 from greenwave.monitoring import publish_decision_exceptions_waiver_counter
+from greenwave.policies import applicable_decision_context_product_version_pairs
 
 requests_session = requests.Session()
 
@@ -78,54 +79,60 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
     @publish_decision_exceptions_waiver_counter.count_exceptions()
     def _publish_decision_changes(self, subject_type, subject_identifier, waiver_id,
                                   product_version, testcase):
-        for policy in self.flask_app.config['policies']:
-            for rule in policy.rules:
-                if getattr(rule, 'test_case_name', None) == testcase:
-                    data = {
-                        'decision_context': policy.decision_context,
-                        'product_version': product_version,
-                        'subject_type': subject_type,
-                        'subject_identifier': subject_identifier,
-                    }
-                    response = requests_session.post(
-                        self.fedmsg_config['greenwave_api_url'] + '/decision',
-                        headers={'Content-Type': 'application/json'},
-                        data=json.dumps(data))
+        policies = self.flask_app.config['policies']
+        contexts_product_versions = applicable_decision_context_product_version_pairs(
+            policies,
+            subject_type=subject_type,
+            subject_identifier=subject_identifier,
+            testcase=testcase,
+            product_version=product_version)
 
-                    if not response.ok:
-                        log.error(response.text)
-                        continue
+        for decision_context, product_version in sorted(contexts_product_versions):
+            data = {
+                'decision_context': decision_context,
+                'product_version': product_version,
+                'subject_type': subject_type,
+                'subject_identifier': subject_identifier,
+            }
+            response = requests_session.post(
+                self.fedmsg_config['greenwave_api_url'] + '/decision',
+                headers={'Content-Type': 'application/json'},
+                data=json.dumps(data))
 
-                    decision = response.json()
+            if not response.ok:
+                log.error(response.text)
+                continue
 
-                    # get old decision
-                    data.update({
-                        'ignore_waiver': [waiver_id],
-                    })
-                    response = requests_session.post(
-                        self.fedmsg_config['greenwave_api_url'] + '/decision',
-                        headers={'Content-Type': 'application/json'},
-                        data=json.dumps(data))
+            decision = response.json()
 
-                    if not response.ok:
-                        log.error(response.text)
-                        continue
+            # get old decision
+            data.update({
+                'ignore_waiver': [waiver_id],
+            })
+            response = requests_session.post(
+                self.fedmsg_config['greenwave_api_url'] + '/decision',
+                headers={'Content-Type': 'application/json'},
+                data=json.dumps(data))
 
-                    old_decision = response.json()
+            if not response.ok:
+                log.error(response.text)
+                continue
 
-                    if decision != old_decision:
-                        msg = decision
-                        decision.update({
-                            'subject_type': subject_type,
-                            'subject_identifier': subject_identifier,
-                            # subject is for backwards compatibility only:
-                            'subject': subject_type_identifier_to_list(subject_type,
-                                                                       subject_identifier),
-                            'testcase': testcase,
-                            'decision_context': policy.decision_context,
-                            'product_version': product_version,
-                            'previous': old_decision,
-                        })
-                        log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
-                                  'greenwave.decision.update')
-                        fedmsg.publish(topic='decision.update', msg=msg)
+            old_decision = response.json()
+
+            if decision != old_decision:
+                msg = decision
+                decision.update({
+                    'subject_type': subject_type,
+                    'subject_identifier': subject_identifier,
+                    # subject is for backwards compatibility only:
+                    'subject': subject_type_identifier_to_list(subject_type,
+                                                               subject_identifier),
+                    'testcase': testcase,
+                    'decision_context': decision_context,
+                    'product_version': product_version,
+                    'previous': old_decision,
+                })
+                log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
+                          'greenwave.decision.update')
+                fedmsg.publish(topic='decision.update', msg=msg)
