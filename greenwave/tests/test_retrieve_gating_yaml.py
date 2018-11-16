@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import pytest
+import mock
 
 from werkzeug.exceptions import BadGateway
 
-from greenwave.resources import retrieve_scm_from_koji_build
+import greenwave.app_factory
+from greenwave.resources import (
+    retrieve_scm_from_koji_build, retrieve_yaml_remote_rule)
 
 KOJI_URL = 'https://koji.fedoraproject.org/kojihub'
 
@@ -51,15 +54,16 @@ def test_retrieve_scm_from_build_with_missing_source():
         retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
 
 
-def test_retrieve_scm_from_build_with_bad_source():
+def test_retrieve_scm_from_build_without_namespace():
     nvr = 'foo-1.2.3-1.fc29'
     build = {
         'nvr': nvr,
         'source': 'git+https://src.fedoraproject.org/foo.git#deadbeef',
     }
-    expected_error = 'expected second to last component to be namespace'
-    with pytest.raises(BadGateway, match=expected_error):
-        retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
+    namespace, pkg_name, rev = retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
+    assert namespace == ''
+    assert rev == 'deadbeef'
+    assert pkg_name == 'foo'
 
 
 def test_retrieve_scm_from_build_with_missing_rev():
@@ -71,3 +75,21 @@ def test_retrieve_scm_from_build_with_missing_rev():
     expected_error = 'missing URL fragment with SCM revision information'
     with pytest.raises(BadGateway, match=expected_error):
         retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
+
+
+def test_retrieve_yaml_remote_rule_no_namespace():
+    app = greenwave.app_factory.create_app()
+    with app.app_context():
+        with mock.patch('greenwave.resources.requests_session') as session:
+            # Return 404, because we are only interested in the URL in the request
+            # and whether it is correct even with empty namespace.
+            response = mock.MagicMock()
+            response.status_code = 404
+            session.request.return_value = response
+            retrieve_yaml_remote_rule("deadbeaf", "pkg", "")
+
+            expected_call = mock.call(
+                'HEAD',
+                'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml',
+                headers={'Content-Type': 'application/json'}, timeout=60)
+            assert session.request.mock_calls == [expected_call]
