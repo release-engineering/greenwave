@@ -89,6 +89,7 @@ def test_match_remote_rule(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remot
 
         # Simulate invalid gating.yaml file.
         def raiseYamlError(*args):
+            #pylint: disable=unused-argument
             raise SafeYAMLError()
         mock_retrieve_yaml_remote_rule.side_effect = raiseYamlError
 

@@ -285,6 +285,7 @@ class Rule(SafeYAMLObject):
         raise NotImplementedError()
 
     def matches(self, policy, **attributes):
+        #pylint: disable=unused-argument
         """
         Same as Policy.matches() for a rule attributes.
 
@@ -357,6 +358,7 @@ class RemoteRule(Rule):
         return answers
 
     def matches(self, policy, **attributes):
+        #pylint: disable=broad-except
         subject_identifier = attributes.get('subject_identifier')
         if not subject_identifier:
             return True
