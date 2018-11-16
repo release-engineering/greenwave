@@ -9,7 +9,6 @@ and if the new result causes the decision to change it will publish a message
 to the message bus about the newly satisfied/unsatisfied policy.
 """
 
-import collections
 import logging
 import re
 
