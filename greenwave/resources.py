@@ -161,12 +161,9 @@ def retrieve_scm_from_koji_build(nvr, build, koji_url):
 
     path_components = url.path.rsplit('/', 2)
     if len(path_components) < 3:
-        raise BadGateway(
-            'Failed to parse SCM URL "{}" from Koji build "{}" at "{}" '
-            '(expected second to last component to be namespace)'
-            .format(source, nvr, koji_url))
-
-    namespace = path_components[-2]
+        namespace = ""
+    else:
+        namespace = path_components[-2]
 
     rev = url.fragment
     if not rev:
@@ -184,7 +181,8 @@ def retrieve_scm_from_koji_build(nvr, build, koji_url):
 def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace):
     """ Retrieve cached gating.yaml content for a given rev. """
     data = {
-        "DIST_GIT_BASE_URL": current_app.config['DIST_GIT_BASE_URL'].rstrip('/') + '/',
+        "DIST_GIT_BASE_URL": (current_app.config['DIST_GIT_BASE_URL'].rstrip('/') +
+                              ('/' if pkg_namespace else '')),
         "pkg_namespace": pkg_namespace,
         "pkg_name": pkg_name,
         "rev": rev
