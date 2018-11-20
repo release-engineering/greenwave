@@ -239,7 +239,7 @@ def test_make_a_decision_on_passed_result(requests_session, greenwave_server, te
         'taskotron_release_critical_tasks_with_blacklist',
         'taskotron_release_critical_tasks',
     ]
-    expected_summary = 'all required tests passed'
+    expected_summary = 'All required tests passed'
     assert res_data['summary'] == expected_summary
 
 
@@ -373,7 +373,7 @@ def test_make_a_decision_on_failed_result_with_waiver(
     assert res_data['policies_satisfied'] is True
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
-    expected_summary = 'all required tests passed'
+    expected_summary = 'All required tests passed'
     assert res_data['summary'] == expected_summary
 
 
@@ -577,7 +577,7 @@ def test_bodhi_push_update_stable_policy(
     assert res_data['policies_satisfied'] is True
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
-    expected_summary = 'all required tests passed'
+    expected_summary = 'All required tests passed'
     assert res_data['summary'] == expected_summary
     assert res_data['unsatisfied_requirements'] == []
 
@@ -728,7 +728,7 @@ def test_make_a_decision_on_passed_result_with_scenario(
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['openqa_important_stuff_for_rawhide']
-    expected_summary = 'all required tests passed'
+    expected_summary = 'All required tests passed'
     assert res_data['summary'] == expected_summary
 
 
@@ -926,7 +926,7 @@ def test_make_a_decision_about_brew_build(requests_session, greenwave_server, te
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['osci_compose']
-    assert res_data['summary'] == 'all required tests passed'
+    assert res_data['summary'] == 'All required tests passed'
 
 
 def test_validate_gating_yaml_valid(requests_session, greenwave_server):

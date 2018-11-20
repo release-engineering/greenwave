@@ -128,7 +128,7 @@ def test_consume_new_result(
             },
         ],
         'unsatisfied_requirements': [],
-        'summary': 'all required tests passed',
+        'summary': 'All required tests passed',
         'subject': [
             {'item': nvr, 'type': 'koji_build'},
         ],
@@ -529,7 +529,7 @@ def test_consume_legacy_result(
             'type': 'test-result-passed'
         }],
         'unsatisfied_requirements': [],
-        'summary': 'all required tests passed',
+        'summary': 'All required tests passed',
         'subject': [
             {
                 'item': nvr,

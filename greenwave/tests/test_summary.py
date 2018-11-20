@@ -24,7 +24,7 @@ def test_summary_passed():
     answers = [
         testResultPassed,
     ]
-    assert summarize_answers(answers) == 'all required tests passed'
+    assert summarize_answers(answers) == 'All required tests passed'
 
 
 def test_summary_empty():
@@ -50,7 +50,7 @@ def test_summary_missing_waived():
     answers = [
         testResultMissingWaived,
     ]
-    assert summarize_answers(answers) == 'all required tests passed'
+    assert summarize_answers(answers) == 'All required tests passed'
 
 
 def test_summary_one_passed_one_failed():
@@ -74,7 +74,7 @@ def test_summary_one_passed_one_missing_waived():
         testResultPassed,
         testResultMissingWaived,
     ]
-    assert summarize_answers(answers) == 'all required tests passed'
+    assert summarize_answers(answers) == 'All required tests passed'
 
 
 def test_summary_one_failed_one_missing():

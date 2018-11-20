@@ -252,7 +252,7 @@ def summarize_answers(answers):
         return '{} of {} required test results missing'.format(missing_count, len(answers))
 
     if all(answer.is_satisfied for answer in answers):
-        return 'all required tests passed'
+        return 'All required tests passed'
 
     assert False, 'Unexpected unsatisfied result'
     return 'inexplicable result'
