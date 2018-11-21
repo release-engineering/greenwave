@@ -23,7 +23,7 @@ def _decision_subject(subject):
     subject_identifier = subject.get('item')
 
     if subject_identifier:
-        if subject_type in ('bodhi_update', 'component-version', 'koji_build'):
+        if subject_type in ('bodhi_update', 'component-version', 'koji_build', 'redhat-module'):
             return (subject_type, subject_identifier)
 
         if subject_type == 'brew-build':
@@ -70,14 +70,10 @@ def subject_type_identifier_to_list(subject_type, subject_identifier):
     Inverse of the above function.
     This is for backwards compatibility in emitted messages.
     """
-    if subject_type == 'bodhi_update':
-        return [{'type': 'bodhi_update', 'item': subject_identifier}]
-    if subject_type == 'koji_build':
-        return [{'type': 'koji_build', 'item': subject_identifier}]
+    if subject_type in ['bodhi_update', 'koji_build', 'component-version', 'redhat-module']:
+        return [{'type': subject_type, 'item': subject_identifier}]
     if subject_type == 'compose':
         return [{'productmd.compose.id': subject_identifier}]
-    if subject_type == 'component-version':
-        return [{'type': 'component-version', 'item': subject_identifier}]
 
     raise BadRequest('Unrecognised subject type: %s' % subject_type)
 

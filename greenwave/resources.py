@@ -125,10 +125,11 @@ class ResultsRetriever(object):
             params['type'] = 'compose'
             params['item'] = subject_identifier
             results.extend(self._make_request(params=params))
-        elif subject_type == 'component-version':
+        elif subject_type == 'component-version' or subject_type == 'redhat-module':
             params['type'] = subject_type
             params['item'] = subject_identifier
             results = self._make_request(params=params)
+
         else:
             raise RuntimeError('Unhandled subject type %r' % subject_type)
 

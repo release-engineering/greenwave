@@ -800,3 +800,27 @@ rules:
     decision = policy.check('fedora-29', nv, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
+
+
+def test_policy_with_subject_type_redhat_module(tmpdir):
+    nsvc = 'httpd:2.4:20181018085700:9edba152'
+    p = tmpdir.join('fedora.yaml')
+    p.write("""
+--- !Policy
+id: "test-new-subject-type"
+product_versions:
+- fedora-29
+decision_context: decision_context_test_redhat_module
+subject_type: redhat-module
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: test_for_redhat_module_type}
+        """)
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+    results = DummyResultsRetriever(nsvc, 'test_for_redhat_module_type', 'PASSED',
+                                    'redhat-module')
+    waivers = []
+    decision = policy.check('fedora-29', nsvc, results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], RuleSatisfied)
