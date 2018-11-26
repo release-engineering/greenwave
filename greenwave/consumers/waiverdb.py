@@ -120,7 +120,9 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
             old_decision = response.json()
 
-            if decision != old_decision:
+            if decision == old_decision:
+                log.debug('Skipped emitting fedmsg, decision did not change: %s', decision)
+            else:
                 msg = decision
                 decision.update({
                     'subject_type': subject_type,
