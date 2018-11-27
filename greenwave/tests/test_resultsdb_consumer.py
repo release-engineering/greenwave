@@ -234,3 +234,21 @@ def test_remote_rule_decision_change_not_matching(
         handler.consume(message)
 
     assert len(mock_fedmsg.mock_calls) == 0
+
+
+def test_guess_product_version_failing():
+    # pylint: disable=W0212
+    hub = mock.MagicMock()
+    hub.config = {
+        'environment': 'environment',
+        'topic_prefix': 'topic_prefix',
+    }
+    handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
+    with handler.flask_app.app_context():
+        product_version = greenwave.consumers.resultsdb._subject_product_version(
+            'release-e2e-test-1.0.1685-1.el5', 'koji_build')
+        assert product_version == 'rhel-5'
+
+        product_version = greenwave.consumers.resultsdb._subject_product_version(
+            'rust-toolset-rhel8-20181010170614.b09eea91', 'redhat-module')
+        assert product_version == 'rhel-8'
