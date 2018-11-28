@@ -2,6 +2,29 @@
 Release Notes
 =============
 
+Greenwave 0.9.9
+===============
+
+Released 8 November 2018
+
+* Undeprecate subject parameter for decision endpoint. This parameter is still
+  heavily used by Bodhi. It is done so because the subject parameter allows
+  clients to perform a single request to check the decision of various subjects.
+
+* Check RemoteRule configuration at start up time instead of during each
+  RemoteRule check. To allow RemoteRule functionality, the configuration must
+  contain the required dist-git and Koji URLs. As well as the RemoteRule policy.
+
+* Remove Bodhi dependency, i.e. asking for all builds from a Bodhi update. This
+  removes cyclic dependency (Bodhi depends on Greenwave) and simplifies the
+  code. Decision for bodhi_update no longer expands to include related
+  koji_build items from the Bodhi update. All builds have to be stated
+  explicitly in the "subject" field. Decision change message for bodhi_update is
+  no longer published if a test result changes for a koji_build in the Bodhi
+  update. As a side effect, the formerly deprecated "subject" field (replaced
+  with "subject_identifier" and "subject_type") has to be used to query for a
+  decision on multiple koji_builds.
+
 Greenwave 0.9.8
 ===============
 
@@ -18,7 +41,7 @@ Released 17 October 2018
   to define additional policies directly in the dist-git repo using a
   gating.yaml file. Checking the decision_context and others in gating.yaml
   files: use policies from remote gating.yaml files only if they match
-  `decision_context`, `product_version` and `subject_type` for current 
+  `decision_context`, `product_version` and `subject_type` for current
   decision (as it's done for internal policies).
 
 * Adjust naming scheme for one prometheus metric according to the best
