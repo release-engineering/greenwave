@@ -2,6 +2,22 @@
 Release Notes
 =============
 
+Greenwave 0.9.10
+================
+
+Released 29 November 2018
+
+* Support for the new subject type redhat-module.
+
+* Subject type component-version is properly consumed in resultsdb-consumer.
+
+* Capitalize the first letter of the summary for a passing gating decision.
+
+* Support for SCM URLs without the `namespace`. When checking for RemoteRules in
+  artifact's originating SCM repository, it was assumed the repository was
+  always nested in a namespace.
+
+
 Greenwave 0.9.9
 ===============
 
