@@ -54,7 +54,7 @@ class DummyResultsRetriever(ResultsRetriever):
 
 def test_summarize_answers():
     assert summarize_answers([RuleSatisfied()]) == \
-        'all required tests passed'
+        'All required tests passed'
     assert summarize_answers([TestResultFailed('koji_build', 'nvr', 'test', None, 'id'),
                               RuleSatisfied()]) == \
         '1 of 2 required tests failed'

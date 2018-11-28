@@ -111,6 +111,6 @@ def test_consume_new_waiver(
             }
         ],
         'unsatisfied_requirements': [],
-        'summary': 'all required tests passed',
+        'summary': 'All required tests passed',
         'testcase': testcase,
     }
