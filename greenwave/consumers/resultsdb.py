@@ -53,6 +53,7 @@ def _guess_product_version(toparse, koji_build=False):
             except ValueError:
                 pass
 
+    log.error("It wasn't possible to guess the product version")
     return None
 
 
@@ -66,6 +67,9 @@ def _subject_product_version(subject_identifier, subject_type):
 
     if subject_type == "compose":
         return _guess_product_version(subject_identifier)
+
+    if subject_type == "redhat-module":
+        return "rhel-8"
 
     koji_base_url = current_app.config['KOJI_BASE_URL']
     if koji_base_url:
