@@ -402,6 +402,67 @@ rules:
                 assert isinstance(decision[0], TestResultFailed)
 
 
+@pytest.mark.parametrize('namespace', ["modules", ""])
+def test_remote_rule_policy_redhat_module(tmpdir, namespace):
+    """ Testing the RemoteRule with the koji interaction.
+    In this case we are just mocking koji """
+
+    nvr = '389-ds-1.4-820181127205924.9edba152'
+
+    serverside_fragment = """
+--- !Policy
+id: "taskotron_release_critical_tasks_with_remoterule"
+product_versions:
+  - rhel-8
+decision_context: osci_compose_gate
+subject_type: redhat-module
+rules:
+  - !RemoteRule {}
+        """
+
+    remote_fragment = """
+--- !Policy
+product_versions:
+  - rhel-8
+decision_context: osci_compose_gate
+rules:
+  - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier0.functional}
+
+        """
+
+    p = tmpdir.join('gating.yaml')
+    p.write(serverside_fragment)
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = (namespace, '389-ds', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = remote_fragment
+                policies = load_policies(tmpdir.strpath)
+                policy = policies[0]
+
+                waivers = []
+
+                # Ensure that presence of a result is success.
+                results = DummyResultsRetriever(nvr, 'baseos-ci.redhat-module.tier0.functional')
+                decision = policy.check('rhel-8', nvr, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], RuleSatisfied)
+
+                # Ensure that absence of a result is failure.
+                results = DummyResultsRetriever()
+                decision = policy.check('rhel-8', nvr, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultMissing)
+
+                # And that a result with a failure, is a failure.
+                results = DummyResultsRetriever(nvr, 'baseos-ci.redhat-module.tier0.functional',
+                                                'FAILED')
+                decision = policy.check('rhel-8', nvr, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultFailed)
+
+
 def test_remote_rule_policy_optional_id(tmpdir):
     nvr = 'nethack-1.2.3-1.el9000'
 

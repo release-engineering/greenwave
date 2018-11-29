@@ -305,7 +305,7 @@ class RemoteRule(Rule):
     safe_yaml_attributes = {}
 
     def _get_sub_policies(self, policy, subject_identifier):
-        if policy.subject_type != 'koji_build':
+        if policy.subject_type not in ['koji_build', 'redhat-module']:
             return []
 
         pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
