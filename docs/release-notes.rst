@@ -2,6 +2,16 @@
 Release Notes
 =============
 
+Greenwave 0.9.11
+================
+
+Released 29 November 2018
+
+* RemoteRule feature enabled also for redhat-modules: the RemoteRule feature
+  allows the user to specify additional policies on a gating.yaml file in the
+  dist-git repo. This feature was available only for koji_builds, from now on
+  it will be available also for redhat-modules.
+
 Greenwave 0.9.10
 ================
 
