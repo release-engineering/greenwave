@@ -36,7 +36,7 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 10
+    assert len(policies) == 11
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)
@@ -1065,3 +1065,29 @@ def test_make_a_decision_for_bodhi_with_verbose_flag(
     assert res_data['results'] == list(reversed(results))
     assert res_data['waivers'] == []
     assert res_data['satisfied_requirements'] == []
+
+
+def test_decision_on_redhat_module(requests_session, greenwave_server, testdatabuilder):
+    nvr = '389-ds-1.4-820181127205924.9edba152'
+    new_result_data = {
+        'testcase': {'name': 'baseos-ci.redhat-module.tier0.functional'},
+        'outcome': 'PASSED',
+        'data': {'item': nvr, 'type': 'redhat-module'}
+    }
+    result = testdatabuilder._create_result(new_result_data) # noqa
+    data = {
+        'decision_context': 'osci_compose_gate_modules',
+        'product_version': 'rhel-8',
+        'subject_type': 'redhat-module',
+        'subject_identifier': nvr,
+        'verbose': True
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied'] is True
+    expected_summary = 'All required tests passed'
+    assert res_data['summary'] == expected_summary
+    res_data['results'][0]['data']['type'][0] == 'redhat-module'
