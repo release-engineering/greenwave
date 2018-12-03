@@ -19,6 +19,16 @@ rules:
       "policycoreutils",
     ]
   }
+# A policy for RHEL 8 Modularity
+--- !Policy
+id: "osci_compose_modules"
+product_versions:
+  - rhel-8
+decision_context: osci_compose_gate_modules
+subject_type: redhat-module
+blacklist: []
+rules:
+  - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier0.functional}
 --- !Policy
 id: "rtt_compose"
 product_versions:
