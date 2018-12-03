@@ -16,7 +16,6 @@ node('master'){
     def branch = scmVars.GIT_BRANCH_NAME
     if ( branch == 'master' ) {
         echo 'Building master'
-        currentBuild.displayName = 'master'
     }
     else if (branch ==~ /[0-9]+/) {
         def pagureUrl = "https://pagure.io/greenwave/pull-request/${branch}"
@@ -212,6 +211,7 @@ node('fedora-28') {
                             }
                         }
 
+                        timeout(15) { // minutes
                         def route_hostname = waiverdbURL
                         echo "Fetching CA chain for https://${route_hostname}/"
                         def ca_chain = sh(returnStdout: true, script: """openssl s_client \
@@ -232,6 +232,7 @@ node('fedora-28') {
                             sh 'py.test-3 -v --junitxml=junit-functional-tests.xml functional-tests/'
                         }
                         junit 'junit-functional-tests.xml'
+                        }  //end timeout
                     } finally {
                         /* Extract logs for debugging purposes */
                         openshift.selector('deploy,pods', ['environment': environment_label]).logs()
