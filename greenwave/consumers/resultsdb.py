@@ -181,7 +181,11 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 nvr = _decode(data['item'])
             else:
                 nvr = _decode(data['original_spec_nvr'])
-            yield ('koji_build', nvr)
+            # when the pipeline ignores a package, which happens
+            # *a lot*, we get a message with an 'original_spec_nvr'
+            # key with an empty value; let's not try and handle this
+            if nvr:
+                yield ('koji_build', nvr)
 
     def consume(self, message):
         """
