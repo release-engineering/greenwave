@@ -31,8 +31,44 @@ def test_announcement_subjects_for_brew_build():
 
     assert subjects == [('koji_build', 'glibc-1.0-3.fc27')]
 
+def test_announcement_subjects_for_new_compose_message():
+    """Ensure we are producing the right subjects for compose decisions
+    as this has caused a lot of confusion in the past. The only
+    reliable way to make a compose decision is by looking for the key
+    productmd.compose.id with value of the compose ID. This is only
+    possible with new-style 'resultsdb' fedmsgs, like this one.
+    """
+    cls = greenwave.consumers.resultsdb.ResultsDBHandler
+    message = {
+        'msg': {
+            'data': {
+                "scenario": ["fedora.universal.x86_64.64bit"], 
+                "source": ["openqa"], 
+                "productmd.compose.name": ["Fedora"], 
+                "firmware": ["bios"], 
+                "meta.conventions": ["result productmd.compose fedora.compose"], 
+                "productmd.compose.respin": ["0"], 
+                "item": ["Fedora-Rawhide-20181205.n.0"], 
+                "productmd.compose.id": ["Fedora-Rawhide-20181205.n.0"], 
+                "type": ["compose"], 
+                "productmd.compose.date": ["20181205"], 
+                "productmd.compose.version": ["Rawhide"], 
+                "arch": ["x86_64"], 
+                "productmd.compose.type": ["nightly"], 
+                "productmd.compose.short": ["Fedora"],
+            }
+        }
+    }
+    subjects = list(cls.announcement_subjects(message))
 
-def test_announcement_subjects_for_autocloud_compose():
+    assert subjects == [('compose', 'Fedora-Rawhide-20181205.n.0')]
+
+def test_no_announcement_subjects_for_old_compose_message():
+    """With an old-style 'taskotron' fedmsg like this one, it is not
+    possible to reliably make a compose decision - see
+    https://pagure.io/greenwave/issue/122 etc. So we should NOT
+    produce any subjects for this kind of message.
+    """
     cls = greenwave.consumers.resultsdb.ResultsDBHandler
     message = {
         'msg': {
@@ -52,7 +88,7 @@ def test_announcement_subjects_for_autocloud_compose():
     }
     subjects = list(cls.announcement_subjects(message))
 
-    assert subjects == [('compose', 'Fedora-AtomicHost-28_Update-20180723.1839.x86_64.qcow2')]
+    assert subjects == []
 
 
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
