@@ -612,12 +612,11 @@ class RemotePolicy(Policy):
     safe_yaml_attributes = {
         'id': SafeYAMLString(optional=True),
         'product_versions': SafeYAMLList(str),
+        'subject_type': SafeYAMLChoice('koji_build', 'redhat-module', optional=True),
         'decision_context': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
     }
-
-    subject_type = 'koji_build'
 
     def validate(self):
         for rule in self.rules:
