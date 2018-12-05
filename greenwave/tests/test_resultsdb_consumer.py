@@ -19,6 +19,22 @@ def test_announcement_keys_decode_with_list():
     assert subjects == [('koji_build', 'glibc-1.0-1.fc27')]
 
 
+def test_no_announcement_subjects_for_empty_nvr():
+    """The CI pipeline submits a lot of results for the test
+    'org.centos.prod.ci.pipeline.allpackages-build.package.ignored'
+    with the 'original_spec_nvr' key present, but the value just an
+    empty string. To avoid unpredictable consequences, we should not
+    return any announcement subjects for such a message.
+    """
+    cls = greenwave.consumers.resultsdb.ResultsDBHandler
+    message = {'msg': {'data': {
+        'original_spec_nvr': [""],
+    }}}
+    subjects = list(cls.announcement_subjects(message))
+
+    assert subjects == []
+
+
 def test_announcement_subjects_for_brew_build():
     # The 'brew-build' type appears internally within Red Hat. We treat it as an
     # alias of 'koji_build'.
