@@ -425,6 +425,7 @@ rules:
 product_versions:
   - rhel-8
 decision_context: osci_compose_gate
+subject_type: redhat-module
 rules:
   - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier0.functional}
 
@@ -444,20 +445,21 @@ rules:
                 waivers = []
 
                 # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(nvr, 'baseos-ci.redhat-module.tier0.functional')
+                results = DummyResultsRetriever(nvr, 'baseos-ci.redhat-module.tier0.functional',
+                                                subject_type='redhat-module')
                 decision = policy.check('rhel-8', nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
 
                 # Ensure that absence of a result is failure.
-                results = DummyResultsRetriever()
+                results = DummyResultsRetriever(subject_type='redhat-module')
                 decision = policy.check('rhel-8', nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultMissing)
 
                 # And that a result with a failure, is a failure.
                 results = DummyResultsRetriever(nvr, 'baseos-ci.redhat-module.tier0.functional',
-                                                'FAILED')
+                                                'FAILED', subject_type='redhat-module')
                 decision = policy.check('rhel-8', nvr, results, waivers)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
@@ -776,6 +778,31 @@ def test_parse_policies_remote_multiple():
     assert len(policies) == 2
     assert policies[0].id == 'test1'
     assert policies[1].id == 'test2'
+
+
+def test_parse_policies_remote_subject_types():
+    policies = RemotePolicy.safe_load_all(dedent("""
+        --- !Policy
+        id: test1
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: test.case.name}
+
+        --- !Policy
+        id: test2
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        subject_type: redhat-module
+        rules:
+          - !PassingTestCaseRule {test_case_name: test.case.name}
+    """))
+    assert len(policies) == 2
+    assert policies[0].id == 'test1'
+    assert policies[0].subject_type == 'koji_build'
+    assert policies[1].id == 'test2'
+    assert policies[1].subject_type == 'redhat-module'
 
 
 def test_parse_policies_remote_multiple_missing_tag():
