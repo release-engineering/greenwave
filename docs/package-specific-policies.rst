@@ -23,14 +23,23 @@ Here is an example :file:`gating.yaml` file:
    product_versions:
      - fedora-*
    decision_context: bodhi_update_push_testing
+   subject_type: koji_build
    rules:
      - !PassingTestCaseRule {test_case_name: dist.depcheck}
 
 The structure of the file is the same as the policies in Greenwave's
 configuration, with the following differences:
 
-* the "id" key is optional
-* the "subject_type" shouldn't be defined - the value is always ``koji_build``.
+* the "id" key is optional.
+
+``product_versions``, ``decision_context`` and ``subject_type`` in the
+gating.yaml file should match with the defined values in the global
+policy defined in the Greenwave conf that contains the ``RemoteRule``
+that will enable this check.
+
+The "subject_type" should always be defined and the permitted values are 
+``koji_build`` and ``redhat-module``. If no ``subject_type`` will be
+specified the default value is ``koji_build``.
 
 Refer to :doc:`policies` for details about each of the keys in the YAML file.
 
@@ -73,6 +82,7 @@ be this one:
         product_versions:
           - fedora-28
         decision_context: bodhi_update_push_stable
+        subject_type: koji_build
         rules:
           - !PassingTestCaseRule {test_case_name: dist.depcheck}
 
