@@ -160,9 +160,18 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             return value
 
         _type = _decode(data.get('type'))
-        if _type in ['bodhi_update', 'compose', 'component-version', 'redhat-module'] and (
+        if _type in ['bodhi_update', 'component-version', 'redhat-module'] and (
                 'item' in data):
             yield (_type, _decode(data['item']))
+        # note: it is *intentional* that we do not handle old format
+        # compose-type messages, because it is impossible to reliably
+        # produce a decision from these. compose decisions can only be
+        # reliably made from new format messages, where we can rely on
+        # productmd.compose.id being available. See:
+        # https://pagure.io/greenwave/issue/122
+        # https://pagure.io/taskotron/resultsdb/issue/92
+        # https://pagure.io/taskotron/resultsdb/pull-request/101
+        # https://pagure.io/greenwave/pull-request/262#comment-70350
         if 'productmd.compose.id' in data:
             yield ('compose', _decode(data['productmd.compose.id']))
         if (_type == 'koji_build' and 'item' in data or
