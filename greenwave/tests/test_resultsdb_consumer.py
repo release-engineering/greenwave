@@ -47,6 +47,7 @@ def test_announcement_subjects_for_brew_build():
 
     assert subjects == [('koji_build', 'glibc-1.0-3.fc27')]
 
+
 def test_announcement_subjects_for_new_compose_message():
     """Ensure we are producing the right subjects for compose decisions
     as this has caused a lot of confusion in the past. The only
@@ -58,19 +59,19 @@ def test_announcement_subjects_for_new_compose_message():
     message = {
         'msg': {
             'data': {
-                "scenario": ["fedora.universal.x86_64.64bit"], 
-                "source": ["openqa"], 
-                "productmd.compose.name": ["Fedora"], 
-                "firmware": ["bios"], 
-                "meta.conventions": ["result productmd.compose fedora.compose"], 
-                "productmd.compose.respin": ["0"], 
-                "item": ["Fedora-Rawhide-20181205.n.0"], 
-                "productmd.compose.id": ["Fedora-Rawhide-20181205.n.0"], 
-                "type": ["compose"], 
-                "productmd.compose.date": ["20181205"], 
-                "productmd.compose.version": ["Rawhide"], 
-                "arch": ["x86_64"], 
-                "productmd.compose.type": ["nightly"], 
+                "scenario": ["fedora.universal.x86_64.64bit"],
+                "source": ["openqa"],
+                "productmd.compose.name": ["Fedora"],
+                "firmware": ["bios"],
+                "meta.conventions": ["result productmd.compose fedora.compose"],
+                "productmd.compose.respin": ["0"],
+                "item": ["Fedora-Rawhide-20181205.n.0"],
+                "productmd.compose.id": ["Fedora-Rawhide-20181205.n.0"],
+                "type": ["compose"],
+                "productmd.compose.date": ["20181205"],
+                "productmd.compose.version": ["Rawhide"],
+                "arch": ["x86_64"],
+                "productmd.compose.type": ["nightly"],
                 "productmd.compose.short": ["Fedora"],
             }
         }
@@ -78,6 +79,7 @@ def test_announcement_subjects_for_new_compose_message():
     subjects = list(cls.announcement_subjects(message))
 
     assert subjects == [('compose', 'Fedora-Rawhide-20181205.n.0')]
+
 
 def test_no_announcement_subjects_for_old_compose_message():
     """With an old-style 'taskotron' fedmsg like this one, it is not
