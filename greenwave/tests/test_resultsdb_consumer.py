@@ -290,7 +290,7 @@ def test_remote_rule_decision_change_not_matching(
     assert len(mock_fedmsg.mock_calls) == 0
 
 
-def test_guess_product_version_failing():
+def test_guess_product_version():
     # pylint: disable=W0212
     hub = mock.MagicMock()
     hub.config = {
@@ -306,3 +306,105 @@ def test_guess_product_version_failing():
         product_version = greenwave.consumers.resultsdb._subject_product_version(
             'rust-toolset-rhel8-20181010170614.b09eea91', 'redhat-module')
         assert product_version == 'rhel-8'
+
+
+@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
+@mock.patch('greenwave.resources.retrieve_decision')
+@mock.patch('greenwave.resources.retrieve_scm_from_koji')
+@mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+def test_decision_change_for_modules(
+        mock_fedmsg,
+        mock_retrieve_yaml_remote_rule,
+        mock_retrieve_scm_from_koji,
+        mock_retrieve_decision,
+        mock_retrieve_results):
+    """
+    Test publishing decision change message for a module.
+    """
+
+    # gating.yaml
+    gating_yaml = dedent("""
+        --- !Policy
+        product_versions:
+          - rhel-8
+        decision_context: osci_compose_gate_modules
+        subject_type: redhat-module
+        rules:
+          - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier1.functional}
+    """)
+    mock_retrieve_yaml_remote_rule.return_value = gating_yaml
+
+    policies = dedent("""
+    --- !Policy
+        id: "osci_compose_modules"
+        product_versions:
+          - rhel-8
+        decision_context: osci_compose_gate_modules
+        subject_type: redhat-module
+        blacklist: []
+        rules:
+          - !RemoteRule {}
+    """)
+
+    nsvc = 'python36-3.6-820181204160430.17efdbc7'
+    result = {
+        'id': 1,
+        'testcase': {'name': 'baseos-ci.redhat-module.tier1.functional'},
+        'outcome': 'PASSED',
+        'data': {'item': nsvc, 'type': 'redhat-module'},
+    }
+    mock_retrieve_results.return_value = [result]
+
+    def retrieve_decision(url, data):
+        #pylint: disable=unused-argument
+        if 'ignore_result' in data:
+            return None
+        return {}
+    mock_retrieve_decision.side_effect = retrieve_decision
+    mock_retrieve_scm_from_koji.return_value = ('modules', nsvc,
+                                                '97273b80dd568bd15f9636b695f6001ecadb65e0')
+
+    message = {
+        'body': {
+            'topic': 'resultsdb.result.new',
+            'msg': {
+                'id': result['id'],
+                'outcome': 'PASSED',
+                'testcase': {
+                    'name': 'baseos-ci.redhat-module.tier1.functional',
+                },
+                'data': {
+                    'item': [nsvc],
+                    'type': ['redhat-module'],
+                }
+            }
+        }
+    }
+    hub = mock.MagicMock()
+    hub.config = {
+        'environment': 'environment',
+        'topic_prefix': 'topic_prefix',
+    }
+    handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
+
+    handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
+    with handler.flask_app.app_context():
+        handler.consume(message)
+
+    assert len(mock_fedmsg.mock_calls) == 1
+
+    mock_call = mock_fedmsg.mock_calls[0][2]
+    assert mock_call['topic'] == 'decision.update'
+
+    actual_msgs_sent = [mock_call['msg'] for call in mock_fedmsg.mock_calls]
+    assert actual_msgs_sent[0] == {
+        'decision_context': 'osci_compose_gate_modules',
+        'product_version': 'rhel-8',
+        'subject': [
+            {'item': nsvc, 'type': 'redhat-module'},
+        ],
+        'subject_type': 'redhat-module',
+        'subject_identifier': nsvc,
+        'previous': None,
+    }
