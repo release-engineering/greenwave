@@ -2,6 +2,21 @@
 Release Notes
 =============
 
+Greenwave 0.9.12
+================
+
+Released 10 December 2018
+
+* Don't attempt to make decisions from old-style compose fedmsgs: greenwave
+  was trying to make compose decisions based on the old-style
+  taskotron.result.new messages with type 'compose'. But that is not possible
+  in a reliable way. So that attempt was removed.
+
+* Fix RemotePolicy for redhat-module subject type: RemotePolicy class was
+  incorrectly forcing the koji_build subject type for redhat-module.
+
+* Don't try and make a decision for pipeline msgs with empty NVR.
+
 Greenwave 0.9.11
 ================
 
