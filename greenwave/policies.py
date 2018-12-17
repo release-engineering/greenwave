@@ -45,12 +45,10 @@ def subject_type_identifier_to_item(subject_type, subject_identifier):
     Greenwave < 0.8 included an "item" key in the "unsatisfied_requirements".
     This returns a suitable value for that key, for backwards compatibility.
     """
-    if subject_type in ['bodhi_update', 'koji_build', 'component-version', 'redhat-module']:
-        return {'type': subject_type, 'item': subject_identifier}
-    elif subject_type == 'compose':
+    if subject_type == 'compose':
         return {'productmd.compose.id': subject_identifier}
     else:
-        raise RuntimeError('Unrecognised subject type: %s' % subject_type)
+        return {'type': subject_type, 'item': subject_identifier}
 
 
 class Answer(object):
@@ -549,9 +547,7 @@ class Policy(SafeYAMLObject):
         'product_versions': SafeYAMLList(str),
         'decision_context': SafeYAMLString(),
         # TODO: Handle brew-build value better.
-        'subject_type': SafeYAMLChoice(
-            'koji_build', 'bodhi_update', 'compose', 'brew-build', 'component-version',
-            'redhat-module'),
+        'subject_type': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
         'relevance_key': SafeYAMLString(optional=True),

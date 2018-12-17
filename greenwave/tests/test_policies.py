@@ -15,6 +15,7 @@ from greenwave.policies import (
     RuleSatisfied,
     TestResultMissing,
     TestResultFailed,
+    TestResultPassed,
     InvalidGatingYaml
 )
 from greenwave.resources import ResultsRetriever
@@ -679,23 +680,26 @@ def test_parse_policies_missing_decision_context():
         """))
 
 
-def test_parse_policies_invalid_subject_type():
-    expected_error = (
-        r"Policy 'test': Attribute 'subject_type': "
-        "Value must be one of:.*"
-    )
-    with pytest.raises(SafeYAMLError, match=expected_error):
-        Policy.safe_load_all(dedent("""
-            --- !Policy
-            id: test
-            product_versions: [fedora-rawhide]
-            decision_context: test
-            subject_type: bad_subject
-            blacklist: []
-            rules:
-              - !PassingTestCaseRule {test_case_name: compose.cloud.all}
-              - 0
+def test_policy_with_arbitrary_subject_type(tmpdir):
+    p = tmpdir.join('fedora.yaml')
+    p.write(dedent("""
+        --- !Policy
+        id: "some_policy"
+        product_versions:
+          - rhel-9000
+        decision_context: bodhi_update_push_stable
+        subject_type: kind-of-magic
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest}
         """))
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+
+    waivers = []
+    results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest', 'PASSED', 'kind-of-magic')
+    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results, waivers)
+    assert len(decision) == 1
+    assert isinstance(decision[0], TestResultPassed)
 
 
 def test_parse_policies_invalid_rule():

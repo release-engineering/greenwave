@@ -160,9 +160,6 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             return value
 
         _type = _decode(data.get('type'))
-        if _type in ['bodhi_update', 'component-version', 'redhat-module'] and (
-                'item' in data):
-            yield (_type, _decode(data['item']))
         # note: it is *intentional* that we do not handle old format
         # compose-type messages, because it is impossible to reliably
         # produce a decision from these. compose decisions can only be
@@ -174,18 +171,19 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         # https://pagure.io/greenwave/pull-request/262#comment-70350
         if 'productmd.compose.id' in data:
             yield ('compose', _decode(data['productmd.compose.id']))
-        if (_type == 'koji_build' and 'item' in data or
-                _type == 'brew-build' and 'item' in data or
-                'original_spec_nvr' in data):
-            if _type in ['koji_build', 'brew-build']:
-                nvr = _decode(data['item'])
-            else:
-                nvr = _decode(data['original_spec_nvr'])
+        elif _type == 'compose':
+            pass
+        elif 'original_spec_nvr' in data:
+            nvr = _decode(data['original_spec_nvr'])
             # when the pipeline ignores a package, which happens
             # *a lot*, we get a message with an 'original_spec_nvr'
             # key with an empty value; let's not try and handle this
             if nvr:
                 yield ('koji_build', nvr)
+        elif _type == 'brew-build':
+            yield ('koji_build', _decode(data['item']))
+        elif 'item' in data and _type:
+            yield (_type, _decode(data['item']))
 
     def consume(self, message):
         """

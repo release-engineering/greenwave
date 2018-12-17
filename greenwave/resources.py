@@ -100,11 +100,7 @@ class ResultsRetriever(object):
             params['testcases'] = testcase
 
         results = []
-        if subject_type == 'bodhi_update':
-            params['type'] = subject_type
-            params['item'] = subject_identifier
-            results = self._make_request(params=params)
-        elif subject_type == 'koji_build':
+        if subject_type == 'koji_build':
             params['type'] = subject_type
             params['item'] = subject_identifier
             results = self._make_request(params=params)
@@ -119,13 +115,10 @@ class ResultsRetriever(object):
         elif subject_type == 'compose':
             params['productmd.compose.id'] = subject_identifier
             results = self._make_request(params=params)
-        elif subject_type == 'component-version' or subject_type == 'redhat-module':
+        else:
             params['type'] = subject_type
             params['item'] = subject_identifier
             results = self._make_request(params=params)
-
-        else:
-            raise RuntimeError('Unhandled subject type %r' % subject_type)
 
         return results
 
