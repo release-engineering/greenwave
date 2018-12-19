@@ -66,8 +66,8 @@ You should run smoke test after deploying on stage:
 Docker Compose
 ==============
 
-For development you may want to bring up quick instances of Greenwave /
-WaiverDB / ResultsDB / all of the above. For more information on that see:
+For local development, you may want to easily bring up containers of
+WaiverDB, ResultsDB, and/or Greenwave. For more information on that, see:
 
 .. toctree::
    :maxdepth: 2
