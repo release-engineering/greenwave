@@ -55,6 +55,15 @@ The functional tests assume you have ResultsDB and WaiverDB git checkouts in
 find them in a different location by passing ``RESULTSDB`` or ``WAIVERDB``
 environment variables.
 
+If you'd rather not install all the dependencies necessary to run the functional
+tests, you may use Vagrant to provision a throw-away virtual machine to run
+the tests:
+
+.. toctree::
+   :maxdepth: 2
+
+   vagrant
+
 You should run smoke test after deploying on stage:
 
 .. code-block:: console
