@@ -128,8 +128,8 @@ def resultsdb_server(tmpdir_factory):
         )
         """ % dbname
 
-    init_db_arguments = ['python2', 'run_cli.py', 'init_db']
-    start_server_arguments = ['python2', 'runapp.py']
+    init_db_arguments = ['python3', 'run_cli.py', 'init_db']
+    start_server_arguments = ['python3', 'runapp.py']
 
     with server_subprocess(
             name='resultsdb',
