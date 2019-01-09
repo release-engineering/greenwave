@@ -26,21 +26,7 @@ $script = <<-'SCRIPT'
     # Clone ResultsDB and WaiverDB for the functional tests
     git clone https://pagure.io/taskotron/resultsdb.git /opt/resultsdb
     git clone https://pagure.io/waiverdb.git /opt/waiverdb
-    # Install the proper dependencies for ResultsDB and WaiverDB
-    # We can't use the spec file to install the ResultsDB dependencies because
-    # the functional tests use Python 2 to launch ResultsDB and the spec file
-    # will install Python 3 dependencies since the OS is Fedora
-    dnf -y install \
-        fedmsg \
-        python2-fedmsg \
-        python2-alembic \
-        python2-flask \
-        python2-flask-restful \
-        python2-flask-sqlalchemy \
-        python2-iso8601 \
-        python2-psycopg2 \
-        python2-six \
-        python2-sqlalchemy
+    dnf -y builddep /opt/resultsdb/resultsdb.spec
     dnf -y builddep /opt/waiverdb/waiverdb.spec
 
     # Clean any pyc or pyo files
