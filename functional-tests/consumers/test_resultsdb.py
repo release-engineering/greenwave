@@ -587,3 +587,164 @@ def test_no_message_for_nonapplicable_policies(
     # No message should be published as the decision is unchanged since we
     # are still missing the required tests.
     mock_fedmsg.assert_not_called()
+
+
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+def test_consume_new_result_container_image(
+        mock_fedmsg, load_config, requests_session, greenwave_server,
+        testdatabuilder):
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
+    nvr = 'fedora@sha256:017eb7de7927da933a04a6c1ff59da0c41dcea194aaa6b5dd7148df286b92433'
+    result = testdatabuilder.create_result(item=nvr,
+                                           testcase_name='baseos-qe.baseos-ci.tier1.functional',
+                                           outcome='PASSED', _type='container-image')
+    message = {
+        "body": {
+            "username": None,
+            "source_name": "datanommer",
+            "certificate": None,
+            "i": 0,
+            "timestamp": 1546858448.0,
+            "msg_id": "ID:umb-test-9999-umb-3-r7xk4-46608-1545211261969-3:248:-1:1:1",
+            "crypto": None,
+            "topic": "/topic/VirtualTopic.eng.resultsdb.result.new",
+            "headers": {
+                "content-length": "1441",
+                "expires": "0",
+                "timestamp": "1546858448379",
+                "original-destination": "/topic/VirtualTopic.eng.resultsdb.result.new",
+                "destination": "/queue/Consumer.client-datanommer.upshift-dev.VirtualTopic.eng.>",
+                "priority": "4",
+                "message-id": "ID:umb-test-9999-umb-3-r7xk4-46608-1545211261969-3:248:-1:1:1",
+                "subscription": "/queue/Consumer.client-datanommer.upshift-dev.VirtualTopic.eng.>"
+            },
+            "signature": None,
+            "source_version": "0.9.1",
+            "msg": {
+                "testcase": {
+                    "ref_url": "https://example.com",
+                    "href": ("http://resultsdb-test-9999-api-yuxzhu.cloud.paas.upshift.redhat."
+                             "com/api/v2.0/testcases/baseos-qe.baseos-ci.tier1.functional"),
+                    "name": "baseos-qe.baseos-ci.tier1.functional"
+                },
+                "ref_url": "https://somewhere.com/job/ci-openstack/4794",
+                "note": "",
+                "href": ("http://resultsdb-test-9999-api-yuxzhu.cloud.paas.upshift.redhat."
+                         "com/api/v2.0/results/58"),
+                "groups": [
+                    "341d4cba-ffe2-4d83-b36c-5d819181e86d"
+                ],
+                "submit_time": "2019-01-07T10:54:08.265369",
+                "outcome": "PASSED",
+                "data": {
+                    "category": [
+                        "functional"
+                    ],
+                    "log": [
+                        "https://somewhere.com/job/ci-openstack/4794/console"
+                    ],
+                    "recipients": [
+                        "mvadkert",
+                        "ovasik"
+                    ],
+                    "ci_environment": [
+                        "production"
+                    ],
+                    "scratch": [
+                        "True"
+                    ],
+                    "rebuild": [
+                        "https://somewhere.com/job/ci-openstack/4794/rebuild/parametrized"
+                    ],
+                    "ci_email": [
+                        "pnt-devops-dev@example.com"
+                    ],
+                    "nvr": [
+                        "fedora:28"
+                    ],
+                    "ci_name": [
+                        "C3I Jenkins"
+                    ],
+                    "repository": [
+                        "fedora"
+                    ],
+                    "item": [
+                        ("fedora@sha256:017eb7de7927da933a04a6c1ff59da0c"
+                         "41dcea194aaa6b5dd7148df286b92433")
+                    ],
+                    "system_provider": [
+                        "openstack"
+                    ],
+                    "ci_url": [
+                        "https://example.com"
+                    ],
+                    "digest": [
+                        "sha256:017eb7de7927da933a04a6c1ff59da0c41dcea194aaa6b5dd7148df286b92433"
+                    ],
+                    "xunit": [
+                        "https://somewhere.com/job/ci-openstack/4794/artifacts/results.xml"
+                    ],
+                    "system_architecture": [
+                        "x86_64"
+                    ],
+                    "ci_team": [
+                        "DevOps"
+                    ],
+                    "type": [
+                        "container-image"
+                    ],
+                    "system_os": [
+                        "rhel-7.4-server-x86_64-updated"
+                    ],
+                    "ci_irc": [
+                        "#pnt-devops-dev"
+                    ],
+                    "issuer": [
+                        "yuxzhu"
+                    ]
+                },
+                "id": result['id']
+            }
+        }
+    }
+    hub = mock.MagicMock()
+    hub.config = {
+        'environment': 'environment',
+        'topic_prefix': 'topic_prefix',
+    }
+    handler = resultsdb.ResultsDBHandler(hub)
+    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler.consume(message)
+
+    # get old decision
+    data = {
+        'decision_context': 'container-image-test',
+        'product_version': 'c3i',
+        'subject': [{'item': nvr, 'type': 'container-image'}],
+        'ignore_result': [result['id']]
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    old_decision = r.json()
+
+    msg = {
+        'applicable_policies': ['container-image-policy'],
+        'decision_context': 'container-image-test',
+        'policies_satisfied': True,
+        'product_version': 'c3i',
+        'subject': [{'item': nvr, 'type': 'container-image'}],
+        'subject_type': 'container-image',
+        'subject_identifier': nvr,
+        'summary': 'All required tests passed',
+        'previous': old_decision,
+        'satisfied_requirements': [{
+            'result_id': result['id'],
+            'testcase': 'baseos-qe.baseos-ci.tier1.functional',
+            'type': 'test-result-passed'
+        }],
+        'unsatisfied_requirements': []
+    }
+    mock_fedmsg.assert_called_once_with(topic='decision.update', msg=msg)

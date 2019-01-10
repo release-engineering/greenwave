@@ -279,13 +279,14 @@ class TestDataBuilder(object):
         }
         return self._create_result(data)
 
-    def create_result(self, item, testcase_name, outcome, scenario=None, key=None):
+    def create_result(self, item, testcase_name, outcome,
+                      scenario=None, key=None, _type='koji_build'):
         data = {
             'testcase': {'name': testcase_name},
             'outcome': outcome,
         }
         if not key:
-            data['data'] = {'item': item, 'type': 'koji_build'}
+            data['data'] = {'item': item, 'type': _type}
         else:
             data['data'] = {key: item}
         if scenario:
