@@ -90,3 +90,13 @@ decision_context: bodhi_update_push_stable
 subject_type: bodhi_update
 blacklist: []
 rules: []
+
+# Policy for container-image tests
+--- !Policy
+id: "container-image-policy"
+product_versions:
+  - c3i
+decision_context: container-image-test
+subject_type: container-image
+rules:
+  - !PassingTestCaseRule {test_case_name: baseos-qe.baseos-ci.tier1.functional}
