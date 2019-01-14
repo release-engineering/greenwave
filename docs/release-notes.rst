@@ -2,6 +2,16 @@
 Release Notes
 =============
 
+Greenwave 0.9.13
+================
+
+Released 11 January 2019
+
+* Stop hard-coding subject types so that any subject type can be used.
+  This will allow Greenwave to support additional subject types without
+  any code or configuration changes.
+
+
 Greenwave 0.9.12
 ================
 
