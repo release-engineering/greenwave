@@ -23,6 +23,9 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
         && curl -O --insecure $cacert_url \
         && update-ca-trust extract; \
     fi
+# This will allow a non-root user to install a custom root CA at run-time
+RUN chmod 777 /etc/pki/tls/certs/ca-bundle.crt
+COPY docker/install-ca.sh /opt
 USER 1001
 EXPOSE 8080
-ENTRYPOINT gunicorn-3 --workers 8 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance greenwave.wsgi:app
+ENTRYPOINT /opt/install-ca.sh && gunicorn-3 --workers 8 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance greenwave.wsgi:app
