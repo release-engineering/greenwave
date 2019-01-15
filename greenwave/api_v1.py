@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import logging
 from flask import Blueprint, request, current_app, jsonify, url_for, redirect, Response
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
 from prometheus_client import generate_latest
@@ -16,6 +17,7 @@ from greenwave.monitoring import (
 
 
 api = (Blueprint('api_v1', __name__))
+log = logging.getLogger(__name__)
 
 
 def _decision_subject(subject):
@@ -33,6 +35,7 @@ def _decision_subject(subject):
             return ('koji_build', subject_identifier)
         return (subject_type, subject_identifier)
 
+    log.info('Couldn\'t detect subject_identifier.')
     raise BadRequest('Couldn\'t detect subject_identifier.')
 
 
@@ -50,14 +53,17 @@ def _decision_subjects_for_request(data):
         subjects = data['subject']
         if (not isinstance(subjects, list) or not subjects or
                 not all(isinstance(entry, dict) for entry in subjects)):
+            log.error('Invalid subject, must be a list of dicts')
             raise BadRequest('Invalid subject, must be a list of dicts')
 
         for subject in subjects:
             yield _decision_subject(subject)
     else:
         if 'subject_type' not in data:
+            log.error('Missing required "subject_type" parameter')
             raise BadRequest('Missing required "subject_type" parameter')
         if 'subject_identifier' not in data:
+            log.error('Missing required "subject_identifier" parameter')
             raise BadRequest('Missing required "subject_identifier" parameter')
 
         yield data['subject_type'], data['subject_identifier']
@@ -290,18 +296,23 @@ def make_decision():
     if request.get_json():
         if ('product_version' not in request.get_json() or
                 not request.get_json()['product_version']):
+            log.error('Missing required product version')
             raise BadRequest('Missing required product version')
         if ('decision_context' not in request.get_json() or
                 not request.get_json()['decision_context']):
+            log.error('Missing required decision context')
             raise BadRequest('Missing required decision context')
     else:
+        log.error('No JSON payload in request')
         raise UnsupportedMediaType('No JSON payload in request')
 
     data = request.get_json()
+    log.debug('New decision request for data: %s', data)
     product_version = data['product_version']
     decision_context = data['decision_context']
     verbose = data.get('verbose', False)
     if not isinstance(verbose, bool):
+        log.error('Invalid verbose flag, must be a bool')
         raise BadRequest('Invalid verbose flag, must be a bool')
     ignore_results = data.get('ignore_result', [])
     ignore_waivers = data.get('ignore_waiver', [])
@@ -331,6 +342,9 @@ def make_decision():
             if subject_type == 'bodhi_update':
                 continue
 
+            log.error(
+                'Cannot find any applicable policies for %s subjects at gating point %s in %s',
+                subject_type, decision_context, product_version)
             raise NotFound(
                 'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
                     subject_type, decision_context, product_version))
@@ -365,6 +379,7 @@ def make_decision():
             'waivers': verbose_waivers,
         })
 
+    log.debug('Response: %s', response)
     resp = jsonify(response)
     resp = insert_headers(resp)
     resp.status_code = 200
@@ -414,9 +429,11 @@ def validate_gating_yaml_post():
     try:
         policies = RemotePolicy.safe_load_all(content)
     except SafeYAMLError as e:
+        log.error(str(e))
         raise BadRequest(str(e))
 
     if not policies:
+        log.error('No policies defined')
         raise BadRequest('No policies defined')
 
     return jsonify({'message': 'All OK'})
