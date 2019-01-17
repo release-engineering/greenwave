@@ -5,16 +5,19 @@ LABEL \
     license="GPLv2+" \
     build-date=""
 
-# The caller should build a greenwave RPM package using ./rpmbuild.sh and then pass it in this arg.
-ARG greenwave_rpm
 # The caller can optionally provide a cacert url
 ARG cacert_url=undefined
 
-COPY $greenwave_rpm /tmp
+WORKDIR /src
 RUN dnf -y install \
+    python3-dogpile-cache \
+    python3-fedmsg \
+    python3-flask \
     python3-gunicorn \
     python3-memcached \
-    /tmp/$(basename $greenwave_rpm) \
+    python3-prometheus_client \
+    python3-PyYAML \
+    python3-requests \
     && dnf -y clean all \
     && rm -rf /tmp/*
 
@@ -25,7 +28,10 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
     fi
 # This will allow a non-root user to install a custom root CA at run-time
 RUN chmod 777 /etc/pki/tls/certs/ca-bundle.crt
-COPY docker/install-ca.sh /opt
+COPY . .
+RUN pip3 install . --no-deps
+# Remove the default fedmsg config files included in the repo
+RUN rm -rf ./fedmsg.d
 USER 1001
 EXPOSE 8080
-ENTRYPOINT /opt/install-ca.sh && gunicorn-3 --workers 8 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance greenwave.wsgi:app
+ENTRYPOINT docker/install-ca.sh && gunicorn-3 --workers 8 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance greenwave.wsgi:app

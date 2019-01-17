@@ -6,6 +6,17 @@ import groovy.json.*
 // 'global' var to store git info
 def scmVars
 
+// Greenwave RPM dependencies
+def installDepsCmd = '''
+sudo dnf -y install \
+    python3-dogpile-cache \
+    python3-fedmsg \
+    python3-flask \
+    python3-prometheus_client \
+    python3-PyYAML \
+    python3-requests
+'''.trim()
+
 try { // massive try{} catch{} around the entire build for failure notifications
 
 node('master'){
@@ -47,11 +58,11 @@ node('fedora-28') {
         returnStdout: true
     ).trim()
 
-    sh '''
-    sudo dnf -y builddep greenwave.spec
+    sh """
+    ${installDepsCmd}
     sudo dnf -y install python3-flake8 python3-pylint python3-sphinx \
         python3-sphinxcontrib-httpdomain python3-pytest-cov
-    '''
+    """
     /* Needed to get the latest /etc/mock/fedora-28-x86_64.cfg */
     sh 'sudo dnf -y update mock-core-configs'
     stage('Invoke Flake8') {
@@ -61,7 +72,6 @@ node('fedora-28') {
         sh 'pylint-3 --reports=n greenwave'
     }
     stage('Run unit tests') {
-    // Yes, this is also done while building the RPM, but we need coverage
         sh '''
         rm -rf htmlcov coverage.xml
         pytest-3 greenwave/tests/ \
@@ -82,6 +92,12 @@ node('fedora-28') {
         ])
     }
     stage('Build Docs') {
+        sh '''
+        sudo dnf install -y \
+            python3-sphinx \
+            python3-sphinxcontrib-httpdomain \
+            python3-sphinxcontrib-issuetracker
+        '''
         sh 'DEV=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example make -C docs html'
         archiveArtifacts artifacts: 'docs/_build/html/**'
     }
@@ -110,43 +126,16 @@ node('fedora-28') {
             }
         }
     }
-    stage('Build SRPM') {
-        sh './rpmbuild.sh -bs'
-        archiveArtifacts artifacts: 'rpmbuild-output/**'
-    }
-    /* We take a flock on the mock configs, to avoid multiple unrelated jobs on
-     * the same Jenkins slave trying to use the same mock root at the same
-     * time, which will error out. */
-    stage('Build RPM') {
-        parallel (
-            'F28': {
-                sh """
-                mkdir -p mock-result/f28
-                flock /etc/mock/fedora-28-x86_64.cfg \
-                /usr/bin/mock -v --enable-network --resultdir=mock-result/f28 -r fedora-28-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
-                """
-                archiveArtifacts artifacts: 'mock-result/f28/**'
-            },
-        )
-    }
-    stage('Invoke Rpmlint') {
-        parallel (
-            'F28': {
-                sh 'rpmlint -f rpmlint-config.py mock-result/f28/*.rpm'
-            },
-        )
-    }
 }
 node('docker') {
     checkout scm
     stage('Build Docker container') {
-        unarchive mapping: ['mock-result/f28/': '.']
-        def f28_rpm = findFiles(glob: 'mock-result/f28/**/*.noarch.rpm')[0]
-        def appversion = sh(returnStdout: true, script: """
-            rpm2cpio ${f28_rpm} | \
-            cpio --quiet --extract --to-stdout ./usr/lib/python3\\*/site-packages/greenwave\\*.egg-info/PKG-INFO | \
-            awk '/^Version: / {print \$2}'
-        """).trim()
+        def appversion = sh(returnStdout: true, script: './get-version.sh').trim()
+        // Set the derived version in __init__.py
+        sh """
+        sed --regexp-extended --in-place \
+            -e "/^__version__ = /c\\__version__ = '${appversion}'" greenwave/__init__.py
+        """.trim()
         /* Git builds will have a version like 0.3.2.dev1+git.3abbb08 following
          * the rules in PEP440. But Docker does not let us have + in the tag
          * name, so let's munge it here. */
@@ -157,7 +146,7 @@ node('docker') {
             /* Note that the docker.build step has some magic to guess the
              * Dockerfile used, which will break if the build directory (here ".")
              * is not the final argument in the string. */
-            def image = docker.build "factory2/greenwave:internal-${appversion}", "--build-arg greenwave_rpm=$f28_rpm --build-arg cacert_url=https://password.corp.redhat.com/RH-IT-Root-CA.crt ."
+            def image = docker.build "factory2/greenwave:internal-${appversion}", "--build-arg cacert_url=https://password.corp.redhat.com/RH-IT-Root-CA.crt ."
             /* Pushes to the internal registry can sometimes randomly fail
              * with "unknown blob" due to a known issue with the registry
              * storage configuration. So we retry up to 3 times. */
@@ -169,7 +158,7 @@ node('docker') {
         docker.withRegistry(
                 'https://quay.io/',
                 'quay-io-factory2-builder-sa-credentials') {
-            def image = docker.build "factory2/greenwave:${appversion}", "--build-arg greenwave_rpm=$f28_rpm ."
+            def image = docker.build "factory2/greenwave:${appversion}", "."
             image.push()
         }
         /* Save container version for later steps (this is ugly but I can't find anything better...) */
@@ -186,7 +175,7 @@ node('fedora-28') {
 
     /* Also need to install Greenwave's dependencies, since we are running it
      * locally not in Openshift for now. */
-    sh 'sudo dnf -y builddep greenwave.spec'
+    sh installDepsCmd
 
     def openshiftHost = 'greenwave-test.cloud.paas.upshift.redhat.com'
     def buildTag = "${env.BUILD_TAG}".replace('jenkins-','')
