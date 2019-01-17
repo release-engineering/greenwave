@@ -215,6 +215,20 @@ class BlacklistedInPolicy(RuleSatisfied):
         }
 
 
+class ExcludedInPolicy(RuleSatisfied):
+    """
+    Package was excluded in policy.
+    """
+    def __init__(self, subject_identifier):
+        self.subject_identifier = subject_identifier
+
+    def to_json(self):
+        return {
+            'type': 'excluded',
+            'subject_identifier': self.subject_identifier,
+        }
+
+
 def summarize_answers(answers):
     """
     Produces a one-sentence human-readable summary of the result of evaluating a policy.
@@ -550,6 +564,7 @@ class Policy(SafeYAMLObject):
         'subject_type': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
+        'excluded_packages': SafeYAMLList(str, optional=True),
         'relevance_key': SafeYAMLString(optional=True),
         'relevance_value': SafeYAMLString(optional=True),
     }
@@ -584,6 +599,9 @@ class Policy(SafeYAMLObject):
             name = subject_identifier.rsplit('-', 2)[0]
             if name in self.blacklist:
                 return [BlacklistedInPolicy(subject_identifier) for rule in self.rules]
+            for exclude in self.excluded_packages:
+                if fnmatch(name, exclude):
+                    return [ExcludedInPolicy(subject_identifier) for rule in self.rules]
         answers = []
         for rule in self.rules:
             response = rule.check(
@@ -612,6 +630,7 @@ class RemotePolicy(Policy):
         'decision_context': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
+        'excluded_packages': SafeYAMLList(str, optional=True),
     }
 
     def validate(self):

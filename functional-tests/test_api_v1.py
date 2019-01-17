@@ -906,6 +906,29 @@ def test_blacklist(requests_session, greenwave_server, testdatabuilder):
     assert res_data['policies_satisfied'] is True
 
 
+def test_excluded_packages(requests_session, greenwave_server, testdatabuilder):
+    """
+    Test that packages in the excluded_packages list will be excluded when applying the policy.
+    """
+    nvr = testdatabuilder.unique_nvr(name='module-build-service')
+    testdatabuilder.create_koji_build_result(
+        nvr=nvr, testcase_name='osci.brew-build.tier0.functional',
+        outcome='FAILED', type_='brew-build')
+    data = {
+        'decision_context': 'osci_compose_gate',
+        'product_version': 'rhel-something',
+        'subject': [{'type': 'brew-build', 'item': nvr}],
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    # the failed test result of sci.brew-build.tier0.functiona should be ignored and thus the
+    # policy is satisfied.
+    assert res_data['policies_satisfied'] is True
+
+
 def test_make_a_decision_about_brew_build(requests_session, greenwave_server, testdatabuilder):
     # The 'brew-build' type is used internally within Red Hat. We treat it as
     # the 'koji_build' subject type.

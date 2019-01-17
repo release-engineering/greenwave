@@ -6,6 +6,8 @@ product_versions:
 decision_context: osci_compose_gate
 subject_type: koji_build
 blacklist: []
+excluded_packages:
+- module-build*
 rules:
 - !PackageSpecificBuild {
     test_case_name: osci.brew-build.tier0.functional,

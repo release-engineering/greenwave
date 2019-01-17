@@ -29,9 +29,8 @@ Here is an example policy:
    rules:
    - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
    - !PassingTestCaseRule {test_case_name: dist.upgradepath}
-   blacklist:
-   - qt
-   - mariadb
+   excluded_packages:
+   - python2-*
 
 On line 1, the ``---`` YAML document header marks the beginning of a new
 document.
@@ -102,11 +101,18 @@ The document is a map (dictionary) with the following keys:
    Currently there are a few rule types, ``PassingTestCaseRule`` being one of
    them.  See the :ref:`rule-types` section below for a full list.
 
-``blacklist`` (optional)
+``blacklist`` (**deprecated**) (optional)
    A list of binary RPM package names which are exempted from this policy.
 
    The blacklist only takes effect when Greenwave is making a decision about
    subjects with ``"item": "koji_build"``.
+
+``excluded_packages`` (optional)
+   A list of binary RPM package names which are exempted from this policy.
+   This supports Unix shell-style wildcards (e.g. ``python2-*``).
+
+   ``excluded_packages`` only takes effect when Greenwave is making a decision
+   about subjects with ``"item": "koji_build"``.
 
 .. _Koji: https://pagure.io/koji
 .. _Bodhi: https://github.com/fedora-infra/bodhi
@@ -247,7 +253,7 @@ Here's an example of a RemoteRule:
      - fedora-29
    decision_context: osci_compose_gate
    subject_type: koji_build
-   blacklist: []
+   excluded_packages: []
    rules:
      - !RemoteRule {}
 

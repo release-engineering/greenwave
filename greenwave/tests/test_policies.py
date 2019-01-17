@@ -855,6 +855,7 @@ def test_policies_to_json():
         decision_context: test
         subject_type: compose
         blacklist: []
+        excluded_packages: []
         rules: []
     """))
     assert len(policies) == 1
@@ -864,6 +865,7 @@ def test_policies_to_json():
         'decision_context': 'test',
         'subject_type': 'compose',
         'blacklist': [],
+        'excluded_packages': [],
         'rules': [],
         'relevance_key': None,
         'relevance_value': None,

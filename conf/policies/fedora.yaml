@@ -21,6 +21,8 @@ blacklist:
   - qt
   - mariadb
   - java-1.8.0-openjdk-libreoffice
+excluded_packages:
+  - module-build*
 rules:
   - !PassingTestCaseRule {test_case_name: dist.abicheck}
 --- !Policy
