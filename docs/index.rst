@@ -20,7 +20,6 @@ gating points in a software delivery pipeline, based on test results stored in
    api
    dev-guide
    release-notes
-   todo
 
 
 Indices and tables
