@@ -15,7 +15,7 @@ services:
       retries: 3
 
   resultsdb:
-    image: "docker-registry.engineering.redhat.com/factory2/resultsdb:latest"
+    image: "quay.io/factory2/resultsdb:latest"
     volumes:
       - ./resultsdb-settings.py:/etc/resultsdb/settings.py:ro,Z
       - ./resultsdb.conf:/etc/httpd/conf.d/resultsdb.conf:ro,Z
@@ -35,7 +35,7 @@ services:
       POSTGRES_INITDB_ARGS: "--auth='ident' --auth='trust'"
 
   waiverdb:
-    image: "docker-registry.engineering.redhat.com/factory2/waiverdb:latest"
+    image: "quay.io/factory2/waiverdb:latest"
     environment:
       DATABASE_PASSWORD: waiverdb
       SECRET_KEY: waiverdb
