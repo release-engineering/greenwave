@@ -75,16 +75,16 @@ def test_summarize_answers():
 
 def test_waive_absence_of_result(tmpdir):
     p = tmpdir.join('fedora.yaml')
-    p.write("""
---- !Policy
-id: "rawhide_compose_sync_to_mirrors"
-product_versions:
-  - fedora-rawhide
-decision_context: rawhide_compose_sync_to_mirrors
-subject_type: compose
-rules:
-  - !PassingTestCaseRule {test_case_name: sometest}
-        """)
+    p.write(dedent("""
+        --- !Policy
+        id: "rawhide_compose_sync_to_mirrors"
+        product_versions:
+          - fedora-rawhide
+        decision_context: rawhide_compose_sync_to_mirrors
+        subject_type: compose
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest}
+        """))
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
@@ -109,16 +109,16 @@ def test_waive_brew_koji_mismatch(tmpdir):
     """
 
     p = tmpdir.join('fedora.yaml')
-    p.write("""
---- !Policy
-id: some_id
-product_versions:
-- fedora-rawhide
-decision_context: test
-subject_type: koji_build
-rules:
-  - !PassingTestCaseRule {test_case_name: sometest}
-        """)
+    p.write(dedent("""
+        --- !Policy
+        id: some_id
+        product_versions:
+        - fedora-rawhide
+        decision_context: test
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest}
+        """))
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
@@ -154,16 +154,16 @@ def test_waive_bodhi_update(tmpdir):
     """
 
     p = tmpdir.join('fedora.yaml')
-    p.write("""
---- !Policy
-id: some_id
-product_versions:
-- fedora-rawhide
-decision_context: test
-subject_type: bodhi_update
-rules:
-  - !PassingTestCaseRule {test_case_name: sometest}
-        """)
+    p.write(dedent("""
+        --- !Policy
+        id: some_id
+        product_versions:
+        - fedora-rawhide
+        decision_context: test
+        subject_type: bodhi_update
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest}
+        """))
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
@@ -204,16 +204,16 @@ def test_load_policies():
 
 def test_misconfigured_policies(tmpdir):
     p = tmpdir.join('fedora.yaml')
-    p.write("""
----
-id: "taskotron_release_critical_tasks"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable
-subject_type: bodhi_update
-rules:
-  - !PassingTestCaseRule {test_case_name: dist.abicheck}
-        """)
+    p.write(dedent("""
+        ---
+        id: "taskotron_release_critical_tasks"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable
+        subject_type: bodhi_update
+        rules:
+          - !PassingTestCaseRule {test_case_name: dist.abicheck}
+        """))
     expected_error = "Missing !Policy tag"
     with pytest.raises(SafeYAMLError, match=expected_error):
         load_policies(tmpdir.strpath)
@@ -221,16 +221,16 @@ rules:
 
 def test_misconfigured_policy_rules(tmpdir):
     p = tmpdir.join('fedora.yaml')
-    p.write("""
---- !Policy
-id: "taskotron_release_critical_tasks"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable
-subject_type: bodhi_update
-rules:
-  - {test_case_name: dist.abicheck}
-        """)
+    p.write(dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable
+        subject_type: bodhi_update
+        rules:
+          - {test_case_name: dist.abicheck}
+        """))
     expected_error = (
         "Policy 'taskotron_release_critical_tasks': "
         "Attribute 'rules': "
@@ -242,16 +242,17 @@ rules:
 
 def test_passing_testcasename_with_scenario(tmpdir):
     p = tmpdir.join('fedora.yaml')
-    p.write("""
---- !Policy
-id: "rawhide_compose_sync_to_mirrors"
-product_versions:
-  - fedora-rawhide
-decision_context: rawhide_compose_sync_to_mirrors
-subject_type: compose
-rules:
-  - !PassingTestCaseRule {test_case_name: compose.install_default_upload, scenario: somescenario}
-        """)
+    p.write(dedent("""
+        --- !Policy
+        id: "rawhide_compose_sync_to_mirrors"
+        product_versions:
+          - fedora-rawhide
+        decision_context: rawhide_compose_sync_to_mirrors
+        subject_type: compose
+        rules:
+          - !PassingTestCaseRule {test_case_name: compose.install_default_upload,
+          scenario: somescenario}
+        """))
     load_policies(tmpdir.strpath)
 
 
@@ -262,16 +263,16 @@ rules:
 ])
 def test_product_versions_pattern(product_version, applies, tmpdir):
     p = tmpdir.join('fedora.yaml')
-    p.write("""
---- !Policy
-id: dummy_policy
-product_versions:
-  - fedora-*
-decision_context: dummy_context
-subject_type: bodhi_update
-rules:
-  - !PassingTestCaseRule {test_case_name: test}
-        """)
+    p.write(dedent("""
+        --- !Policy
+        id: dummy_policy
+        product_versions:
+          - fedora-*
+        decision_context: dummy_context
+        subject_type: bodhi_update
+        rules:
+          - !PassingTestCaseRule {test_case_name: test}
+        """))
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
@@ -288,26 +289,26 @@ def test_remote_rule_policy(tmpdir, namespace):
 
     nvr = 'nethack-1.2.3-1.el9000'
 
-    serverside_fragment = """
---- !Policy
-id: "taskotron_release_critical_tasks_with_remoterule"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-subject_type: koji_build
-rules:
-  - !RemoteRule {}
-        """
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+        """)
 
-    remote_fragment = """
---- !Policy
-id: "some-policy-from-a-random-packager"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-rules:
-  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
-        """
+    remote_fragment = dedent("""
+        --- !Policy
+        id: "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+        - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """)
 
     p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
@@ -348,27 +349,27 @@ def test_remote_rule_policy_redhat_module(tmpdir, namespace):
 
     nvr = '389-ds-1.4-820181127205924.9edba152'
 
-    serverside_fragment = """
---- !Policy
-id: "taskotron_release_critical_tasks_with_remoterule"
-product_versions:
-  - rhel-8
-decision_context: osci_compose_gate
-subject_type: redhat-module
-rules:
-  - !RemoteRule {}
-        """
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - rhel-8
+        decision_context: osci_compose_gate
+        subject_type: redhat-module
+        rules:
+          - !RemoteRule {}
+        """)
 
-    remote_fragment = """
---- !Policy
-product_versions:
-  - rhel-8
-decision_context: osci_compose_gate
-subject_type: redhat-module
-rules:
-  - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier0.functional}
+    remote_fragment = dedent("""
+        --- !Policy
+        product_versions:
+          - rhel-8
+        decision_context: osci_compose_gate
+        subject_type: redhat-module
+        rules:
+          - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier0.functional}
 
-        """
+        """)
 
     p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
@@ -407,23 +408,23 @@ rules:
 def test_remote_rule_policy_optional_id(tmpdir):
     nvr = 'nethack-1.2.3-1.el9000'
 
-    serverside_fragment = """
---- !Policy
-id: "taskotron_release_critical_tasks_with_remoterule"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-subject_type: koji_build
-rules:
-  - !RemoteRule {}
-        """
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+        """)
 
-    remote_fragment = """
---- !Policy
-decision_context: bodhi_update_push_stable_with_remoterule
-rules:
-  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
-        """
+    remote_fragment = dedent("""
+        --- !Policy
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+          - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """)
 
     p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
@@ -450,35 +451,35 @@ def test_remote_rule_malformed_yaml(tmpdir):
 
     nvr = 'nethack-1.2.3-1.el9000'
 
-    serverside_fragment = """
---- !Policy
-id: "taskotron_release_critical_tasks_with_remoterule"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-subject_type: koji_build
-rules:
-  - !RemoteRule {}
-        """
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+        """)
 
-    remote_fragments = ["""
---- !Policy
-   : "some-policy-from-a-random-packager"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-blacklist: []
-rules:
-  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
-        """, """
---- !Policy
-id: "some-policy-from-a-random-packager"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-rules:
-  - !RemoteRule {test_case_name: dist.upgradepath}
-        """]
+    remote_fragments = [dedent("""
+        --- !Policy
+           : "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        blacklist: []
+        rules:
+          - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """), dedent("""
+        --- !Policy
+        id: "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+          - !RemoteRule {test_case_name: dist.upgradepath}
+        """)]
 
     for remote_fragment in remote_fragments:
         p = tmpdir.join('gating.yaml')
@@ -505,35 +506,35 @@ def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
 
     nvr = 'nethack-1.2.3-1.el9000'
 
-    serverside_fragment = """
---- !Policy
-id: "taskotron_release_critical_tasks_with_remoterule"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-subject_type: koji_build
-rules:
-  - !RemoteRule {}
-        """
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+        """)
 
-    remote_fragments = ["""
---- !Policy
-   : "some-policy-from-a-random-packager"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-blacklist: []
-rules:
-  - !PassingTestCaseRule {test_case_name: dist.upgradepath}
-        """, """
---- !Policy
-id: "some-policy-from-a-random-packager"
-product_versions:
-  - fedora-26
-decision_context: bodhi_update_push_stable_with_remoterule
-rules:
-  - !RemoteRule {test_case_name: dist.upgradepath}
-        """]
+    remote_fragments = [dedent("""
+        --- !Policy
+           : "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        blacklist: []
+        rules:
+          - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """), dedent("""
+        --- !Policy
+        id: "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+          - !RemoteRule {test_case_name: dist.upgradepath}
+        """)]
 
     for remote_fragment in remote_fragments:
         p = tmpdir.join('gating.yaml')
@@ -844,17 +845,17 @@ def test_policies_to_json():
 def test_policy_with_subject_type_component_version(tmpdir):
     nv = '389-ds-base-1.4.0.10'
     p = tmpdir.join('fedora.yaml')
-    p.write("""
---- !Policy
-id: "test-new-subject-type"
-product_versions:
-- fedora-29
-decision_context: decision_context_test_component_version
-subject_type: component-version
-blacklist: []
-rules:
-  - !PassingTestCaseRule {test_case_name: test_for_new_type}
-        """)
+    p.write(dedent("""
+        --- !Policy
+        id: "test-new-subject-type"
+        product_versions:
+        - fedora-29
+        decision_context: decision_context_test_component_version
+        subject_type: component-version
+        blacklist: []
+        rules:
+          - !PassingTestCaseRule {test_case_name: test_for_new_type}
+        """))
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
     results = DummyResultsRetriever(nv, 'test_for_new_type', 'PASSED',
@@ -868,17 +869,17 @@ rules:
 def test_policy_with_subject_type_redhat_module(tmpdir):
     nsvc = 'httpd:2.4:20181018085700:9edba152'
     p = tmpdir.join('fedora.yaml')
-    p.write("""
---- !Policy
-id: "test-new-subject-type"
-product_versions:
-- fedora-29
-decision_context: decision_context_test_redhat_module
-subject_type: redhat-module
-blacklist: []
-rules:
-  - !PassingTestCaseRule {test_case_name: test_for_redhat_module_type}
-        """)
+    p.write(dedent("""
+        --- !Policy
+        id: "test-new-subject-type"
+        product_versions:
+        - fedora-29
+        decision_context: decision_context_test_redhat_module
+        subject_type: redhat-module
+        blacklist: []
+        rules:
+          - !PassingTestCaseRule {test_case_name: test_for_redhat_module_type}
+        """))
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
     results = DummyResultsRetriever(nsvc, 'test_for_redhat_module_type', 'PASSED',
