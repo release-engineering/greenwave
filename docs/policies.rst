@@ -101,6 +101,13 @@ The document is a map (dictionary) with the following keys:
    Currently there are a few rule types, ``PassingTestCaseRule`` being one of
    them.  See the :ref:`rule-types` section below for a full list.
 
+``packages`` (optional)
+   A list of binary RPM package names this policy applies to.
+
+   ``packages`` only takes effect when Greenwave is making a decision about
+   subjects with ``"item": "koji_build"``. ``blacklist`` and
+   ``excluded_packages`` both have a higher priority than ``packages``.
+
 ``blacklist`` (**deprecated**) (optional)
    A list of binary RPM package names which are exempted from this policy.
 
@@ -159,22 +166,6 @@ PassingTestCaseRule
    For this rule to be satisfied, there must be a result in ResultsDB for the
    given ``test_case_name`` with an outcome of ``PASS``, *or* there must be a
    corresponding waiver in WaiverDB for the given test case.
-
-
-PackageSpecificBuild
---------------------
-
-   Just like the ``PassingTestCaseRule``, the ``PackageSpecificBuild`` rule
-   requires that a given ``test_case_name`` is passing, but only for certain
-   source package names (listed in the ``repos`` argument).  The configured
-   package names in the ``repos`` list may contain wildcards to, for instance,
-   write a rule requiring a certain test must pass for all `python-*`
-   packages.
-
-   This rule type can only be used if the policy's subject type is
-   ``koji_build``.
-
-   ``FedoraAtomicCi`` is a backwards compatibility alias for this rule type.
 
 .. _remote-rule:
 

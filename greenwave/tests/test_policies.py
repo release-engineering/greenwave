@@ -191,68 +191,6 @@ rules:
     assert isinstance(decision[0], TestResultFailed)
 
 
-def test_package_specific_rule(tmpdir):
-    p = tmpdir.join('fedora.yaml')
-    p.write("""
---- !Policy
-id: "some_policy"
-product_versions:
-  - rhel-9000
-decision_context: bodhi_update_push_stable
-subject_type: koji_build
-rules:
-  - !PackageSpecificBuild {test_case_name: sometest, repos: [nethack, python-*]}
-        """)
-    policies = load_policies(tmpdir.strpath)
-    policy = policies[0]
-
-    # Ensure that we fail with no results
-    results, waivers = DummyResultsRetriever(), []
-    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], TestResultMissing)
-
-    # That a matching, failing result can fail
-    results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest', 'FAILED')
-    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], TestResultFailed)
-
-    # That a matching, passing result can pass
-    results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest')
-    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], RuleSatisfied)
-
-    # That a non-matching passing result is ignored.
-    results = DummyResultsRetriever('foobar-1.2.3-1.el9000', 'sometest')
-    decision = policy.check('rhel-9000', 'foobar-1.2.3-1.el9000', results, waivers)
-    assert decision == []
-
-    # That a non-matching failing result is ignored.
-    results = DummyResultsRetriever('foobar-1.2.3-1.el9000', 'sometest', 'FAILED')
-    decision = policy.check('rhel-9000', 'foobar-1.2.3-1.el9000', results, waivers)
-    assert decision == []
-
-    # Ensure that fnmatch globs work in absence
-    results, waivers = DummyResultsRetriever(), []
-    decision = policy.check('rhel-9000', 'python-foobar-1.2.3-1.el9000', results, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], TestResultMissing)
-
-    # Ensure that fnmatch globs work in the negative.
-    results = DummyResultsRetriever('python-foobar-1.2.3-1.el9000', 'sometest', 'FAILED')
-    decision = policy.check('rhel-9000', 'python-foobar-1.2.3-1.el9000', results, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], TestResultFailed)
-
-    # Ensure that fnmatch globs work in the positive.
-    results = DummyResultsRetriever('python-foobar-1.2.3-1.el9000', 'sometest')
-    decision = policy.check('rhel-9000', 'python-foobar-1.2.3-1.el9000', results, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], RuleSatisfied)
-
-
 def test_load_policies():
     app = create_app('greenwave.config.TestingConfig')
     assert len(app.config['policies']) > 0
@@ -702,6 +640,36 @@ def test_policy_with_arbitrary_subject_type(tmpdir):
     assert isinstance(decision[0], TestResultPassed)
 
 
+@pytest.mark.parametrize(('package', 'num_decisions'), [
+    ('nethack', 1),
+    ('net*', 1),
+    ('python-requests', 0),
+])
+def test_policy_with_packages_whitelist(tmpdir, package, num_decisions):
+    p = tmpdir.join('temp.yaml')
+    p.write(dedent("""
+        --- !Policy
+        id: "some_policy"
+        product_versions:
+          - rhel-9000
+        decision_context: test
+        subject_type: koji_build
+        packages:
+        - {}
+        rules:
+          - !PassingTestCaseRule {{test_case_name: sometest}}
+        """.format(package)))
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+
+    waivers = []
+    results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest', 'PASSED', 'koji_build')
+    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results, waivers)
+    assert len(decision) == num_decisions
+    if num_decisions:
+        assert isinstance(decision[0], TestResultPassed)
+
+
 def test_parse_policies_invalid_rule():
     expected_error = "Policy 'test': Attribute 'rules': Expected list of Rule objects"
     with pytest.raises(SafeYAMLError, match=expected_error):
@@ -866,6 +834,7 @@ def test_policies_to_json():
         'subject_type': 'compose',
         'blacklist': [],
         'excluded_packages': [],
+        'packages': [],
         'rules': [],
         'relevance_key': None,
         'relevance_value': None,

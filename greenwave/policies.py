@@ -494,65 +494,6 @@ class PassingTestCaseRule(Rule):
                                 self.scenario, result['id'])
 
 
-class PackageSpecificRule(Rule):
-    """
-    This rule only applies itself to results which are for its configured
-    list of packages (called "repos").
-
-    This intermediary class should be considered abstract, and not used directly.
-    """
-
-    safe_yaml_attributes = {
-        'test_case_name': SafeYAMLString(),
-        'repos': SafeYAMLList(str),
-    }
-
-    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
-        """ Check that the subject passes testcase for the given results, but
-        only if the subject is a build of a package name configured for
-        this rule, specified by "repos".  Any of the repos may be a glob.
-
-        If this rule is used in a policy for some subject type other than
-        "koji_build" (which makes no sense), the rule is considered satisfied
-        (ignored).
-
-        Subjects whose package names (extracted from their NVR) do not match
-        any of the globs in the "repos" list of this rule are considered
-        satisfied (ignored).
-        """
-
-        if policy.subject_type != 'koji_build':
-            return []
-
-        pkg_name = subject_identifier.rsplit('-', 2)[0]
-        if not any(fnmatch(pkg_name, repo) for repo in self.repos):
-            return []
-
-        rule = PassingTestCaseRule()
-        # pylint: disable=attribute-defined-outside-init
-        rule.test_case_name = self.test_case_name
-        return rule.check(policy, product_version, subject_identifier, results_retriever, waivers)
-
-    def matches(self, policy, **attributes):
-        testcase = attributes.get('testcase')
-        return not testcase or testcase == self.test_case_name
-
-    def to_json(self):
-        return {
-            'rule': self.__class__.__name__,
-            'test_case_name': self.test_case_name,
-            'repos': self.repos,
-        }
-
-
-class FedoraAtomicCi(PackageSpecificRule):
-    yaml_tag = '!FedoraAtomicCi'
-
-
-class PackageSpecificBuild(PackageSpecificRule):
-    yaml_tag = '!PackageSpecificBuild'
-
-
 class Policy(SafeYAMLObject):
     root_yaml_tag = '!Policy'
 
@@ -565,6 +506,7 @@ class Policy(SafeYAMLObject):
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
         'excluded_packages': SafeYAMLList(str, optional=True),
+        'packages': SafeYAMLList(str, optional=True),
         'relevance_key': SafeYAMLString(optional=True),
         'relevance_value': SafeYAMLString(optional=True),
     }
@@ -602,6 +544,10 @@ class Policy(SafeYAMLObject):
             for exclude in self.excluded_packages:
                 if fnmatch(name, exclude):
                     return [ExcludedInPolicy(subject_identifier) for rule in self.rules]
+            if self.packages and not any(fnmatch(name, package) for package in self.packages):
+                # If the `packages` whitelist is set and this package isn't in the
+                # `packages` whitelist, then the policy doesn't apply to it
+                return []
         answers = []
         for rule in self.rules:
             response = rule.check(
@@ -631,6 +577,7 @@ class RemotePolicy(Policy):
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
         'excluded_packages': SafeYAMLList(str, optional=True),
+        'packages': SafeYAMLList(str, optional=True),
     }
 
     def validate(self):
