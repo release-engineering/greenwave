@@ -386,7 +386,7 @@ def make_decision():
     return resp
 
 
-@api.route('/validate-gating-yaml', methods=['GET', 'POST'])
+@api.route('/validate-gating-yaml', methods=['POST'])
 @jsonp
 def validate_gating_yaml_post():
     """
