@@ -494,6 +494,31 @@ class PassingTestCaseRule(Rule):
                                 self.scenario, result['id'])
 
 
+class DeprecatedRule(Rule):
+    """
+    The base class for a deprecated rule.
+    When these rules are parsed, a SafeYAMLError exception will be raised.
+    """
+    advice = 'Please refer to the documentation for more information.'
+    safe_yaml_attributes = {}
+
+    def __init__(self):
+        tag = self.yaml_tag or '!' + type(self).__name__
+        raise SafeYAMLError('{} is deprecated. {}'.format(tag, self.advice))
+
+    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
+        raise ValueError('This rule is deprecated and can\'t be checked')
+
+
+class PackageSpecificBuild(DeprecatedRule):
+    yaml_tag = '!PackageSpecificBuild'
+    advice = 'Please use the "packages" whitelist instead.'
+
+
+class FedoraAtomicCi(PackageSpecificBuild):
+    yaml_tag = '!FedoraAtomicCi'
+
+
 class Policy(SafeYAMLObject):
     root_yaml_tag = '!Policy'
 
