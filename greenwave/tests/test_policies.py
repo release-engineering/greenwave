@@ -37,7 +37,7 @@ class DummyResultsRetriever(ResultsRetriever):
         self.testcase = testcase
         self.outcome = outcome
 
-    def _make_request(self, params):
+    def _make_request(self, params, latest=False):
         if (params.get('item') == self.subject_identifier and
                 params.get('type') == self.subject_type and
                 params.get('testcases') == self.testcase):

@@ -360,7 +360,8 @@ def make_decision():
 
         if verbose:
             # Retrieve test results for all items when verbose output is requested.
-            verbose_results.extend(results_retriever.retrieve(subject_type, subject_identifier))
+            verbose_results.extend(
+                results_retriever.retrieve_latest(subject_type, subject_identifier))
             verbose_waivers.extend(waivers)
 
     response = {

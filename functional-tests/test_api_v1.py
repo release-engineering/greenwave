@@ -1114,3 +1114,31 @@ def test_decision_on_redhat_module(requests_session, greenwave_server, testdatab
     expected_summary = 'All required tests passed'
     assert res_data['summary'] == expected_summary
     res_data['results'][0]['data']['type'][0] == 'redhat-module'
+
+
+def test_verbose_retrieve_latest_results(requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    for outcome in ['FAILED', 'PASSED']:
+        for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS:
+            testdatabuilder.create_result(item=nvr,
+                                          testcase_name=testcase_name,
+                                          outcome=outcome)
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
+        'verbose': True
+    }
+
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied'] is True
+    expected_summary = 'All required tests passed'
+    assert res_data['summary'] == expected_summary
+    assert len(res_data['results']) == 3
+    for result in res_data['results']:
+        assert result['outcome'] == 'PASSED'
