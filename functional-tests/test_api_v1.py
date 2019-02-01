@@ -968,6 +968,26 @@ def test_validate_gating_yaml_valid(requests_session, greenwave_server):
     assert result.status_code == 200
 
 
+def test_validate_gating_yaml_deprecated_blacklist(requests_session, greenwave_server):
+    gating_yaml = dedent("""
+        --- !Policy
+        id: "test"
+        product_versions:
+          - fedora-26
+        decision_context: test
+        rules:
+          - !PassingTestCaseRule {test_case_name: test}
+        blacklist:
+          - python-requests
+    """)
+    result = requests_session.post(
+        greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
+    assert result.json().get('message') == (
+        'The gating.yaml file is valid but it is using the deprecated '
+        '"blacklist" key. Please use "excluded_packages" instead.')
+    assert result.status_code == 200
+
+
 def test_validate_gating_yaml_empty(requests_session, greenwave_server):
     result = requests_session.post(greenwave_server + 'api/v1.0/validate-gating-yaml')
     assert result.json().get('message') == 'No policies defined'

@@ -436,7 +436,12 @@ def validate_gating_yaml_post():
         log.error('No policies defined')
         raise BadRequest('No policies defined')
 
-    return jsonify({'message': 'All OK'})
+    if any(True for policy in policies if policy.blacklist):
+        msg = {'message': ('The gating.yaml file is valid but it is using the deprecated '
+                           '"blacklist" key. Please use "excluded_packages" instead.')}
+    else:
+        msg = {'message': 'All OK'}
+    return jsonify(msg)
 
 
 @api.route('/metrics', methods=['GET'])
