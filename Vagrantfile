@@ -10,6 +10,7 @@ $script = <<-'SCRIPT'
         postgresql-contrib \
         python3-gunicorn \
         python3-psycopg2 \
+        python3-pylint \
         vim
 
     systemctl enable postgresql
