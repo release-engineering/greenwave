@@ -9,7 +9,6 @@ prerelease="$2"
 name=Greenwave
 short=greenwave
 
-spec_file=$short.spec
 init_file=$short/__init__.py
 release_notes_file=docs/release-notes.rst
 
@@ -30,16 +29,8 @@ if ! grep -q --fixed-strings "$name ${version%.*}" "$release_notes_file"; then
     exit 1
 fi
 
-sed -i -e "/%global upstream_version /c\%global upstream_version ${version}${prerelease}" "$spec_file"
-sed -i -e "/^Version:/c\Version:        $version" "$spec_file"
-if [ -n "$prerelease" ] ; then
-    sed -i -e "/^Release:/c\Release:        0.$prerelease%{?dist}" "$spec_file"
-else
-    sed -i -e "/^Release:/c\Release:        1%{?dist}" "$spec_file"
-fi
-
 sed -i -e "/^__version__ = /c\\__version__ = '$version$prerelease'" "$init_file"
 
-git add "$spec_file" "$init_file"
+git add "$init_file"
 git commit -m "Automatic commit of release $version$prerelease"
 git tag -s "greenwave-$version$prerelease" -m "Tagging release $version$prerelease"
