@@ -5,12 +5,14 @@ Release Notes
 Greenwave 1.0.0
 ===============
 
-Released 01 February 2019
+Released 04 February 2019
 
 * Replace PackageSpecificBuild with a packages whitelist on the policy.
   Also deprecating the key "blacklist" and introduced instead ``excluded_packages``:
   unifing these mechanisms and tweak the terminology to be a little more
   consistent and self-describing.
+  The plan is to support "blacklist" for the next 4 months and then stop
+  supporting it completely.
 
 * Removed the GET method from the /validate-gating-yaml endpoint: POST is
   enough.
