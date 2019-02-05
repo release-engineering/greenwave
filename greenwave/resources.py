@@ -54,15 +54,22 @@ class ResultsRetriever(object):
         self.verify = verify
         self.url = url
 
+    def retrieve_latest(self, subject_type, subject_identifier):
+        """
+        Return generator over latest results.
+        """
+        params = {}
+        return self._retrieve_helper(params, subject_type, subject_identifier, latest=True)
+
     def retrieve(self, subject_type, subject_identifier, testcase=None):
         """
         Return generator over results.
         """
-        for result in self._retrieve_helper(subject_type, subject_identifier, testcase):
+        for result in self._retrieve_all(subject_type, subject_identifier, testcase):
             if result['id'] not in self.ignore_results:
                 yield result
 
-    def _retrieve_helper(self, subject_type, subject_identifier, testcase):
+    def _retrieve_all(self, subject_type, subject_identifier, testcase):
         cache_key = results_cache_key(
             subject_type, subject_identifier, testcase)
 
@@ -75,50 +82,50 @@ class ResultsRetriever(object):
 
         while cached_results.can_fetch_more:
             cached_results.last_page += 1
-            results = self._retrieve_page(
-                cached_results.last_page, subject_type, subject_identifier,
-                testcase)
+            params = {
+                'limit': 1,
+                'page': cached_results.last_page,
+            }
+
+            if testcase:
+                params['testcases'] = testcase
+            results = self._retrieve_helper(params, subject_type, subject_identifier)
             cached_results.results.extend(results)
             cached_results.can_fetch_more = bool(results)
             self.cache.set(cache_key, cached_results)
             for result in results:
                 yield result
 
-    def _make_request(self, params):
+    def _make_request(self, params, latest=False):
+        request_url = self.url + '/results'
+        if latest:
+            request_url += '/latest'
         response = requests_session.get(
-            self.url + '/results', params=params, verify=self.verify, timeout=self.timeout)
+            request_url, params=params, verify=self.verify, timeout=self.timeout)
         response.raise_for_status()
         return response.json()['data']
 
-    def _retrieve_page(self, page, subject_type, subject_identifier, testcase):
-        params = {
-            'limit': 1,
-            'page': page,
-        }
-
-        if testcase:
-            params['testcases'] = testcase
-
+    def _retrieve_helper(self, params, subject_type, subject_identifier, latest=False):
         results = []
         if subject_type == 'koji_build':
             params['type'] = subject_type
             params['item'] = subject_identifier
-            results = self._make_request(params=params)
+            results = self._make_request(params=params, latest=latest)
 
             params['type'] = 'brew-build'
-            results.extend(self._make_request(params=params))
+            results.extend(self._make_request(params=params, latest=latest))
 
             del params['type']
             del params['item']
             params['original_spec_nvr'] = subject_identifier
-            results.extend(self._make_request(params=params))
+            results.extend(self._make_request(params=params, latest=latest))
         elif subject_type == 'compose':
             params['productmd.compose.id'] = subject_identifier
-            results = self._make_request(params=params)
+            results = self._make_request(params=params, latest=latest)
         else:
             params['type'] = subject_type
             params['item'] = subject_identifier
-            results = self._make_request(params=params)
+            results = self._make_request(params=params, latest=latest)
 
         return results
 
