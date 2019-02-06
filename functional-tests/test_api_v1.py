@@ -994,7 +994,7 @@ def test_validate_gating_yaml_empty(requests_session, greenwave_server):
     assert result.status_code == 400
 
 
-def test_validate_gating_yaml_deprecated_rule(requests_session, greenwave_server):
+def test_validate_gating_yaml_obsolete_rule(requests_session, greenwave_server):
     gating_yaml = dedent("""
         --- !Policy
         id: "test"
@@ -1010,7 +1010,7 @@ def test_validate_gating_yaml_deprecated_rule(requests_session, greenwave_server
     result = requests_session.post(
         greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
     assert result.json().get('message') == (
-        'Policy \'test\': Attribute \'rules\': !PackageSpecificBuild is deprecated. '
+        'Policy \'test\': Attribute \'rules\': !PackageSpecificBuild is obsolete. '
         'Please use the "packages" whitelist instead.')
     assert result.status_code == 400
 
