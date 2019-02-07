@@ -3,7 +3,7 @@
 
 $script = <<-'SCRIPT'
     set -e
-    dnf -y builddep /opt/greenwave/greenwave.spec
+
     dnf -y install \
         git-core \
         postgresql-server \
@@ -11,6 +11,12 @@ $script = <<-'SCRIPT'
         python3-gunicorn \
         python3-psycopg2 \
         python3-pylint \
+        python3-dogpile-cache \
+        python3-fedmsg \
+        python3-flask \
+        python3-prometheus_client \
+        python3-PyYAML \
+        python3-requests \
         vim
 
     systemctl enable postgresql

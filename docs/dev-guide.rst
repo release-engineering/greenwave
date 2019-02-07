@@ -13,7 +13,13 @@ Install dependencies:
 
 .. code-block:: console
 
-   $ sudo dnf builddep greenwave.spec
+   $ sudo dnf -y install \
+       python3-dogpile-cache \
+       python3-fedmsg \
+       python3-flask \
+       python3-prometheus_client \
+       python3-PyYAML \
+       python3-requests
 
 Create a local configuration file:
 
