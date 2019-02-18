@@ -50,7 +50,7 @@ $make_devenv = <<DEVENV
 DEVENV
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "fedora/28-cloud-base"
+  config.vm.box = "fedora/29-cloud-base"
   config.vm.synced_folder "./", "/opt/greenwave"
   # Disable the default share
   config.vm.synced_folder ".", "/vagrant", disabled: true
@@ -59,7 +59,7 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: $make_devenv, privileged: false
   config.vm.provider "libvirt" do |v, override|
     # If libvirt is being used, use sshfs for bidirectional folder syncing
-    override.vm.synced_folder "./", "/opt/greenwave", type: "sshfs", sshfs_opts_append: "-o nonempty"
+    override.vm.synced_folder "./", "/opt/greenwave", type: "sshfs"
     v.memory = 1024
   end
   config.vm.provider "virtualbox" do |v|
