@@ -82,6 +82,7 @@ def server_subprocess(
             raise RuntimeError('{} source tree {} does not exist'.format(name, source_path))
 
     env = dict(os.environ, PYTHONPATH=source_path)
+    env['TEST'] = 'true'
 
     # Write out a config
     if settings_content is not None:
