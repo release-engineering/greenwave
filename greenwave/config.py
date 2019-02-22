@@ -17,10 +17,11 @@ class Config(object):
     RESULTSDB_API_URL = 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0'
     WAIVERDB_API_URL = 'https://waiverdb.fedoraproject.org/api/v1.0'
 
-    # Options for outbound HTTP requests made by python-requests
+    # Remote rule configuration
     DIST_GIT_BASE_URL = 'https://src.fedoraproject.org/'
     DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}{pkg_namespace}/{pkg_name}/raw/{rev}/f/gating.yaml'
     KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
+    # Options for outbound HTTP requests made by python-requests
     REQUESTS_TIMEOUT = (6.1, 15)
     REQUESTS_VERIFY = True
 

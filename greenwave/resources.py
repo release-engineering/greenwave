@@ -11,6 +11,9 @@ import re
 import json
 import requests
 import urllib3.exceptions
+from io import BytesIO
+import tarfile
+import subprocess
 
 from urllib.parse import urlparse
 import xmlrpc.client
@@ -175,6 +178,17 @@ def retrieve_scm_from_koji_build(nvr, build, koji_url):
 @cached
 def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace):
     """ Retrieve cached gating.yaml content for a given rev. """
+    if current_app.config['DIST_GIT_BASE_URL'].startswith('git://'):
+        return _retrieve_yaml_remote_rule_git_archive(rev, pkg_name, pkg_namespace)
+    else:
+        return _retrieve_yaml_remote_rule_web(rev, pkg_name, pkg_namespace)
+
+
+_retrieve_gating_yaml_error = 'Error occurred looking for gating.yaml file in the dist-git repo.'
+
+
+def _retrieve_yaml_remote_rule_web(rev, pkg_name, pkg_namespace):
+    """ Retrieve the gating.yaml file from the dist-git web UI. """
     data = {
         "DIST_GIT_BASE_URL": (current_app.config['DIST_GIT_BASE_URL'].rstrip('/') +
                               ('/' if pkg_namespace else '')),
@@ -190,7 +204,7 @@ def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace):
         return None
 
     if response.status_code != 200:
-        raise BadGateway('Error occurred looking for gating.yaml file in the dist-git repo.')
+        raise BadGateway(_retrieve_gating_yaml_error)
 
     # gating.yaml found...
     response = requests_session.request('GET', url,
@@ -198,6 +212,30 @@ def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace):
                                         timeout=60)
     response.raise_for_status()
     return response.content
+
+
+def _retrieve_yaml_remote_rule_git_archive(rev, pkg_name, pkg_namespace):
+    """ Retrieve the gating.yaml file from a dist-git repo using git archive. """
+    dist_git_base_url = current_app.config['DIST_GIT_BASE_URL'].rstrip('/')
+    dist_git_url = f'{dist_git_base_url}/{pkg_namespace}/{pkg_name}'
+    cmd = ['git', 'archive', f'--remote={dist_git_url}', rev, 'gating.yaml']
+    git_archive = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, error_output = git_archive.communicate()
+
+    if git_archive.returncode != 0:
+        error_output = error_output.decode('utf-8')
+        if 'path not found' in error_output:
+            return None
+
+        cmd_str = ', '.join(cmd)
+        log.error('The following exception occurred while running "%s": %s', cmd_str, error_output)
+        raise BadGateway(_retrieve_gating_yaml_error)
+
+    # Convert the output to a file-like object with BytesIO, then tar can read it
+    # in memory rather than writing it to a file first
+    gating_yaml_archive = tarfile.open(fileobj=BytesIO(output))
+    gating_yaml = gating_yaml_archive.extractfile('gating.yaml').read().decode('utf-8')
+    return gating_yaml
 
 
 # NOTE - not cached, for now.

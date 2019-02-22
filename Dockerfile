@@ -10,6 +10,7 @@ ARG cacert_url=undefined
 
 WORKDIR /src
 RUN dnf -y install \
+    git-core \
     python3-dogpile-cache \
     python3-fedmsg \
     python3-flask \

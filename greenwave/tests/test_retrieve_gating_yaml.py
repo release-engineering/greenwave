@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import subprocess
+import io
+
 import pytest
 import mock
-
 from werkzeug.exceptions import BadGateway
 
 import greenwave.app_factory
@@ -93,3 +95,63 @@ def test_retrieve_yaml_remote_rule_no_namespace():
                 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml',
                 headers={'Content-Type': 'application/json'}, timeout=60)
             assert session.request.mock_calls == [expected_call]
+
+
+@mock.patch('tarfile.open')
+@mock.patch('subprocess.Popen')
+def test_retrieve_yaml_remote_rule_git_archive(mock_subp, mock_tar):
+    # Make the git archive call return bytes
+    mock_subp.return_value.communicate.return_value = (b'tar file', '')
+    mock_subp.return_value.returncode = 0
+    # Make the tar archive, based on the return value of git archive, return a file-like
+    # object representing the gating.yaml file
+    mock_tar.return_value.extractfile.return_value = io.BytesIO(b'some gating yaml file')
+
+    app = greenwave.app_factory.create_app()
+    # Set DIST_GIT_BASE_URL to start with `git://` so that it causes retrieve_yaml_remote_rule
+    # to use git archive instead of HTTP to get the gating.yaml file
+    app.config['DIST_GIT_BASE_URL'] = 'git://dist-git.domain.local'
+    with app.app_context():
+        gating_yaml = retrieve_yaml_remote_rule('85e796daaa', 'python-requests', 'rpms')
+
+    assert gating_yaml == 'some gating yaml file'
+    expected_cmd = [
+        'git', 'archive', '--remote=git://dist-git.domain.local/rpms/python-requests',
+        '85e796daaa', 'gating.yaml']
+    mock_subp.assert_called_once_with(expected_cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    tar_file = mock_tar.call_args[1]['fileobj'].read()
+    assert tar_file == b'tar file'
+    mock_tar.return_value.extractfile.assert_called_once_with('gating.yaml')
+
+
+@mock.patch('subprocess.Popen')
+def test_retrieve_yaml_remote_rule_git_archive_no_file(mock_subp):
+    # Make the git archive command return an error saying the file isn't in the repo
+    mock_subp.return_value.communicate.return_value = \
+        (None, b'remote: fatal: path not found: gating.yaml')
+    mock_subp.return_value.returncode = 1
+
+    app = greenwave.app_factory.create_app()
+    # Set DIST_GIT_BASE_URL to start with `git://` so that it causes retrieve_yaml_remote_rule
+    # to use git archive instead of HTTP to get the gating.yaml file
+    app.config['DIST_GIT_BASE_URL'] = 'git://dist-git.domain.local'
+    with app.app_context():
+        gating_yaml = retrieve_yaml_remote_rule('85e796daaa', 'python-requests', 'rpms')
+
+    assert gating_yaml is None
+
+
+@mock.patch('subprocess.Popen')
+def test_retrieve_yaml_remote_rule_git_archive_error(mock_subp):
+    # Make the git archive command return an error
+    mock_subp.return_value.communicate.return_value = (None, b'remote: fatal: some error')
+    mock_subp.return_value.returncode = 1
+
+    app = greenwave.app_factory.create_app()
+    # Set DIST_GIT_BASE_URL to start with `git://` so that it causes retrieve_yaml_remote_rule
+    # to use git archive instead of HTTP to get the gating.yaml file
+    app.config['DIST_GIT_BASE_URL'] = 'git://dist-git.domain.local'
+    expected_error = 'Error occurred looking for gating.yaml file in the dist-git repo.'
+    with pytest.raises(BadGateway, match=expected_error):
+        with app.app_context():
+            retrieve_yaml_remote_rule('85e796daaa', 'python-requests', 'rpms')
