@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import mock
+import pytest
 
 from greenwave.consumers import waiverdb
 
@@ -12,10 +13,12 @@ TASKTRON_RELEASE_CRITICAL_TASKS = [
 ]
 
 
+@pytest.mark.parametrize('subject_type', ('koji_build', 'brew-build'))
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.waiverdb.fedmsg.publish')
 def test_consume_new_waiver(
-        mock_fedmsg, load_config, requests_session, greenwave_server, testdatabuilder):
+        mock_fedmsg, load_config, requests_session, greenwave_server, testdatabuilder,
+        subject_type):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
 
@@ -23,7 +26,8 @@ def test_consume_new_waiver(
     result = testdatabuilder.create_result(
         item=nvr,
         testcase_name=failing_test,
-        outcome='FAILED')
+        outcome='FAILED',
+        _type=subject_type)
 
     # The rest passed
     passing_tests = TASKTRON_RELEASE_CRITICAL_TASKS[1:]
@@ -31,7 +35,8 @@ def test_consume_new_waiver(
         testdatabuilder.create_result(
             item=nvr,
             testcase_name=testcase_name,
-            outcome='PASSED')
+            outcome='PASSED',
+            _type=subject_type)
         for testcase_name in passing_tests
     ]
 
@@ -39,7 +44,8 @@ def test_consume_new_waiver(
     waiver = testdatabuilder.create_waiver(nvr=nvr,
                                            testcase_name=testcase,
                                            product_version='fedora-26',
-                                           comment='Because I said so')
+                                           comment='Because I said so',
+                                           subject_type=subject_type)
     message = {
         'body': {
             'topic': 'waiver.new',

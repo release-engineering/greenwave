@@ -293,9 +293,10 @@ class TestDataBuilder(object):
             data['data']['scenario'] = scenario
         return self._create_result(data)
 
-    def create_waiver(self, nvr, testcase_name, product_version, comment, waived=True):
+    def create_waiver(self, nvr, testcase_name, product_version, comment, waived=True,
+                      subject_type='koji_build'):
         data = {
-            'subject_type': 'koji_build',
+            'subject_type': subject_type,
             'subject_identifier': nvr,
             'testcase': testcase_name,
             'product_version': product_version,
