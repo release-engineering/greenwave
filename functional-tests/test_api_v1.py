@@ -36,7 +36,7 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 12
+    assert len(policies) == 13
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)
@@ -1181,5 +1181,33 @@ def test_verbose_retrieve_latest_results(requests_session, greenwave_server, tes
     expected_summary = 'All required tests passed'
     assert res_data['summary'] == expected_summary
     assert len(res_data['results']) == 3
+    for result in res_data['results']:
+        assert result['outcome'] == 'PASSED'
+
+
+def test_verbose_retrieve_latest_results_scenario(requests_session, greenwave_server,
+                                                  testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    results = []
+    for scenario in ['fedora.universal.x86_64.uefi', 'fedora.universal.x86_64.64bit']:
+        results.append(testdatabuilder.create_compose_result(compose_id=nvr,
+                       testcase_name='testcase_name', outcome='PASSED', scenario=scenario))
+    data = {
+        'decision_context': 'compose_test_scenario',
+        'product_version': 'fedora-29',
+        'subject_type': 'compose',
+        'subject_identifier': nvr,
+        'verbose': True
+    }
+
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied'] is True
+    expected_summary = 'All required tests passed'
+    assert res_data['summary'] == expected_summary
+    assert len(res_data['results']) == 2
     for result in res_data['results']:
         assert result['outcome'] == 'PASSED'
