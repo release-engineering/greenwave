@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import mock
+import pytest
 
 from textwrap import dedent
 
@@ -109,185 +110,201 @@ def test_no_announcement_subjects_for_old_compose_message():
     assert subjects == []
 
 
+parameters = [
+    ('fedmsg', 'greenwave.consumers.resultsdb.fedmsg.publish'),
+    ('fedora-messaging', 'greenwave.consumers.resultsdb.fedora_messaging.api.publish'),
+]
+
+@pytest.mark.parametrize("config,publish", parameters)
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')
 @mock.patch('greenwave.resources.retrieve_scm_from_koji')
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_remote_rule_decision_change(
-        mock_fedmsg,
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
         mock_retrieve_decision,
-        mock_retrieve_results):
+        mock_retrieve_results,
+        config,
+        publish):
     """
     Test publishing decision change message for test cases mentioned in
     gating.yaml.
     """
-    # gating.yaml
-    gating_yaml = dedent("""
-        --- !Policy
-        product_versions: [fedora-rawhide, notexisting_prodversion]
-        decision_context: test_context
-        rules:
-          - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
-    """)
-    mock_retrieve_yaml_remote_rule.return_value = gating_yaml
+    with mock.patch('greenwave.config.Config.MESSAGING', config):
+        with mock.patch(publish) as mock_fedmsg:
+            # gating.yaml
+            gating_yaml = dedent("""
+                --- !Policy
+                product_versions: [fedora-rawhide, notexisting_prodversion]
+                decision_context: test_context
+                rules:
+                  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
+            """)
+            mock_retrieve_yaml_remote_rule.return_value = gating_yaml
 
-    policies = dedent("""
-        --- !Policy
-        id: test_policy
-        product_versions: [fedora-rawhide]
-        decision_context: test_context
-        subject_type: koji_build
-        rules:
-          - !RemoteRule {}
-    """)
+            policies = dedent("""
+                --- !Policy
+                id: test_policy
+                product_versions: [fedora-rawhide]
+                decision_context: test_context
+                subject_type: koji_build
+                rules:
+                  - !RemoteRule {}
+            """)
 
-    nvr = 'nethack-1.2.3-1.rawhide'
-    result = {
-        'id': 1,
-        'testcase': {'name': 'dist.rpmdeplint'},
-        'outcome': 'PASSED',
-        'data': {'item': nvr, 'type': 'koji_build'},
-    }
-    mock_retrieve_results.return_value = [result]
-
-    def retrieve_decision(url, data):
-        #pylint: disable=unused-argument
-        if 'ignore_result' in data:
-            return None
-        return {}
-    mock_retrieve_decision.side_effect = retrieve_decision
-    mock_retrieve_scm_from_koji.return_value = ('rpms', nvr,
-                                                'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-
-    message = {
-        'body': {
-            'topic': 'resultsdb.result.new',
-            'msg': {
-                'id': result['id'],
+            nvr = 'nethack-1.2.3-1.rawhide'
+            result = {
+                'id': 1,
+                'testcase': {'name': 'dist.rpmdeplint'},
                 'outcome': 'PASSED',
-                'testcase': {
-                    'name': 'dist.rpmdeplint',
-                },
-                'data': {
-                    'item': [nvr],
-                    'type': ['koji_build'],
+                'data': {'item': nvr, 'type': 'koji_build'},
+            }
+            mock_retrieve_results.return_value = [result]
+
+            def retrieve_decision(url, data):
+                #pylint: disable=unused-argument
+                if 'ignore_result' in data:
+                    return None
+                return {}
+            mock_retrieve_decision.side_effect = retrieve_decision
+            mock_retrieve_scm_from_koji.return_value = ('rpms', nvr,
+                                                        'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+
+            message = {
+                'body': {
+                    'topic': 'resultsdb.result.new',
+                    'msg': {
+                        'id': result['id'],
+                        'outcome': 'PASSED',
+                        'testcase': {
+                            'name': 'dist.rpmdeplint',
+                        },
+                        'data': {
+                            'item': [nvr],
+                            'type': ['koji_build'],
+                        }
+                    }
                 }
             }
-        }
-    }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
+            hub = mock.MagicMock()
+            hub.config = {
+                'environment': 'environment',
+                'topic_prefix': 'topic_prefix',
+            }
+            handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
 
-    handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
-    with handler.flask_app.app_context():
-        handler.consume(message)
+            handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
+            with handler.flask_app.app_context():
+                handler.consume(message)
 
-    assert len(mock_fedmsg.mock_calls) == 1
+            assert len(mock_fedmsg.mock_calls) == 1
 
-    mock_call = mock_fedmsg.mock_calls[0][2]
-    assert mock_call['topic'] == 'decision.update'
+            if config == "fedmsg":
+                mock_call = mock_fedmsg.mock_calls[0][2]
+                assert mock_call['topic'] == 'decision.update'
+                actual_msgs_sent = mock_call['msg']
+            else:
+                mock_call = mock_fedmsg.mock_calls[0][1][0]
+                assert mock_call.topic == 'greenwave.decision.update'
+                actual_msgs_sent = mock_call.body
 
-    actual_msgs_sent = [call[2]['msg'] for call in mock_fedmsg.mock_calls]
-    assert actual_msgs_sent[0] == {
-        'decision_context': 'test_context',
-        'product_version': 'fedora-rawhide',
-        'subject': [
-            {'item': nvr, 'type': 'koji_build'},
-        ],
-        'subject_type': 'koji_build',
-        'subject_identifier': nvr,
-        'previous': None,
-    }
+            assert actual_msgs_sent == {
+                'decision_context': 'test_context',
+                'product_version': 'fedora-rawhide',
+                'subject': [
+                    {'item': nvr, 'type': 'koji_build'},
+                ],
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
+                'previous': None,
+            }
 
 
+@pytest.mark.parametrize("config,publish", parameters)
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')
 @mock.patch('greenwave.resources.retrieve_scm_from_koji')
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_remote_rule_decision_change_not_matching(
-        mock_fedmsg,
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
         mock_retrieve_decision,
-        mock_retrieve_results):
+        mock_retrieve_results,
+        config,
+        publish):
     """
     Test publishing decision change message for test cases mentioned in
     gating.yaml.
     """
-    # gating.yaml
-    gating_yaml = dedent("""
-        --- !Policy
-        product_versions: [fedora-rawhide]
-        decision_context: test_context
-        rules:
-          - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
-    """)
-    mock_retrieve_yaml_remote_rule.return_value = gating_yaml
+    with mock.patch('greenwave.config.Config.MESSAGING', config):
+        with mock.patch(publish) as mock_fedmsg:
+            # gating.yaml
+            gating_yaml = dedent("""
+                --- !Policy
+                product_versions: [fedora-rawhide]
+                decision_context: test_context
+                rules:
+                  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
+            """)
+            mock_retrieve_yaml_remote_rule.return_value = gating_yaml
 
-    policies = dedent("""
-        --- !Policy
-        id: test_policy
-        product_versions: [fedora-rawhide]
-        decision_context: another_test_context
-        subject_type: koji_build
-        rules:
-          - !RemoteRule {}
-    """)
+            policies = dedent("""
+                --- !Policy
+                id: test_policy
+                product_versions: [fedora-rawhide]
+                decision_context: another_test_context
+                subject_type: koji_build
+                rules:
+                  - !RemoteRule {}
+            """)
 
-    nvr = 'nethack-1.2.3-1.rawhide'
-    result = {
-        'id': 1,
-        'testcase': {'name': 'dist.rpmdeplint'},
-        'outcome': 'PASSED',
-        'data': {'item': nvr, 'type': 'koji_build'},
-    }
-    mock_retrieve_results.return_value = [result]
-
-    def retrieve_decision(url, data):
-        #pylint: disable=unused-argument
-        if 'ignore_result' in data:
-            return None
-        return {}
-    mock_retrieve_decision.side_effect = retrieve_decision
-    mock_retrieve_scm_from_koji.return_value = ('rpms', nvr,
-                                                'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-
-    message = {
-        'body': {
-            'topic': 'resultsdb.result.new',
-            'msg': {
-                'id': result['id'],
+            nvr = 'nethack-1.2.3-1.rawhide'
+            result = {
+                'id': 1,
+                'testcase': {'name': 'dist.rpmdeplint'},
                 'outcome': 'PASSED',
-                'testcase': {
-                    'name': 'dist.rpmdeplint',
-                },
-                'data': {
-                    'item': [nvr],
-                    'type': ['koji_build'],
+                'data': {'item': nvr, 'type': 'koji_build'},
+            }
+            mock_retrieve_results.return_value = [result]
+
+            def retrieve_decision(url, data):
+                #pylint: disable=unused-argument
+                if 'ignore_result' in data:
+                    return None
+                return {}
+            mock_retrieve_decision.side_effect = retrieve_decision
+            mock_retrieve_scm_from_koji.return_value = ('rpms', nvr,
+                                                        'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+
+            message = {
+                'body': {
+                    'topic': 'resultsdb.result.new',
+                    'msg': {
+                        'id': result['id'],
+                        'outcome': 'PASSED',
+                        'testcase': {
+                            'name': 'dist.rpmdeplint',
+                        },
+                        'data': {
+                            'item': [nvr],
+                            'type': ['koji_build'],
+                        }
+                    }
                 }
             }
-        }
-    }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
+            hub = mock.MagicMock()
+            hub.config = {
+                'environment': 'environment',
+                'topic_prefix': 'topic_prefix',
+            }
+            handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
 
-    handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
-    with handler.flask_app.app_context():
-        handler.consume(message)
+            handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
+            with handler.flask_app.app_context():
+                handler.consume(message)
 
-    assert len(mock_fedmsg.mock_calls) == 0
+            assert len(mock_fedmsg.mock_calls) == 0
 
 
 def test_guess_product_version():
@@ -308,103 +325,111 @@ def test_guess_product_version():
         assert product_version == 'rhel-8'
 
 
+@pytest.mark.parametrize("config,publish", parameters)
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')
 @mock.patch('greenwave.resources.retrieve_scm_from_koji')
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_decision_change_for_modules(
-        mock_fedmsg,
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
         mock_retrieve_decision,
-        mock_retrieve_results):
+        mock_retrieve_results,
+        config,
+        publish):
     """
     Test publishing decision change message for a module.
     """
+    with mock.patch('greenwave.config.Config.MESSAGING', config):
+        with mock.patch(publish) as mock_fedmsg:
 
-    # gating.yaml
-    gating_yaml = dedent("""
-        --- !Policy
-        product_versions:
-          - rhel-8
-        decision_context: osci_compose_gate_modules
-        subject_type: redhat-module
-        rules:
-          - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier1.functional}
-    """)
-    mock_retrieve_yaml_remote_rule.return_value = gating_yaml
+            # gating.yaml
+            gating_yaml = dedent("""
+                --- !Policy
+                product_versions:
+                  - rhel-8
+                decision_context: osci_compose_gate_modules
+                subject_type: redhat-module
+                rules:
+                  - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier1.functional}
+            """)
+            mock_retrieve_yaml_remote_rule.return_value = gating_yaml
 
-    policies = dedent("""
-    --- !Policy
-        id: "osci_compose_modules"
-        product_versions:
-          - rhel-8
-        decision_context: osci_compose_gate_modules
-        subject_type: redhat-module
-        blacklist: []
-        rules:
-          - !RemoteRule {}
-    """)
+            policies = dedent("""
+            --- !Policy
+                id: "osci_compose_modules"
+                product_versions:
+                  - rhel-8
+                decision_context: osci_compose_gate_modules
+                subject_type: redhat-module
+                blacklist: []
+                rules:
+                  - !RemoteRule {}
+            """)
 
-    nsvc = 'python36-3.6-820181204160430.17efdbc7'
-    result = {
-        'id': 1,
-        'testcase': {'name': 'baseos-ci.redhat-module.tier1.functional'},
-        'outcome': 'PASSED',
-        'data': {'item': nsvc, 'type': 'redhat-module'},
-    }
-    mock_retrieve_results.return_value = [result]
-
-    def retrieve_decision(url, data):
-        #pylint: disable=unused-argument
-        if 'ignore_result' in data:
-            return None
-        return {}
-    mock_retrieve_decision.side_effect = retrieve_decision
-    mock_retrieve_scm_from_koji.return_value = ('modules', nsvc,
-                                                '97273b80dd568bd15f9636b695f6001ecadb65e0')
-
-    message = {
-        'body': {
-            'topic': 'resultsdb.result.new',
-            'msg': {
-                'id': result['id'],
+            nsvc = 'python36-3.6-820181204160430.17efdbc7'
+            result = {
+                'id': 1,
+                'testcase': {'name': 'baseos-ci.redhat-module.tier1.functional'},
                 'outcome': 'PASSED',
-                'testcase': {
-                    'name': 'baseos-ci.redhat-module.tier1.functional',
-                },
-                'data': {
-                    'item': [nsvc],
-                    'type': ['redhat-module'],
+                'data': {'item': nsvc, 'type': 'redhat-module'},
+            }
+            mock_retrieve_results.return_value = [result]
+
+            def retrieve_decision(url, data):
+                #pylint: disable=unused-argument
+                if 'ignore_result' in data:
+                    return None
+                return {}
+            mock_retrieve_decision.side_effect = retrieve_decision
+            mock_retrieve_scm_from_koji.return_value = ('modules', nsvc,
+                                                        '97273b80dd568bd15f9636b695f6001ecadb65e0')
+
+            message = {
+                'body': {
+                    'topic': 'resultsdb.result.new',
+                    'msg': {
+                        'id': result['id'],
+                        'outcome': 'PASSED',
+                        'testcase': {
+                            'name': 'baseos-ci.redhat-module.tier1.functional',
+                        },
+                        'data': {
+                            'item': [nsvc],
+                            'type': ['redhat-module'],
+                        }
+                    }
                 }
             }
-        }
-    }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
+            hub = mock.MagicMock()
+            hub.config = {
+                'environment': 'environment',
+                'topic_prefix': 'topic_prefix',
+            }
+            handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
 
-    handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
-    with handler.flask_app.app_context():
-        handler.consume(message)
+            handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
+            with handler.flask_app.app_context():
+                handler.consume(message)
 
-    assert len(mock_fedmsg.mock_calls) == 1
+            assert len(mock_fedmsg.mock_calls) == 1
 
-    mock_call = mock_fedmsg.mock_calls[0][2]
-    assert mock_call['topic'] == 'decision.update'
+            if config == "fedmsg":
+                mock_call = mock_fedmsg.mock_calls[0][2]
+                assert mock_call['topic'] == 'decision.update'
+                actual_msgs_sent = mock_call['msg']
+            else:
+                mock_call = mock_fedmsg.mock_calls[0][1][0]
+                assert mock_call.topic == 'greenwave.decision.update'
+                actual_msgs_sent = mock_call.body
 
-    actual_msgs_sent = [call[2]['msg'] for call in mock_fedmsg.mock_calls]
-    assert actual_msgs_sent[0] == {
-        'decision_context': 'osci_compose_gate_modules',
-        'product_version': 'rhel-8',
-        'subject': [
-            {'item': nsvc, 'type': 'redhat-module'},
-        ],
-        'subject_type': 'redhat-module',
-        'subject_identifier': nsvc,
-        'previous': None,
-    }
+            assert actual_msgs_sent == {
+                'decision_context': 'osci_compose_gate_modules',
+                'product_version': 'rhel-8',
+                'subject': [
+                    {'item': nsvc, 'type': 'redhat-module'},
+                ],
+                'subject_type': 'redhat-module',
+                'subject_identifier': nsvc,
+                'previous': None,
+            }
