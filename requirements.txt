@@ -3,4 +3,5 @@ requests
 PyYAML
 dogpile.cache
 fedmsg[consumers]
+fedora-messaging
 prometheus_client

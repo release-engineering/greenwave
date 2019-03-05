@@ -31,6 +31,8 @@ class Config(object):
 
     POLICIES_DIR = '/etc/greenwave/policies'
 
+    MESSAGING = 'fedmsg'
+
     # By default, don't cache anything.
     CACHE = {'backend': 'dogpile.cache.null'}
 

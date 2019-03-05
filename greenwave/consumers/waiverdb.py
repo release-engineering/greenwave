@@ -20,6 +20,13 @@ from greenwave.api_v1 import subject_type_identifier_to_list
 from greenwave.monitoring import publish_decision_exceptions_waiver_counter
 from greenwave.policies import applicable_decision_context_product_version_pairs
 
+try:
+    import fedora_messaging.api
+    import fedora_messaging.exceptions
+except ImportError:
+    pass
+
+
 requests_session = requests.Session()
 
 
@@ -135,6 +142,30 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                     'product_version': product_version,
                     'previous': old_decision,
                 })
-                log.debug('Emitted a fedmsg, %r, on the "%s" topic', msg,
-                          'greenwave.decision.update')
-                fedmsg.publish(topic='decision.update', msg=msg)
+                log.info(
+                    'Emitted a message on the bus, %r, with the topic '
+                    '"greenwave.decision.update"', decision)
+                if self.flask_app.config['MESSAGING'] == 'fedmsg':
+                    log.debug('  - to fedmsg')
+                    fedmsg.publish(topic='decision.update', msg=msg)
+                elif self.flask_app.config['MESSAGING'] == 'fedora-message':
+                    log.debug('  - to fedora-messaging')
+                    try:
+                        msg = fedora_messaging.api.Message(
+                            topic='greenwave.decision.update',
+                            body=msg
+                        )
+                        fedora_messaging.api.publish(msg)
+                    except fedora_messaging.exceptions.PublishReturned as e:
+                        log.warning(
+                            'Fedora Messaging broker rejected message %s: %s',
+                            msg.id, e)
+                    except fedora_messaging.exceptions.ConnectionException as e:
+                        log.warning('Error sending message %s: %s', msg.id, e)
+                    except Exception:  # pylint: disable=broad-except
+                        log.exception('Error sending fedora-messaging message')
+                else:
+                    log.warning(
+                        'Unsupported messaging option: %s',
+                        self.flask_app.config['MESSAGING']
+                    )

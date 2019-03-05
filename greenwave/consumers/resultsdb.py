@@ -24,6 +24,12 @@ from greenwave.policies import applicable_decision_context_product_version_pairs
 
 import xmlrpc.client
 
+try:
+    import fedora_messaging.api
+    import fedora_messaging.exceptions
+except ImportError:
+    pass
+
 
 log = logging.getLogger(__name__)
 
@@ -264,6 +270,8 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             testcase=testcase,
             product_version=product_version)
 
+        log.info('Getting greenwave info')
+
         for decision_context, product_version in sorted(contexts_product_versions):
             greenwave_url = self.fedmsg_config['greenwave_api_url'] + '/decision'
 
@@ -275,6 +283,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             }
 
             try:
+                log.debug('querying greenwave at: %s', greenwave_url)
                 decision = greenwave.resources.retrieve_decision(greenwave_url, data)
 
                 # get old decision
@@ -282,6 +291,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                     'ignore_result': [result_id],
                 })
                 old_decision = greenwave.resources.retrieve_decision(greenwave_url, data)
+                log.debug('old decision: %s', old_decision)
             except requests.exceptions.HTTPError as e:
                 log.exception('Failed to retrieve decision for data=%s, error: %s', data, e)
                 continue
@@ -299,6 +309,30 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                     'product_version': product_version,
                     'previous': old_decision,
                 })
-                log.debug('Emitted a fedmsg, %r, on the "%s" topic', decision,
-                          'greenwave.decision.update')
-                fedmsg.publish(topic='decision.update', msg=decision)
+                log.info(
+                    'Emitted a message on the bus, %r, with the topic '
+                    '"greenwave.decision.update"', decision)
+                if self.flask_app.config['MESSAGING'] == 'fedmsg':
+                    log.debug('  - to fedmsg')
+                    fedmsg.publish(topic='decision.update', msg=decision)
+                elif self.flask_app.config['MESSAGING'] == 'fedora-messaging':
+                    log.debug('  - to fedora-messaging')
+                    try:
+                        msg = fedora_messaging.api.Message(
+                            topic='greenwave.decision.update',
+                            body=decision
+                        )
+                        fedora_messaging.api.publish(msg)
+                    except fedora_messaging.exceptions.PublishReturned as e:
+                        log.warning(
+                            'Fedora Messaging broker rejected message %s: %s',
+                            msg.id, e)
+                    except fedora_messaging.exceptions.ConnectionException as e:
+                        log.warning('Error sending message %s: %s', msg.id, e)
+                    except Exception:  # pylint: disable=broad-except
+                        log.exception('Error sending fedora-messaging message')
+                else:
+                    log.warning(
+                        'Unsupported messaging option: %s',
+                        self.flask_app.config['MESSAGING']
+                    )
