@@ -194,7 +194,7 @@ def test_remote_rule_decision_change(
     mock_call = mock_fedmsg.mock_calls[0][2]
     assert mock_call['topic'] == 'decision.update'
 
-    actual_msgs_sent = [mock_call['msg'] for call in mock_fedmsg.mock_calls]
+    actual_msgs_sent = [call[2]['msg'] for call in mock_fedmsg.mock_calls]
     assert actual_msgs_sent[0] == {
         'decision_context': 'test_context',
         'product_version': 'fedora-rawhide',
@@ -397,7 +397,7 @@ def test_decision_change_for_modules(
     mock_call = mock_fedmsg.mock_calls[0][2]
     assert mock_call['topic'] == 'decision.update'
 
-    actual_msgs_sent = [mock_call['msg'] for call in mock_fedmsg.mock_calls]
+    actual_msgs_sent = [call[2]['msg'] for call in mock_fedmsg.mock_calls]
     assert actual_msgs_sent[0] == {
         'decision_context': 'osci_compose_gate_modules',
         'product_version': 'rhel-8',
