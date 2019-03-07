@@ -102,3 +102,14 @@ decision_context: container-image-test
 subject_type: container-image
 rules:
   - !PassingTestCaseRule {test_case_name: baseos-qe.baseos-ci.tier1.functional}
+
+--- !Policy
+id: "bodhi-test-policy"
+product_versions:
+- fedora-26
+decision_context: bodhi_update_push
+subject_type: bodhi_update
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.abicheck}
+  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
+  - !PassingTestCaseRule {test_case_name: dist.upgradepath}

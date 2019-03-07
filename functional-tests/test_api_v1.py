@@ -36,7 +36,7 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 12
+    assert len(policies) == 14
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)
@@ -1183,3 +1183,44 @@ def test_verbose_retrieve_latest_results(requests_session, greenwave_server, tes
     assert len(res_data['results']) == 3
     for result in res_data['results']:
         assert result['outcome'] == 'PASSED'
+
+
+def test_make_decision_passed_on_subject_type_bodhi_with_waiver(
+        requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    # First one failed but was waived
+    testdatabuilder.create_result(item=nvr,
+                                  testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                  outcome='FAILED',
+                                  _type='bodhi_update')
+    testdatabuilder.create_waiver(nvr=nvr,
+                                  product_version='fedora-26',
+                                  testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                  comment='This is fine',
+                                  subject_type='bodhi_update')
+
+    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
+        testdatabuilder.create_result(item=nvr,
+                                      testcase_name=testcase_name,
+                                      outcome='PASSED',
+                                      _type='bodhi_update')
+
+    data = {
+        'decision_context': 'bodhi_update_push',
+        'product_version': 'fedora-26',
+        'subject_type': 'bodhi_update',
+        'subject_identifier': nvr,
+    }
+
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied'] is True
+
+    assert res_data['applicable_policies'] == [
+        'bodhi-test-policy',
+    ]
+    expected_summary = 'All required tests passed'
+    assert res_data['summary'] == expected_summary
