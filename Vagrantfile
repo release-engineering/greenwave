@@ -19,6 +19,9 @@ $script = <<-'SCRIPT'
         python3-requests \
         vim
 
+    # TODO: Remove this once fedora-messaging is in F29, or we move to F30
+    dnf -y install python3-fedora-messaging --enablerepo=updates-testing
+
     systemctl enable postgresql
     postgresql-setup --initdb --unit postgresql
     # Don't require authentication when connecting to Postgres
