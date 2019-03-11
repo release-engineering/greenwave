@@ -149,6 +149,7 @@ def waiverdb_server(tmpdir_factory):
     settings_content = """
         AUTH_METHOD = 'dummy'
         DATABASE_URI = 'postgresql+psycopg2:///%s'
+        MESSAGE_BUS_PUBLISH = False
         """ % dbname
 
     init_db_arguments = ['python3', os.path.join('waiverdb', 'manage.py'), 'db', 'upgrade']
