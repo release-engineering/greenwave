@@ -958,7 +958,7 @@ def test_validate_gating_yaml_valid(requests_session, greenwave_server):
         id: "test"
         product_versions:
           - fedora-26
-        decision_context: test
+        decision_context: container-image-test
         rules:
           - !PassingTestCaseRule {test_case_name: test}
     """)
@@ -1029,6 +1029,34 @@ def test_validate_gating_yaml_missing_tag(requests_session, greenwave_server):
         greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
     assert result.json().get('message') == "Missing !Policy tag"
     assert result.status_code == 400
+
+
+def test_validate_gating_yaml_missing_decision_context(requests_session, greenwave_server):
+    gating_yaml = dedent("""
+        --- !Policy
+        id: "test"
+        product_versions:
+          - fedora-26
+        decision_context: test_missing_1
+        rules:
+          - !PassingTestCaseRule {test_case_name: test}
+
+        --- !Policy
+        id: "test_2"
+        product_versions:
+          - fedora-26
+        decision_context: test_missing_2
+        rules:
+          - !PassingTestCaseRule {test_case_name: test_2}
+    """)
+    result = requests_session.post(
+        greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
+    assert result.json().get('message') == ('Greenwave could not find a parent policy(ies) for '
+                                            'following decision context(s): '
+                                            'test_missing_1, test_missing_2. Please change your'
+                                            ' policy so that it will match a decision'
+                                            ' context in the parent policies.')
+    assert result.status_code == 200
 
 
 def test_make_a_decision_about_compose_all_variants_architectures(

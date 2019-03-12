@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import greenwave.resources
+from flask import current_app
 
 from greenwave.safe_yaml import (
     SafeYAMLChoice,
@@ -638,3 +639,19 @@ def applicable_decision_context_product_version_pairs(policies, **attributes):
 
     log.debug("found %i decision contexts", len(contexts_product_versions))
     return contexts_product_versions
+
+
+def _missing_decision_contexts_in_parent_policies(policies):
+    missing_decision_contexts = []
+    for policy in policies:
+        # Assume a parent policy is not present for a policy in the remote rule
+        parent_present = False
+        for parent_policy in current_app.config['policies']:
+            if parent_policy.decision_context == policy.decision_context:
+                parent_present = True
+                break
+        # If there are no parent policies for a decision_context in the remote rule,
+        # report it as missing to warn the user.
+        if not parent_present:
+            missing_decision_contexts.append(policy.decision_context)
+    return missing_decision_contexts

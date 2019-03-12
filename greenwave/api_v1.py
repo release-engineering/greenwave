@@ -5,7 +5,9 @@ from flask import Blueprint, request, current_app, jsonify, url_for, redirect, R
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
 from prometheus_client import generate_latest
 from greenwave import __version__
-from greenwave.policies import summarize_answers, RemotePolicy
+from greenwave.policies import (summarize_answers,
+                                RemotePolicy,
+                                _missing_decision_contexts_in_parent_policies)
 from greenwave.resources import ResultsRetriever, retrieve_waivers
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
@@ -437,11 +439,18 @@ def validate_gating_yaml_post():
         log.error('No policies defined')
         raise BadRequest('No policies defined')
 
+    missing_decision_contexts = _missing_decision_contexts_in_parent_policies(policies)
     if any(True for policy in policies if policy.blacklist):
         msg = {'message': ('The gating.yaml file is valid but it is using the deprecated '
                            '"blacklist" key. Please use "excluded_packages" instead.')}
+    elif missing_decision_contexts:
+        msg = {'message': ('Greenwave could not find a parent policy(ies) for following decision'
+                           ' context(s): {}. Please change your policy so that it will match a '
+                           'decision context in the parent policies.'.format(
+                               ', '.join(missing_decision_contexts)))}
     else:
         msg = {'message': 'All OK'}
+
     return jsonify(msg)
 
 
