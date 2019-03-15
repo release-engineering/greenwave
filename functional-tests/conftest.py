@@ -81,7 +81,8 @@ def server_subprocess(
         if not os.path.isdir(source_path):
             raise RuntimeError('{} source tree {} does not exist'.format(name, source_path))
 
-    env = dict(os.environ, PYTHONPATH=source_path)
+    env = os.environ.copy()
+    env['PYTHONPATH'] = os.path.pathsep.join([source_path] + sys.path)
     env['TEST'] = 'true'
 
     # Write out a config
