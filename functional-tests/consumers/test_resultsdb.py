@@ -156,6 +156,47 @@ def test_consume_new_result(
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+def test_consume_unchanged_result(
+        mock_fedmsg, load_config, requests_session, greenwave_server,
+        testdatabuilder):
+    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
+    nvr = testdatabuilder.unique_nvr(product_version='fc26')
+
+    testdatabuilder.create_result(
+        item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
+    new_result = testdatabuilder.create_result(
+        item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
+
+    message = {
+        'body': {
+            'topic': 'resultsdb.result.new',
+            'msg': {
+                'id': new_result['id'],
+                'outcome': 'PASSED',
+                'testcase': {
+                    'name': 'dist.rpmdeplint',
+                },
+                'data': {
+                    'item': [nvr],
+                    'type': ['koji_build'],
+                }
+            }
+        }
+    }
+    hub = mock.MagicMock()
+    hub.config = {
+        'environment': 'environment',
+        'topic_prefix': 'topic_prefix',
+    }
+    handler = resultsdb.ResultsDBHandler(hub)
+    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler.consume(message)
+
+    assert len(mock_fedmsg.mock_calls) == 0
+
+
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
+@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_mocked_cache(
         mock_fedmsg, load_config, requests_session, greenwave_server,
         testdatabuilder):
