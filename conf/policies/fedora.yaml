@@ -113,3 +113,12 @@ rules:
   - !PassingTestCaseRule {test_case_name: dist.abicheck}
   - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
   - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+
+--- !Policy
+id: "koji-test-policy-missing-results"
+product_versions:
+- fedora-30
+decision_context: koji_build_push_missing_results
+subject_type: koji_build
+rules:
+  - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}

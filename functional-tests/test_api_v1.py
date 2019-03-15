@@ -1224,3 +1224,41 @@ def test_make_decision_passed_on_subject_type_bodhi_with_waiver(
     ]
     expected_summary = 'All required tests passed'
     assert res_data['summary'] == expected_summary
+
+
+def test_make_a_decision_with_verbose_flag_all_results_returned(
+        requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    results = []
+    expected_waivers = []
+    # First one failed but was waived
+    results.append(testdatabuilder.create_result(item=nvr,
+                                                 testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                                 outcome='FAILED'))
+    expected_waivers.append(
+        testdatabuilder.create_waiver(nvr=nvr,
+                                      product_version='fedora-30',
+                                      testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                      comment='This is fine'))
+    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
+        results.append(testdatabuilder.create_result(item=nvr,
+                                                     testcase_name=testcase_name,
+                                                     outcome='PASSED'))
+
+    data = {
+        'decision_context': 'koji_build_push_missing_results',
+        'product_version': 'fedora-30',
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
+        'verbose': True,
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+
+    assert len(res_data['results']) == len(results)
+    assert res_data['results'] == list(reversed(results))
+    assert len(res_data['waivers']) == len(expected_waivers)
+    assert res_data['waivers'] == expected_waivers
