@@ -9,17 +9,21 @@ get started.
 Quick development setup
 =======================
 
-Install dependencies:
+As an alternative to using virtualenv, described below, you can install system
+packages listed in Dockerfile.
+
+Set up Python 3 vitualenv:
 
 .. code-block:: console
 
-   $ sudo dnf -y install \
-       python3-dogpile-cache \
-       python3-fedmsg \
-       python3-flask \
-       python3-prometheus_client \
-       python3-PyYAML \
-       python3-requests
+   $ python3 -m venv --system-site-packages .venv
+   $ source .venv/bin/activate
+
+Install development dependencies:
+
+.. code-block:: console
+
+   $ pip install -r dev-requirements.txt -r requirements.txt
 
 Create a local configuration file:
 
@@ -45,21 +49,32 @@ the following command:
 
 .. code-block:: console
 
-   $ py.test-3 greenwave/tests/
+   $ python3 -m pytest greenwave
 
 There are also functional tests in the :file:`functional-tests` directory. The
 functional tests will start their own copy of the `ResultsDB`_, `WaiverDB`_,
-and Greenwave servers and then send HTTP requests to them. You can run the
-functional tests like this:
+and Greenwave servers and then send HTTP requests to them.
+
+You can run the functional tests like this:
 
 .. code-block:: console
 
-   $ py.test-3 functional-tests/
+   $ python3 -m pytest functional-tests
 
 The functional tests assume you have ResultsDB and WaiverDB git checkouts in
 :file:`../resultsdb` and :file:`../waiverdb` respectively. You can tell it to
 find them in a different location by passing ``RESULTSDB`` or ``WAIVERDB``
 environment variables.
+
+You can quickly clone the repositories (to parent directory) and update
+development virtualenv with:
+
+.. code-block:: console
+
+   $ git clone https://pagure.io/waiverdb.git ../waiverdb/
+   $ git clone https://pagure.io/taskotron/resultsdb.git ../resultsdb/
+   $ pip install -r ../waiverdb/requirements.txt
+   $ pip install -r ../resultsdb/requirements.txt
 
 If you'd rather not install all the dependencies necessary to run the functional
 tests, you may use Vagrant to provision a throw-away virtual machine to run

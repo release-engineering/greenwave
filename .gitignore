@@ -27,6 +27,9 @@ htmlcov
 greenwave-test-cache.dbm*
 .pytest_cache
 
+# virtualenv
+.venv/
+
 # Other
 .vagrant/
 .vscode/
