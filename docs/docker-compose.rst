@@ -1,8 +1,8 @@
 Docker-compose for Greenwave
 ===========================================
 
-virtualenv and docker-compose Quickstart
-----------------------------------------
+Quickstart
+----------
 
 Start local development containers of ResultsDB and WaiverDB using
 ``docker-compose``. If you want the containers to run in the foreground, omit
@@ -10,37 +10,20 @@ the ``-d`` flag.
 
 .. code-block:: console
 
-  $ sudo docker-compose -f docker/docker-compose.yml up -d resultsdb waiverdb
+  $ docker-compose up -d
 
-Create a Python virtualenv:
-
-.. code-block:: console
-
-  $ mkvirtualenv greenwave -p python3
-  $ pip install -r requirements.txt
-  $ pip install -r dev-requirements.txt
-
-Create a local configuration file:
+Install development requirements:
 
 .. code-block:: console
 
-  $ cp conf/settings.py.example conf/settings.py
+  $ docker-compose exec dev pip3 install --user -r dev-requirements.txt -r requirements.txt
+  $ docker-compose exec dev pip3 install --user -r ../resultsdb/requirements.txt
 
-Run the development server:
-
-.. code-block:: console
-
-  $ DEV=true FLASK_ENV=development python3 run-dev-server.py
-
-You can run the unit tests, which live in the ``greenwave.tests`` package, with
-the following command:
+You can run the unit and functional tests with the following command:
 
 .. code-block:: console
 
-   $ pytest greenwave/tests/
-
-The functional tests will not work this setup since they require ResultsDB,
-WaiverDB, and Postgresql to be running locally.
+  $ docker-compose exec dev pytest
 
 Rationale
 ---------

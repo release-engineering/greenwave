@@ -1,4 +1,4 @@
-DATABASE_URI = 'postgresql+psycopg2://waiverdb:waiverdb@wdb/waiverdb'
+DATABASE_URI = 'postgresql+psycopg2://waiverdb:waiverdb@waiverdb-db/waiverdb'
 HOST = '0.0.0.0'
 PORT = 5004
 #AUTH_METHOD = 'OIDC'
