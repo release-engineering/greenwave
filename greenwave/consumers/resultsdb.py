@@ -106,6 +106,38 @@ def _invalidate_results_cache(
             cache, subject_type, subject_identifier, testcase=None)
 
 
+def _equals_except_keys(lhs, rhs, except_keys):
+    keys = lhs.keys() - except_keys
+    return lhs.keys() == rhs.keys() \
+        and all(lhs[key] == rhs[key] for key in keys)
+
+
+def _is_decision_unchanged(old_decision, decision):
+    """
+    Returns true only if new decision is same as old one
+    (ignores result_id values).
+    """
+    if old_decision is None or decision is None:
+        return old_decision == decision
+
+    requirements_keys = ('satisfied_requirements', 'unsatisfied_requirements')
+    if not _equals_except_keys(old_decision, decision, requirements_keys):
+        return False
+
+    ignore_keys = ('result_id',)
+    for key in requirements_keys:
+        old_requirements = old_decision[key]
+        requirements = decision[key]
+        if len(old_requirements) != len(requirements):
+            return False
+
+        for old_requirement, requirement in zip(old_requirements, requirements):
+            if not _equals_except_keys(old_requirement, requirement, ignore_keys):
+                return False
+
+    return True
+
+
 class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
     """
     Handle a new result.
@@ -254,7 +286,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 log.exception('Failed to retrieve decision for data=%s, error: %s', data, e)
                 continue
 
-            if decision == old_decision:
+            if _is_decision_unchanged(old_decision, decision):
                 log.debug('Skipped emitting fedmsg, decision did not change: %s', decision)
             else:
                 decision.update({
