@@ -164,8 +164,3 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                         log.warning('Error sending message %s: %s', msg.id, e)
                     except Exception:  # pylint: disable=broad-except
                         log.exception('Error sending fedora-messaging message')
-                else:
-                    log.warning(
-                        'Unsupported messaging option: %s',
-                        self.flask_app.config['MESSAGING']
-                    )
