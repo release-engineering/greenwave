@@ -1318,3 +1318,30 @@ def test_verbose_retrieve_latest_results_scenario(requests_session, greenwave_se
     assert len(res_data['results']) == 2
     for result in res_data['results']:
         assert result['outcome'] == 'PASSED'
+
+
+def test_api_returns_not_repeated_waiver_in_verbose_info(
+        requests_session, greenwave_server, testdatabuilder):
+    """
+    This tests that the API doesn't return repeated waivers when the flag verbose==True
+    """
+    nvr = testdatabuilder.unique_nvr()
+    testdatabuilder.create_waiver(nvr=nvr,
+                                  testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                  product_version='fedora-26',
+                                  comment='This is fine')
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject': [
+            {'item': nvr, 'type': 'koji_build'},
+            {'original_spec_nvr': nvr},
+        ],
+        'verbose': True
+    }
+    r_ = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                               headers={'Content-Type': 'application/json'},
+                               data=json.dumps(data))
+    assert r_.status_code == 200
+    res_data = r_.json()
+    assert len(res_data['waivers']) == 1

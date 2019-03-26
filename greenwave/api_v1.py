@@ -377,9 +377,10 @@ def make_decision():
     }
 
     if verbose:
+        # removing duplicated elements...
         response.update({
-            'results': verbose_results,
-            'waivers': verbose_waivers,
+            'results': list({result['id']: result for result in verbose_results}.values()),
+            'waivers': list({waiver['id']: waiver for waiver in verbose_waivers}.values()),
         })
 
     log.debug('Response: %s', response)
