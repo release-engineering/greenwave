@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import logging
+import datetime
 from flask import Blueprint, request, current_app, jsonify, url_for, redirect, Response
 from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
 from prometheus_client import generate_latest
@@ -292,6 +293,8 @@ def make_decision():
         the decision.
     :jsonparam list ignore_waiver: A list of waiver ids that will be ignored when making
         the decision.
+    :jsonparam string when: A date (or datetime) in ISO8601 format. Greenwave will
+        take a decision considering only results and waivers from that point in time.
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
     """  # noqa: E501
@@ -318,6 +321,13 @@ def make_decision():
         raise BadRequest('Invalid verbose flag, must be a bool')
     ignore_results = data.get('ignore_result', [])
     ignore_waivers = data.get('ignore_waiver', [])
+    when = data.get('when')
+
+    if when:
+        try:
+            datetime.datetime.strptime(when, '%Y-%m-%dT%H:%M:%S.%f')
+        except ValueError:
+            raise BadRequest('Invalid "when" parameter, must be in ISO8601 format')
 
     answers = []
     verbose_results = []
@@ -326,6 +336,7 @@ def make_decision():
     results_retriever = ResultsRetriever(
         cache=current_app.cache,
         ignore_results=ignore_results,
+        when=when,
         timeout=current_app.config['REQUESTS_TIMEOUT'],
         verify=current_app.config['REQUESTS_VERIFY'],
         url=current_app.config['RESULTSDB_API_URL'])
@@ -351,8 +362,10 @@ def make_decision():
                 'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
                     subject_type, decision_context, product_version))
 
-        waivers = retrieve_waivers(product_version, subject_type, [subject_identifier])
-        waivers = [w for w in waivers if w['id'] not in ignore_waivers]
+        waivers = retrieve_waivers(
+            product_version, subject_type, [subject_identifier], when)
+        if ignore_waivers:
+            waivers = [w for w in waivers if w['id'] not in ignore_waivers]
 
         for policy in subject_policies:
             answers.extend(
@@ -363,7 +376,7 @@ def make_decision():
         if verbose:
             # Retrieve test results for all items when verbose output is requested.
             verbose_results.extend(
-                results_retriever.retrieve_latest(subject_type, subject_identifier))
+                results_retriever.retrieve(subject_type, subject_identifier))
             verbose_waivers.extend(waivers)
 
     response = {

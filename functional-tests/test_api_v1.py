@@ -7,6 +7,7 @@ import re
 from textwrap import dedent
 
 from greenwave import __version__
+from greenwave.utils import right_before_this_time
 
 
 TASKTRON_RELEASE_CRITICAL_TASKS = [
@@ -661,14 +662,14 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
     This tests that a result can be ignored when making the decision.
     """
     nvr = testdatabuilder.unique_nvr()
-    result = testdatabuilder.create_result(
-        item=nvr,
-        testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
-        outcome='PASSED')
     for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
+    result = testdatabuilder.create_result(
+        item=nvr,
+        testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+        outcome='PASSED')
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
@@ -698,6 +699,18 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
             'scenario': None,
         },
     ]
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied'] is False
+    assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+
+    # repeating the test for "when" parameter instead of "ignore_result"
+    # ...we should get the same behaviour.
+    del(data['ignore_result'])
+    data['when'] = right_before_this_time(result['submit_time'])
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
     assert r.status_code == 200
     res_data = r.json()
     assert res_data['policies_satisfied'] is False
@@ -787,15 +800,15 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
                                            outcome='FAILED')
-    waiver = testdatabuilder.create_waiver(nvr=nvr,
-                                           testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
-                                           product_version='fedora-26',
-                                           comment='This is fine')
     # The rest passed
     for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
         testdatabuilder.create_result(item=nvr,
                                       testcase_name=testcase_name,
                                       outcome='PASSED')
+    waiver = testdatabuilder.create_waiver(nvr=nvr,
+                                           testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                           product_version='fedora-26',
+                                           comment='This is fine')
     data = {
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
@@ -826,6 +839,18 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
             'scenario': None,
         },
     ]
+    assert res_data['policies_satisfied'] is False
+    assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+
+    # repeating the test for "when" parameter instead of "ignore_waiver"
+    # ...we should get the same behaviour.
+    del(data['ignore_waiver'])
+    data['when'] = right_before_this_time(waiver['timestamp'])
+    r_ = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                               headers={'Content-Type': 'application/json'},
+                               data=json.dumps(data))
+    assert r_.status_code == 200
+    res_data = r_.json()
     assert res_data['policies_satisfied'] is False
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
@@ -1347,3 +1372,39 @@ def test_api_returns_not_repeated_waiver_in_verbose_info(
     assert r_.status_code == 200
     res_data = r_.json()
     assert len(res_data['waivers']) == 1
+
+
+def test_api_with_when(requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    results = []
+    results.append(testdatabuilder.create_result(item=nvr,
+                                                 testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[1],
+                                                 outcome='PASSED'))
+    results.append(testdatabuilder.create_result(item=nvr,
+                                                 testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[2],
+                                                 outcome='FAILED'))
+    data = {
+        'decision_context': 'bodhi_update_push_stable',
+        'product_version': 'fedora-26',
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
+        'when': right_before_this_time(results[1]['submit_time']),
+        'verbose': True,
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+
+    assert len(res_data['results']) == 1
+    assert res_data['results'] == [results[0]]
+
+    del data['when']
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+
+    assert len(res_data['results']) == 2

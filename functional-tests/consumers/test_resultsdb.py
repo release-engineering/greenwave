@@ -3,10 +3,10 @@
 import hashlib
 import json
 import mock
-import pprint
 import time
 
 from greenwave.consumers import resultsdb
+from greenwave.utils import right_before_this_time
 
 import handlers
 
@@ -39,7 +39,8 @@ def test_consume_new_result(
                 'data': {
                     'item': [nvr],
                     'type': ['koji_build'],
-                }
+                },
+                'submit_time': result['submit_time']
             }
         }
     }
@@ -181,7 +182,8 @@ def test_consume_unchanged_result(
                 'data': {
                     'item': [nvr],
                     'type': ['koji_build'],
-                }
+                },
+                'submit_time': new_result['submit_time']
             }
         }
     }
@@ -189,145 +191,6 @@ def test_consume_unchanged_result(
     handler.consume(message)
 
     assert len(mock_fedmsg.mock_calls) == 0
-
-
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
-def test_invalidate_new_result_with_mocked_cache(
-        mock_fedmsg, requests_session, greenwave_server,
-        testdatabuilder):
-    """ Consume a result, and ensure that `delete` is called. """
-    nvr = testdatabuilder.unique_nvr()
-    result = testdatabuilder.create_result(
-        item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
-    message = {
-        'body': {
-            'topic': 'resultsdb.result.new',
-            'msg': {
-                'id': result['id'],
-                'outcome': 'PASSED',
-                'testcase': {
-                    'name': 'dist.rpmdeplint',
-                },
-                'data': {
-                    'item': [nvr],
-                    'type': ['koji_build'],
-                }
-            }
-        }
-    }
-    handler = create_resultdb_handler(greenwave_server)
-    handler.cache = mock.MagicMock()
-    handler.consume(message)
-    cache_key1 = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
-    cache_key2 = 'greenwave.resources:CachedResults|koji_build {} None'.format(nvr)
-    handler.cache.delete.assert_has_calls([
-        mock.call(cache_key1),
-        mock.call(cache_key2)
-    ])
-    assert handler.cache.delete.call_count == 2
-
-
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
-def test_invalidate_new_result_with_real_cache(
-        mock_fedmsg, requests_session, greenwave_server,
-        testdatabuilder, cache_config):
-    nvr = testdatabuilder.unique_nvr()
-    for testcase_name in ['dist.rpmdeplint', 'dist.upgradepath', 'dist.abicheck']:
-        testdatabuilder.create_result(
-            item=nvr, testcase_name=testcase_name, outcome='PASSED')
-
-    # get first passing decision
-    query = {
-        'decision_context': 'bodhi_update_push_stable',
-        'product_version': 'fedora-26',
-        'subject': [{'item': nvr, 'type': 'koji_build'}],
-    }
-    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
-                              headers={'Content-Type': 'application/json'},
-                              data=json.dumps(query))
-    assert r.status_code == 200
-    response = r.json()
-    # Ensure it is passing...
-    assert response['policies_satisfied'], pprint.pformat(response)
-
-    # Now, insert a new result and ensure that caching has made it such that
-    # even though the new result fails, our decision still passes (bad)
-    testdatabuilder.create_result(
-        item=nvr, testcase_name='dist.abicheck', outcome='FAILED')
-    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
-                              headers={'Content-Type': 'application/json'},
-                              data=json.dumps(query))
-    assert r.status_code == 200
-    response = r.json()
-    # Ensure it is passing...  BUT IT SHOULDN'T BE!
-    assert response['policies_satisfied'], pprint.pformat(response)
-
-    # Now, handle a message about the new failing result
-    message = {
-        'body': {
-            'topic': 'resultsdb.result.new',
-            'msg': {
-                'id': 'whatever',
-                'outcome': 'doesn\'t matter',
-                'testcase': {
-                    'name': 'dist.abicheck'
-                },
-                'data': {
-                    'item': [nvr],
-                    'type': ['koji_build'],
-                }
-            }
-        }
-    }
-    handler = create_resultdb_handler(greenwave_server, cache_config)
-    handler.consume(message)
-
-    # At this point, the invalidator should have invalidated the cache.  If we
-    # ask again, the decision should be correct now.  It should be a stone cold
-    # "no".
-    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
-                              headers={'Content-Type': 'application/json'},
-                              data=json.dumps(query))
-    assert r.status_code == 200
-    response = r.json()
-    # Ensure it is failing -- as it should be.
-    assert not response['policies_satisfied'], pprint.pformat(response)
-
-
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
-def test_invalidate_new_result_with_no_preexisting_cache(
-        mock_fedmsg, requests_session, greenwave_server,
-        testdatabuilder):
-    """ Ensure that invalidating an unknown value is sane. """
-    nvr = testdatabuilder.unique_nvr()
-    result = testdatabuilder.create_result(
-        item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
-    message = {
-        'body': {
-            'topic': 'resultsdb.result.new',
-            'msg': {
-                'id': result['id'],
-                'outcome': 'PASSED',
-                'testcase': {
-                    'name': 'dist.rpmdeplint'
-                },
-                'data': {
-                    'item': [nvr],
-                    'type': ['koji_build'],
-                }
-            }
-        }
-    }
-    handler = create_resultdb_handler(greenwave_server)
-    handler.cache.delete = mock.MagicMock()
-    handler.consume(message)
-    cache_key1 = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
-    cache_key2 = 'greenwave.resources:CachedResults|koji_build {} None'.format(nvr)
-    handler.cache.delete.assert_has_calls([
-        mock.call(cache_key1),
-        mock.call(cache_key2)
-    ])
-    assert handler.cache.delete.call_count == 2
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
@@ -352,6 +215,7 @@ def test_consume_compose_id_result(
                 'data': {
                     'productmd.compose.id': [compose_id],
                 },
+                'submit_time': result['submit_time']
             }
         }
     }
@@ -363,7 +227,7 @@ def test_consume_compose_id_result(
         'decision_context': 'rawhide_compose_sync_to_mirrors',
         'product_version': 'fedora-rawhide',
         'subject': [{'productmd.compose.id': compose_id}],
-        'ignore_result': [result['id']]
+        'when': right_before_this_time(result['submit_time'])
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -424,7 +288,8 @@ def test_consume_legacy_result(
                     'item': nvr,
                     'type': 'koji_build',
                     'name': 'dist.rpmdeplint'
-                }
+                },
+                'submit_time': result['submit_time']
             }
         }
     }
@@ -436,7 +301,7 @@ def test_consume_legacy_result(
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
         'subject': [{'item': nvr, 'type': 'koji_build'}],
-        'ignore_result': [result['id']]
+        'when': right_before_this_time(result['submit_time']),
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -497,7 +362,7 @@ def test_consume_legacy_result(
         'decision_context': 'bodhi_update_push_testing',
         'product_version': 'fedora-26',
         'subject': [{'item': nvr, 'type': 'koji_build'}],
-        'ignore_result': [result['id']]
+        'when': right_before_this_time(result['submit_time']),
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},
@@ -555,7 +420,8 @@ def test_no_message_for_nonapplicable_policies(
                 'data': {
                     'item': [nvr],
                     'type': ['koji_build'],
-                }
+                },
+                'submit_time': new_result['submit_time']
             }
         }
     }
@@ -612,7 +478,7 @@ def test_consume_new_result_container_image(
                 "groups": [
                     "341d4cba-ffe2-4d83-b36c-5d819181e86d"
                 ],
-                "submit_time": "2019-01-07T10:54:08.265369",
+                "submit_time": result['submit_time'],
                 "outcome": "PASSED",
                 "data": {
                     "category": [
@@ -692,7 +558,7 @@ def test_consume_new_result_container_image(
         'decision_context': 'container-image-test',
         'product_version': 'c3i',
         'subject': [{'item': nvr, 'type': 'container-image'}],
-        'ignore_result': [result['id']]
+        'when': right_before_this_time(result['submit_time']),
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision',
                               headers={'Content-Type': 'application/json'},

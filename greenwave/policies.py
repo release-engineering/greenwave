@@ -2,7 +2,6 @@
 
 from fnmatch import fnmatch
 import glob
-import itertools
 import logging
 import os
 import re
@@ -409,13 +408,12 @@ class PassingTestCaseRule(Rule):
             w for w in waivers if (w['testcase'] == self.test_case_name and w['waived'] is True)]
 
         if self.scenario is not None:
-            matching_results = (
+            matching_results = [
                 result for result in matching_results
-                if self.scenario in result['data']['scenario'])
+                if self.scenario in result['data']['scenario']]
 
         # Investigate the absence of result first.
-        latest_result = next(matching_results, None)
-        if not latest_result:
+        if not matching_results:
             if not matching_waivers:
                 return TestResultMissing(
                     policy.subject_type, subject_identifier, self.test_case_name, self.scenario)
@@ -424,7 +422,6 @@ class PassingTestCaseRule(Rule):
 
         # For compose make decisions based on all architectures and variants.
         if policy.subject_type == 'compose':
-            matching_results = itertools.chain([latest_result], matching_results)
             visited_arch_variants = set()
             answers = []
             for result in matching_results:
@@ -448,8 +445,11 @@ class PassingTestCaseRule(Rule):
         # If we find multiple matching results, we always use the first one which
         # will be the latest chronologically, because ResultsDB always returns
         # results ordered by `submit_time` descending.
-        return self._answer_for_result(
-            latest_result, waivers, policy.subject_type, subject_identifier)
+        answers = []
+        for result in matching_results:
+            answers.append(self._answer_for_result(
+                result, waivers, policy.subject_type, subject_identifier))
+        return answers
 
     def matches(self, policy, **attributes):
         testcase = attributes.get('testcase')

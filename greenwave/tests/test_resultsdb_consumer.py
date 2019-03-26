@@ -160,12 +160,13 @@ def test_remote_rule_decision_change(
                 'testcase': {'name': 'dist.rpmdeplint'},
                 'outcome': 'PASSED',
                 'data': {'item': nvr, 'type': 'koji_build'},
+                'submit_time': '2019-03-25T16:34:41.882620'
             }
             mock_retrieve_results.return_value = [result]
 
             def retrieve_decision(url, data):
                 #pylint: disable=unused-argument
-                if 'ignore_result' in data:
+                if 'when' in data:
                     return None
                 return {}
             mock_retrieve_decision.side_effect = retrieve_decision
@@ -184,7 +185,8 @@ def test_remote_rule_decision_change(
                         'data': {
                             'item': [nvr],
                             'type': ['koji_build'],
-                        }
+                        },
+                        'submit_time': '2019-03-25T16:34:41.882620'
                     }
                 }
             }
@@ -266,12 +268,13 @@ def test_remote_rule_decision_change_not_matching(
                 'testcase': {'name': 'dist.rpmdeplint'},
                 'outcome': 'PASSED',
                 'data': {'item': nvr, 'type': 'koji_build'},
+                'submit_time': '2019-03-25T16:34:41.882620'
             }
             mock_retrieve_results.return_value = [result]
 
             def retrieve_decision(url, data):
                 #pylint: disable=unused-argument
-                if 'ignore_result' in data:
+                if 'when' in data:
                     return None
                 return {}
             mock_retrieve_decision.side_effect = retrieve_decision
@@ -290,7 +293,8 @@ def test_remote_rule_decision_change_not_matching(
                         'data': {
                             'item': [nvr],
                             'type': ['koji_build'],
-                        }
+                        },
+                        'submit_time': '2019-03-25T16:34:41.882620'
                     }
                 }
             }
@@ -374,12 +378,13 @@ def test_decision_change_for_modules(
                 'testcase': {'name': 'baseos-ci.redhat-module.tier1.functional'},
                 'outcome': 'PASSED',
                 'data': {'item': nsvc, 'type': 'redhat-module'},
+                'submit_time': '2019-03-25T16:34:41.882620'
             }
             mock_retrieve_results.return_value = [result]
 
             def retrieve_decision(url, data):
                 #pylint: disable=unused-argument
-                if 'ignore_result' in data:
+                if 'when' in data:
                     return None
                 return {}
             mock_retrieve_decision.side_effect = retrieve_decision
@@ -398,7 +403,8 @@ def test_decision_change_for_modules(
                         'data': {
                             'item': [nsvc],
                             'type': ['redhat-module'],
-                        }
+                        },
+                        'submit_time': '2019-03-25T16:34:41.882620'
                     }
                 }
             }

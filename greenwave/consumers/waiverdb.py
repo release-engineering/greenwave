@@ -19,6 +19,7 @@ import greenwave.app_factory
 from greenwave.api_v1 import subject_type_identifier_to_list
 from greenwave.monitoring import publish_decision_exceptions_waiver_counter
 from greenwave.policies import applicable_decision_context_product_version_pairs
+from greenwave.utils import right_before_this_time
 
 try:
     import fedora_messaging.api
@@ -81,13 +82,14 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         testcase = msg['testcase']
         subject_type = msg['subject_type']
         subject_identifier = msg['subject_identifier']
+        submit_time = msg['timestamp']
 
         with self.flask_app.app_context():
-            self._publish_decision_changes(subject_type, subject_identifier, msg['id'],
+            self._publish_decision_changes(subject_type, subject_identifier, submit_time,
                                            product_version, testcase)
 
     @publish_decision_exceptions_waiver_counter.count_exceptions()
-    def _publish_decision_changes(self, subject_type, subject_identifier, waiver_id,
+    def _publish_decision_changes(self, subject_type, subject_identifier, submit_time,
                                   product_version, testcase):
         policies = self.flask_app.config['policies']
         contexts_product_versions = applicable_decision_context_product_version_pairs(
@@ -117,7 +119,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
             # get old decision
             data.update({
-                'ignore_waiver': [waiver_id],
+                'when': right_before_this_time(submit_time),
             })
             response = requests_session.post(
                 self.greenwave_api_url + '/decision',

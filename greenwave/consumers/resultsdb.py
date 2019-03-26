@@ -20,6 +20,7 @@ import greenwave.resources
 from greenwave.api_v1 import subject_type_identifier_to_list
 from greenwave.monitoring import publish_decision_exceptions_result_counter
 from greenwave.policies import applicable_decision_context_product_version_pairs
+from greenwave.utils import right_before_this_time
 
 import xmlrpc.client
 
@@ -240,10 +241,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         except KeyError:
             testcase = message['msg']['task']['name']  # Old format
 
-        try:
-            result_id = message['msg']['id']  # New format
-        except KeyError:
-            result_id = message['msg']['result']['id']  # Old format
+        submit_time = message['msg']['submit_time']
 
         with self.flask_app.app_context():
             for subject_type, subject_identifier in self.announcement_subjects(message):
@@ -251,17 +249,18 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
                 _invalidate_results_cache(
                     self.cache, subject_type, subject_identifier, testcase)
                 self._publish_decision_changes(subject_type, subject_identifier,
-                                               result_id, testcase)
+                                               submit_time, testcase)
 
     @publish_decision_exceptions_result_counter.count_exceptions()
-    def _publish_decision_changes(self, subject_type, subject_identifier, result_id, testcase):
+    def _publish_decision_changes(self, subject_type, subject_identifier, submit_time, testcase):
         """
         Process the given subject and publish a message if the decision is changed.
 
         Args:
-            subject (munch.Munch): A subject argument, used to query greenwave.
-            result_id (int): A result ID to ignore for comparison.
-            testcase (munch.Munch): The name of a testcase to consider.
+            subject_type (munch.Munch): subject type argument, used to query greenwave.
+            subject_identifier (munch.Munch): subject identifier argument, used to query greenwave.
+            submit_time (string): date. After this date, results will be ignored for comparison.
+            testcase (munch.Munch): the name of a testcase to consider.
         """
         product_version = _subject_product_version(
             subject_identifier, subject_type, self.koji_base_url)
@@ -291,7 +290,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
                 # get old decision
                 data.update({
-                    'ignore_result': [result_id],
+                    'when': right_before_this_time(submit_time),
                 })
                 old_decision = greenwave.resources.retrieve_decision(greenwave_url, data)
                 log.debug('old decision: %s', old_decision)

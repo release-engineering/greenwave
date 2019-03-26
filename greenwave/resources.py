@@ -52,88 +52,57 @@ class ResultsRetriever(object):
     """
     Retrieves results from cache or ResultsDB.
     """
-    def __init__(self, cache, ignore_results, timeout, verify, url):
+    def __init__(self, cache, ignore_results, when, timeout, verify, url):
         self.cache = cache
         self.ignore_results = ignore_results
+        self.when = when
         self.timeout = timeout
         self.verify = verify
         self.url = url
 
-    def retrieve_latest(self, subject_type, subject_identifier):
-        """
-        Return generator over latest results.
-        """
-        params = {}
-        return self._retrieve_helper(params, subject_type, subject_identifier, latest=True)
-
-    def retrieve(self, subject_type, subject_identifier, testcase=None):
+    def retrieve(self, subject_type, subject_identifier, testcase=None, scenarios=None):
         """
         Return generator over results.
         """
-        for result in self._retrieve_all(subject_type, subject_identifier, testcase):
-            if result['id'] not in self.ignore_results:
-                yield result
+        params = {}
+        if self.when:
+            params.update({'since': '1900-01-01T00:00:00.000000,{}'.format(self.when)})
+        if testcase:
+            params.update({'testcases': testcase})
+        if scenarios:
+            params.update({'scenario': ','.join(scenarios)})
+        return self._retrieve_helper(params, subject_type, subject_identifier)
 
-    def _retrieve_all(self, subject_type, subject_identifier, testcase):
-        cache_key = results_cache_key(
-            subject_type, subject_identifier, testcase)
-
-        cached_results = self.cache.get(cache_key)
-        if not isinstance(cached_results, CachedResults):
-            cached_results = CachedResults()
-
-        for result in cached_results.results:
-            yield result
-
-        while cached_results.can_fetch_more:
-            cached_results.last_page += 1
-            params = {
-                'limit': 1,
-                'page': cached_results.last_page,
-            }
-
-            if testcase:
-                params['testcases'] = testcase
-            results = self._retrieve_helper(params, subject_type, subject_identifier)
-            cached_results.results.extend(results)
-            cached_results.can_fetch_more = bool(results)
-            self.cache.set(cache_key, cached_results)
-            for result in results:
-                yield result
-
-    def _make_request(self, params, latest=False):
-        request_url = self.url + '/results'
-        if latest:
-            request_url += '/latest'
-            # we need to consider also the scenario
-            params['_distinct_on'] = 'scenario'
+    def _make_request(self, params):
+        params['_distinct_on'] = 'scenario,system_architecture'
         response = requests_session.get(
-            request_url, params=params, verify=self.verify, timeout=self.timeout)
+            self.url + '/results/latest', params=params, verify=self.verify, timeout=self.timeout)
         response.raise_for_status()
         return response.json()['data']
 
-    def _retrieve_helper(self, params, subject_type, subject_identifier, latest=False):
+    def _retrieve_helper(self, params, subject_type, subject_identifier):
         results = []
         if subject_type == 'koji_build':
             params['type'] = subject_type
             params['item'] = subject_identifier
-            results = self._make_request(params=params, latest=latest)
+            results = self._make_request(params=params)
 
             params['type'] = 'brew-build'
-            results.extend(self._make_request(params=params, latest=latest))
+            results.extend(self._make_request(params=params))
 
             del params['type']
             del params['item']
             params['original_spec_nvr'] = subject_identifier
-            results.extend(self._make_request(params=params, latest=latest))
+            results.extend(self._make_request(params=params))
         elif subject_type == 'compose':
             params['productmd.compose.id'] = subject_identifier
-            results = self._make_request(params=params, latest=latest)
+            results = self._make_request(params=params)
         else:
             params['type'] = subject_type
             params['item'] = subject_identifier
-            results = self._make_request(params=params, latest=latest)
+            results = self._make_request(params=params)
 
+        results = [r for r in results if r['id'] not in self.ignore_results]
         return results
 
 
@@ -244,17 +213,22 @@ def _retrieve_yaml_remote_rule_git_archive(rev, pkg_name, pkg_namespace):
 
 # NOTE - not cached, for now.
 @greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
-def retrieve_waivers(product_version, subject_type, subject_identifiers):
+def retrieve_waivers(product_version, subject_type, subject_identifiers, when):
     if not subject_identifiers:
         return []
 
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']
-    filters = [{
-        'product_version': product_version,
-        'subject_type': subject_type,
-        'subject_identifier': subject_identifier,
-    } for subject_identifier in subject_identifiers]
+    filters = []
+    for subject_identifier in subject_identifiers:
+        d = {
+            'product_version': product_version,
+            'subject_type': subject_type,
+            'subject_identifier': subject_identifier
+        }
+        if when:
+            d['since']: '1900-01-01T00:00:00.000000,{}'.format(when)
+        filters.append(d)
     response = requests_session.post(
         current_app.config['WAIVERDB_API_URL'] + '/waivers/+filtered',
         headers={'Content-Type': 'application/json'},

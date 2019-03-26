@@ -56,7 +56,7 @@ def test_consume_new_waiver(
     message = {
         'body': {
             'topic': 'waiver.new',
-            "msg": waiver,
+            'msg': waiver,
         }
     }
     handler = create_waiverdb_handler(greenwave_server)

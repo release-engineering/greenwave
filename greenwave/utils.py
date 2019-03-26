@@ -5,6 +5,7 @@ import logging
 import os
 import time
 import hashlib
+import datetime
 
 from flask import jsonify, current_app, request
 from flask.config import Config
@@ -147,3 +148,17 @@ def sha1_mangle_key(key):
     to hashlib.sha1()).
     """
     return hashlib.sha1(key.encode('utf-8')).hexdigest()
+
+
+def right_before_this_time(timestamp):
+    """
+    A utility function that takes a timestamp with format %Y-%m-%dT%H:%M:%S.%f
+    and returns the microsecond before that timestamp. It returns always a
+    %Y-%m-%dT%H:%M:%S.%f format. It is useful to detect at which moment we should
+    ask for a decision before a specific timestamp (example: the creation of a
+    result).
+    """
+    date_format = '%Y-%m-%dT%H:%M:%S.%f'
+    return datetime.datetime.strftime(
+        datetime.datetime.strptime(timestamp, date_format) -
+        datetime.timedelta(microseconds=1), date_format)

@@ -29,6 +29,7 @@ class DummyResultsRetriever(ResultsRetriever):
         super(DummyResultsRetriever, self).__init__(
             cache=mock.Mock(),
             ignore_results=[],
+            when='',
             timeout=0,
             verify=False,
             url='')
@@ -37,7 +38,7 @@ class DummyResultsRetriever(ResultsRetriever):
         self.testcase = testcase
         self.outcome = outcome
 
-    def _make_request(self, params, latest=False):
+    def _make_request(self, params):
         if (params.get('item') == self.subject_identifier and
                 params.get('type') == self.subject_type and
                 params.get('testcases') == self.testcase):
