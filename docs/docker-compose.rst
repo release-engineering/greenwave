@@ -98,7 +98,7 @@ launch them today you need to run a series of commands such as: 
 .. code-block:: console
 
     oc process -f resultsdb/openshift/resultsdb-test-template.yaml -p TEST_ID=123 -p RESULTSDB_IMAGE=docker-registry.engineering.redhat.com/csomh/resultsdb:latest | oc apply -f - &&
-    oc process -f waiverdb/openshift/waiverdb-test-template.yaml -p TEST_ID=123 -p WAIVERDB_APP_VERSION=latest | oc apply -f - &&
+    oc process -f waiverdb/openshift/waiverdb-test-template.yaml -p TEST_ID=123 -p WAIVERDB_APP_IMAGE=quay.io/factory2/waiverdb:latest | oc apply -f - &&
     oc process -f greenwave/openshift/greenwave-test-template.yaml -p TEST_ID=123 -p GREENWAVE_IMAGE=quay.io/factory2/greenwave:latest | oc apply -f
 
 In comparison, this same thing is accomplished with a single

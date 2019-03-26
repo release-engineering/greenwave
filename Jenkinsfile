@@ -207,7 +207,7 @@ node('fedora-29') {
                     def waiverdbModels = openshift.process(
                         wtemplate,
                         '-p', "TEST_ID=${buildTag}",
-                        '-p', 'WAIVERDB_APP_VERSION=latest',
+                        '-p', 'WAIVERDB_APP_IMAGE=quay.io/factory2/waiverdb:latest',
                         '-p', "RESULTSDB_API_URL=${resultsdbURL}",
                         '-p', "WAIVERDB_REPLICAS=1"
                     )
