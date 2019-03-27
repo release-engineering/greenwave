@@ -154,7 +154,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
     config_key = 'resultsdb_handler'
 
-    def __init__(self, hub, *args, **kwargs):
+    def __init__(self, hub, config_obj=None, *args, **kwargs):
         """
         Initialize the ResultsDBHandler, subscribing it to the appropriate topics.
 
@@ -171,7 +171,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         super(ResultsDBHandler, self).__init__(hub, *args, **kwargs)
 
-        self.flask_app = greenwave.app_factory.create_app()
+        self.flask_app = greenwave.app_factory.create_app(config_obj)
         self.cache = self.flask_app.cache
 
         log.info('Greenwave resultsdb handler listening on: %s', self.topic)

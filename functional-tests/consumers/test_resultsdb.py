@@ -4,7 +4,27 @@ import json
 import mock
 import pprint
 
+from greenwave.config import TestingConfig
 from greenwave.consumers import resultsdb
+
+
+def create_resultdb_handler(cache_config=None):
+    hub = mock.MagicMock()
+    hub.config = {
+        'environment': 'environment',
+        'topic_prefix': 'topic_prefix',
+    }
+
+    class Config(TestingConfig):
+        CACHE = cache_config or TestingConfig.CACHE
+
+    handler = resultsdb.ResultsDBHandler(hub, Config())
+    assert handler.topic == [
+        'topic_prefix.environment.taskotron.result.new',
+        # Not ready to handle waiverdb yet.
+        #'topic_prefix.environment.waiver.new',
+    ]
+    return handler
 
 
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
@@ -33,13 +53,7 @@ def test_consume_new_result(
             }
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
-    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler = create_resultdb_handler()
     handler.consume(message)
 
     assert len(mock_fedmsg.mock_calls) == 2
@@ -183,13 +197,7 @@ def test_consume_unchanged_result(
             }
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
-    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler = create_resultdb_handler()
     handler.consume(message)
 
     assert len(mock_fedmsg.mock_calls) == 0
@@ -221,18 +229,8 @@ def test_invalidate_new_result_with_mocked_cache(
             }
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
+    handler = create_resultdb_handler()
     handler.cache = mock.MagicMock()
-    assert handler.topic == [
-        'topic_prefix.environment.taskotron.result.new',
-        # Not ready to handle waiverdb yet.
-        #'topic_prefix.environment.waiver.new',
-    ]
     handler.consume(message)
     cache_key1 = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
     cache_key2 = 'greenwave.resources:CachedResults|koji_build {} None'.format(nvr)
@@ -247,7 +245,7 @@ def test_invalidate_new_result_with_mocked_cache(
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_real_cache(
         mock_fedmsg, load_config, requests_session, greenwave_server,
-        testdatabuilder):
+        testdatabuilder, cache_config):
     load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     for testcase_name in ['dist.rpmdeplint', 'dist.upgradepath', 'dist.abicheck']:
@@ -297,17 +295,7 @@ def test_invalidate_new_result_with_real_cache(
             }
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
-    assert handler.topic == [
-        'topic_prefix.environment.taskotron.result.new',
-        # Not ready to handle waiverdb yet.
-        #'topic_prefix.environment.waiver.new',
-    ]
+    handler = create_resultdb_handler(cache_config)
     handler.consume(message)
 
     # At this point, the invalidator should have invalidated the cache.  If we
@@ -348,18 +336,8 @@ def test_invalidate_new_result_with_no_preexisting_cache(
             }
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
+    handler = create_resultdb_handler()
     handler.cache.delete = mock.MagicMock()
-    assert handler.topic == [
-        'topic_prefix.environment.taskotron.result.new',
-        # Not ready to handle waiverdb yet.
-        #'topic_prefix.environment.waiver.new',
-    ]
     handler.consume(message)
     cache_key1 = 'greenwave.resources:CachedResults|koji_build {} dist.rpmdeplint'.format(nvr)
     cache_key2 = 'greenwave.resources:CachedResults|koji_build {} None'.format(nvr)
@@ -397,13 +375,7 @@ def test_consume_compose_id_result(
             }
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
-    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler = create_resultdb_handler()
     handler.consume(message)
 
     # get old decision
@@ -478,13 +450,7 @@ def test_consume_legacy_result(
             }
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
-    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler = create_resultdb_handler()
     handler.consume(message)
 
     # get old decision
@@ -617,13 +583,7 @@ def test_no_message_for_nonapplicable_policies(
             }
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
-    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler = create_resultdb_handler()
     handler.consume(message)
     # No message should be published as the decision is unchanged since we
     # are still missing the required tests.
@@ -749,13 +709,7 @@ def test_consume_new_result_container_image(
             }
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {
-        'environment': 'environment',
-        'topic_prefix': 'topic_prefix',
-    }
-    handler = resultsdb.ResultsDBHandler(hub)
-    assert handler.topic == ['topic_prefix.environment.taskotron.result.new']
+    handler = create_resultdb_handler()
     handler.consume(message)
 
     # get old decision

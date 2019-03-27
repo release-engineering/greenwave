@@ -92,11 +92,6 @@ def server_subprocess(
         config_env_var = env_var_prefix + '_CONFIG'
         env[config_env_var] = settings_file.strpath
 
-        # We also update the config file for *this* process, as well as the server subprocess,
-        # because the fedmsg consumer tests actually invoke the handler code in-process.
-        # This way they will see the same config as the server.
-        os.environ[config_env_var] = settings_file.strpath
-
     subprocess_arguments = dict(env=env, cwd=source_path)
 
     # Create and populate the database
@@ -189,17 +184,22 @@ def distgit_server(tmpdir_factory):
 
 
 @pytest.yield_fixture(scope='session')
-def greenwave_server(tmpdir_factory, resultsdb_server, waiverdb_server):
+def cache_config(tmpdir_factory):
     cache_file = tmpdir_factory.mktemp('greenwave').join('cache.dbm')
+    return {
+        'backend': 'dogpile.cache.dbm',
+        'expiration_time': 300,
+        'arguments': {'filename': cache_file.strpath},
+    }
+
+
+@pytest.yield_fixture(scope='session')
+def greenwave_server(tmpdir_factory, cache_config, resultsdb_server, waiverdb_server):
     settings_content = """
-        CACHE = {
-            'backend': 'dogpile.cache.dbm',
-            'expiration_time': 300,
-            'arguments': {'filename': %r},
-        }
+        CACHE = %s
         RESULTSDB_API_URL = '%sapi/v2.0'
         WAIVERDB_API_URL = '%sapi/v1.0'
-        """ % (cache_file.strpath, resultsdb_server, waiverdb_server)
+        """ % (json.dumps(cache_config), resultsdb_server, waiverdb_server)
 
     start_server_arguments = [
         'gunicorn-3',
