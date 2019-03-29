@@ -115,6 +115,7 @@ parameters = [
     ('fedora-messaging', 'greenwave.consumers.resultsdb.fedora_messaging.api.publish'),
 ]
 
+
 @pytest.mark.parametrize("config,publish", parameters)
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')
