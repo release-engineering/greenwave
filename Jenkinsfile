@@ -11,6 +11,7 @@ def installDepsCmd = '''
 sudo dnf -y install \
     python3-dogpile-cache \
     python3-fedmsg \
+    python3-fedora-messaging \
     python3-flask \
     python3-prometheus_client \
     python3-PyYAML \
