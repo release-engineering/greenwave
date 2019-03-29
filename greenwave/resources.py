@@ -103,6 +103,8 @@ class ResultsRetriever(object):
         request_url = self.url + '/results'
         if latest:
             request_url += '/latest'
+            # we need to consider also the scenario
+            params['_distinct_on'] = 'scenario'
         response = requests_session.get(
             request_url, params=params, verify=self.verify, timeout=self.timeout)
         response.raise_for_status()

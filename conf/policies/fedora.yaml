@@ -122,3 +122,13 @@ decision_context: koji_build_push_missing_results
 subject_type: koji_build
 rules:
   - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
+
+# Policy for latest scenario test
+--- !Policy
+id: "compose-test-scenario"
+product_versions:
+  - fedora-29
+decision_context: compose_test_scenario
+subject_type: compose
+rules:
+  - !PassingTestCaseRule {test_case_name: testcase_name}
