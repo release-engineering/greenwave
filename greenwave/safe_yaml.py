@@ -10,7 +10,6 @@ class SafeYAMLError(RuntimeError):
     Exception raised when an unexpected type is found in YAML.
     or validation fails (see SafeYAMLObject.validate()).
     """
-    pass
 
 
 class SafeYAMLAttribute(object):
