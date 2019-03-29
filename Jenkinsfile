@@ -197,7 +197,7 @@ node('fedora-29') {
                 openshift.withProject('greenwave-test') {
                     def rtemplate = readYaml file: 'openshift/resultsdb-test-template.yaml'
                     // TODO: move this image to the factory2 project in the docker registry
-                    def resultsdbImage = 'docker-registry.engineering.redhat.com/csomh/resultsdb:latest'
+                    def resultsdbImage = 'quay.io/factory2/resultsdb:latest'
                     def resultsdbModels = openshift.process(
                         rtemplate,
                         '-p', "TEST_ID=${buildTag}",
