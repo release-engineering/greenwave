@@ -7,7 +7,9 @@ from prometheus_client import generate_latest
 from greenwave import __version__
 from greenwave.policies import (summarize_answers,
                                 RemotePolicy,
-                                _missing_decision_contexts_in_parent_policies)
+                                OnDemandPolicy,
+                                _missing_decision_contexts_in_parent_policies,
+                                Rule)
 from greenwave.resources import ResultsRetriever, retrieve_waivers
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
@@ -301,9 +303,11 @@ def make_decision():
             log.error('Missing required product version')
             raise BadRequest('Missing required product version')
         if ('decision_context' not in request.get_json() or
-                not request.get_json()['decision_context']):
-            log.error('Missing required decision context')
-            raise BadRequest('Missing required decision context')
+            not request.get_json()['decision_context']) and \
+            ('rules' not in request.get_json() or
+             not request.get_json()['rules']):
+            log.error('Either one of decision_context or rules is required.')
+            raise BadRequest('Either one of decision_context or rules is required.')
     else:
         log.error('No JSON payload in request')
         raise UnsupportedMediaType('No JSON payload in request')
@@ -311,7 +315,19 @@ def make_decision():
     data = request.get_json()
     log.debug('New decision request for data: %s', data)
     product_version = data['product_version']
-    decision_context = data['decision_context']
+
+    decision_context = data.get('decision_context', None)
+    rules = data.get('rules', [])
+    if decision_context and rules:
+        log.error('Invalid request. Cannot have both decision_context and rules')
+        raise BadRequest('Invalid request. Cannot have both decision_context and rules')
+
+    on_demand_policies = []
+    if rules:
+        on_demand_policy = OnDemandPolicy()
+        on_demand_policy._create_on_demand_policy(data)
+        on_demand_policies.append(on_demand_policy)
+
     verbose = data.get('verbose', False)
     if not isinstance(verbose, bool):
         log.error('Invalid verbose flag, must be a bool')
@@ -330,9 +346,10 @@ def make_decision():
         verify=current_app.config['REQUESTS_VERIFY'],
         url=current_app.config['RESULTSDB_API_URL'])
 
+    policies = on_demand_policies or current_app.config['policies']
     for subject_type, subject_identifier in _decision_subjects_for_request(data):
         subject_policies = [
-            policy for policy in current_app.config['policies']
+            policy for policy in policies
             if policy.matches(
                 decision_context=decision_context,
                 product_version=product_version,
@@ -375,6 +392,14 @@ def make_decision():
         'unsatisfied_requirements':
             [answer.to_json() for answer in answers if not answer.is_satisfied],
     }
+
+    # Check if on-demand policy was specified
+    if rules:
+        response.update({
+          'product_version': product_version,
+          'subject_identifier': data['subject_identifier'],
+          'subject_type': data['subject_type']
+          })
 
     if verbose:
         # removing duplicated elements...

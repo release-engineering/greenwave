@@ -306,6 +306,26 @@ class Rule(SafeYAMLObject):
         """
         return True
 
+    @staticmethod
+    def process_on_demand_rules(rules):
+        """
+        Validates rule type and creates objects for them.
+
+        """
+        processed_rules = []
+        for rule in rules:
+            if rule['type'] not in ('RemoteRule', 'PassingTestCaseRule'):
+                raise ValueError('Invalid rule type {}'.format(rule['type']))
+
+            if rule['type'] == 'RemoteRule':
+                processed_rules.append(RemoteRule())
+            else:
+                processed_rules.append(PassingTestCaseRule())
+                processed_rules[-1].test_case_name = rule['test_case_name']
+                processed_rules[-1].scenario = rule.get('scenario')
+
+        return processed_rules
+
 
 def waives_invalid_gating_yaml(waiver, subject_type, subject_identifier):
     return (waiver['testcase'] == 'invalid-gating-yaml' and
@@ -590,6 +610,44 @@ class Policy(SafeYAMLObject):
     @property
     def safe_yaml_label(self):
         return 'Policy {!r}'.format(self.id or 'untitled')
+
+
+class OnDemandPolicy(Policy):
+    root_yaml_tag = '!Policy'
+    safe_yaml_attributes = {}
+
+    def __init__(self):
+        self.id = None
+        self.product_versions = None
+        self.subject_type = None
+        self.rules = None
+        self.blacklist = None
+        self.excluded_packages = None
+        self.packages = None
+        self.relevance_key = None
+
+    def _create_on_demand_policy(self, data_dict):
+        # Validate the data before processing.
+        # self.__validate_attributes(data_dict)
+
+        self.id = data_dict.get('id')
+        self.product_versions = [data_dict['product_version']]
+        self.subject_type = data_dict['subject_type']
+        self.rules = Rule.process_on_demand_rules(data_dict['rules'])
+        self.blacklist = data_dict.get('blacklist', [])
+        self.excluded_packages = data_dict.get('excluded_packages', [])
+        self.packages = data_dict.get('packages', [])
+        self.relevance_key = data_dict.get('relevance_key')
+
+    def __validate_attributes(self, data_dict):
+        """ Validates types of the attributes. """
+        list_attributes = ['product_versions', 'rules', 'excluded_packages', 'packages']
+
+        for attribute in data_dict.keys():
+            if attribute in list_attributes and not isinstance(getattr(self, attribute), list):
+                raise TypeError('{} should be a list.'.format(attribute))
+            elif not isinstance(getattr(self, attribute), str):
+                raise TypeError('{} should be a string.'.format(attribute))
 
 
 class RemotePolicy(Policy):
