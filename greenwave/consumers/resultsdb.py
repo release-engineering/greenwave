@@ -155,6 +155,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
     config_key = 'resultsdb_handler'
 
     def __init__(self, hub, config_obj=None, *args, **kwargs):
+        #pylint: disable=keyword-arg-before-vararg
         """
         Initialize the ResultsDBHandler, subscribing it to the appropriate topics.
 
