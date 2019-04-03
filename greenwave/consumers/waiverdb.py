@@ -12,6 +12,7 @@ to the message bus about the newly satisfied/unsatisfied policy.
 import logging
 import json
 
+from flask import current_app
 import fedmsg.consumers
 import requests
 
@@ -102,7 +103,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                 'subject_identifier': subject_identifier,
             }
             response = requests_session.post(
-                self.fedmsg_config['greenwave_api_url'] + '/decision',
+                current_app.config['GREENWAVE_API_URL'] + '/decision',
                 headers={'Content-Type': 'application/json'},
                 data=json.dumps(data))
 
@@ -117,7 +118,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                 'ignore_waiver': [waiver_id],
             })
             response = requests_session.post(
-                self.fedmsg_config['greenwave_api_url'] + '/decision',
+                current_app.config['GREENWAVE_API_URL'] + '/decision',
                 headers={'Content-Type': 'application/json'},
                 data=json.dumps(data))
 

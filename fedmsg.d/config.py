@@ -126,7 +126,4 @@ config = dict(
     # but whose cert names aren't in the associated list are dropped; messages
     # whose topics do not appear in the routing_policy are not dropped.
     routing_nitpicky=False,
-
-    # Greenwave API url
-    greenwave_api_url='https://greenwave.domain.local/api/v1.0',
 )
