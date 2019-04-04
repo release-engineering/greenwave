@@ -2,6 +2,32 @@
 Release Notes
 =============
 
+Greenwave 1.1.0
+===============
+
+Released 04 April 2019
+
+* Retrieve only latest results when ``verbose=True``: that's a decision API performance
+  improvement and refactor.
+* ``PackageSpecificBuild`` is obsolete, not deprecated: fixing the error message,
+  to be sure to not create confusion.
+* Add the option to use ``git archive`` to retrieve a ``gating.yaml`` file from dist-git:
+  this is to address when the dist-git deployment doesn't have a UI that updates in
+  real-time, such as cgit.
+* Consider ``scenario`` when selecting latest results for the decision making process.
+* Add tests for subject type ``bodhi_update``.
+* Return warning if there is no parent policy for a remote rule policy: users may
+  mistakenly configure a parent policy with a ``decision_context`` and a ``gating.yaml``
+  file with another ``decision_context``. This can cause unnecessary delays for the
+  user. In order to avoid this, add a check in the ``validate_gating_yaml`` endpoint.
+* Bug fix: Greenwave was publishing a message even when the decision didn't change.
+* Greenwave now allows messaging also with fedora-messaging.
+* Remove duplicated waivers and results from response: when asked for a decision,
+  Greenwave returns multiple results or waivers when ``verbose==True`` in case the
+  same ``subject`` gets repeated.
+* Add several other tests and improved dev environment.
+
+
 Greenwave 1.0.0
 ===============
 
