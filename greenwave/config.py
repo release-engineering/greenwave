@@ -49,6 +49,7 @@ class DevelopmentConfig(Config):
     RESULTSDB_API_URL = 'http://localhost:5001/api/v2.0'
     #WAIVERDB_API_URL = 'http://waiverdb-dev.fedorainfracloud.org/api/v1.0'
     WAIVERDB_API_URL = 'http://localhost:5004/api/v1.0'
+    GREENWAVE_API_URL = 'http://localhost:5005/api/v1.0'
     POLICIES_DIR = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'conf',
         'policies'
@@ -58,6 +59,7 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     RESULTSDB_API_URL = 'http://localhost:5001/api/v2.0'
     WAIVERDB_API_URL = 'http://localhost:5004/api/v1.0'
+    GREENWAVE_API_URL = 'http://localhost:5005/api/v1.0'
     POLICIES_DIR = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'conf',
         'policies'

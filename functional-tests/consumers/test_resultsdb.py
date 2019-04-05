@@ -27,12 +27,10 @@ def create_resultdb_handler(cache_config=None):
     return handler
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_consume_new_result(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
+        mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr(product_version='fc26')
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='dist.rpmdeplint',
@@ -168,12 +166,10 @@ def test_consume_new_result(
     }
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_consume_unchanged_result(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
+        mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr(product_version='fc26')
 
     testdatabuilder.create_result(
@@ -203,13 +199,11 @@ def test_consume_unchanged_result(
     assert len(mock_fedmsg.mock_calls) == 0
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_mocked_cache(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
+        mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
     """ Consume a result, and ensure that `delete` is called. """
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
@@ -241,12 +235,10 @@ def test_invalidate_new_result_with_mocked_cache(
     assert handler.cache.delete.call_count == 2
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_real_cache(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
+        mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder, cache_config):
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     for testcase_name in ['dist.rpmdeplint', 'dist.upgradepath', 'dist.abicheck']:
         testdatabuilder.create_result(
@@ -310,13 +302,11 @@ def test_invalidate_new_result_with_real_cache(
     assert not response['policies_satisfied'], pprint.pformat(response)
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_invalidate_new_result_with_no_preexisting_cache(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
+        mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
     """ Ensure that invalidating an unknown value is sane. """
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(
         item=nvr, testcase_name='dist.rpmdeplint', outcome='PASSED')
@@ -348,12 +338,10 @@ def test_invalidate_new_result_with_no_preexisting_cache(
     assert handler.cache.delete.call_count == 2
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_consume_compose_id_result(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
+        mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     compose_id = testdatabuilder.unique_compose_id()
     result = testdatabuilder.create_compose_result(
         compose_id=compose_id,
@@ -418,10 +406,9 @@ def test_consume_compose_id_result(
     mock_fedmsg.assert_called_once_with(topic='decision.update', msg=msg)
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_consume_legacy_result(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
+        mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
     """ Test that we can still handle the old legacy "taskotron" format.
 
@@ -429,7 +416,6 @@ def test_consume_legacy_result(
     need to be able to handle this taskotron format for the transition.
     """
 
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr(product_version='fc26')
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='dist.rpmdeplint',
@@ -551,12 +537,10 @@ def test_consume_legacy_result(
     mock_fedmsg.assert_any_call(topic='decision.update', msg=second_msg)
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_no_message_for_nonapplicable_policies(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
+        mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = testdatabuilder.unique_nvr()
     # One result gets the decision in a certain state.
     testdatabuilder.create_result(item=nvr,
@@ -590,12 +574,10 @@ def test_no_message_for_nonapplicable_policies(
     mock_fedmsg.assert_not_called()
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.config.load_config')
 @mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
 def test_consume_new_result_container_image(
-        mock_fedmsg, load_config, requests_session, greenwave_server,
+        mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
-    load_config.return_value = {'greenwave_api_url': greenwave_server + 'api/v1.0'}
     nvr = 'fedora@sha256:017eb7de7927da933a04a6c1ff59da0c41dcea194aaa6b5dd7148df286b92433'
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='baseos-qe.baseos-ci.tier1.functional',
