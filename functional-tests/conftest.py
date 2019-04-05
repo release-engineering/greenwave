@@ -186,6 +186,17 @@ def distgit_server(tmpdir_factory):
 @pytest.yield_fixture(scope='session')
 def cache_config(tmpdir_factory):
     cache_file = tmpdir_factory.mktemp('greenwave').join('cache.dbm')
+    if 'GREENWAVE_TEST_URL' in os.environ:
+        # This should point to the same cache as the Greenwave server used by tests.
+        return {
+            'backend': "dogpile.cache.memcached",
+            'expiration_time': 300,
+            'arguments': {
+                'url': 'memcached:11211',
+                'distributed_lock': True
+            }
+        }
+
     return {
         'backend': 'dogpile.cache.dbm',
         'expiration_time': 300,
