@@ -5,12 +5,21 @@ import pytest
 
 from greenwave.consumers import waiverdb
 
+import handlers
+
 
 TASKTRON_RELEASE_CRITICAL_TASKS = [
     'dist.abicheck',
     'dist.rpmdeplint',
     'dist.upgradepath',
 ]
+
+
+def create_waiverdb_handler(greenwave_server):
+    return handlers.create_handler(
+        waiverdb.WaiverDBHandler,
+        'topic_prefix.environment.waiver.new',
+        greenwave_server)
 
 
 @pytest.mark.parametrize('subject_type', ('koji_build', 'brew-build'))
@@ -50,10 +59,7 @@ def test_consume_new_waiver(
             "msg": waiver,
         }
     }
-    hub = mock.MagicMock()
-    hub.config = {'environment': 'environment', 'topic_prefix': 'topic_prefix'}
-    handler = waiverdb.WaiverDBHandler(hub)
-    assert handler.topic == ['topic_prefix.environment.waiver.new']
+    handler = create_waiverdb_handler(greenwave_server)
     handler.consume(message)
 
     assert len(mock_fedmsg.mock_calls) == 1
