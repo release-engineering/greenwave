@@ -11,7 +11,7 @@ from greenwave.policies import (summarize_answers,
 from greenwave.resources import ResultsRetriever, retrieve_waivers
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
-from greenwave.monitoring import (
+from greenwave.monitor import (
     registry,
     decision_exception_counter,
     decision_request_duration_seconds,

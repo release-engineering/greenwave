@@ -5,6 +5,7 @@ import shutil
 
 from flask import Flask
 from greenwave.api_v1 import api
+from greenwave.monitor import monitor_api
 from greenwave.utils import json_error, load_config, sha1_mangle_key
 from greenwave.policies import load_policies, RemoteRule
 
@@ -63,6 +64,7 @@ def create_app(config_obj=None):
 
     # register blueprints
     app.register_blueprint(api, url_prefix="/api/v1.0")
+    app.register_blueprint(monitor_api, url_prefix="/api/v1.0")
     app.add_url_rule('/healthcheck', view_func=healthcheck)
 
     # Initialize the cache.
