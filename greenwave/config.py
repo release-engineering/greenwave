@@ -35,6 +35,8 @@ class Config(object):
 
     # By default, don't cache anything.
     CACHE = {'backend': 'dogpile.cache.null'}
+    # Greenwave API url
+    GREENWAVE_API_URL = 'https://greenwave.domain.local/api/v1.0'
 
 
 class ProductionConfig(Config):

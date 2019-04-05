@@ -274,7 +274,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         log.info('Getting greenwave info')
 
         for decision_context, product_version in sorted(contexts_product_versions):
-            greenwave_url = self.fedmsg_config['greenwave_api_url'] + '/decision'
+            greenwave_url = current_app.config['GREENWAVE_API_URL'] + '/decision'
 
             data = {
                 'decision_context': decision_context,
