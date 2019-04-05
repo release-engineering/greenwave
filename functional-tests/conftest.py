@@ -235,7 +235,7 @@ class TestDataBuilder(object):
         self.resultsdb_url = resultsdb_url
         self.waiverdb_url = waiverdb_url
         self.distgit_url = distgit_url
-        self._counter = itertools.count(1)
+        self._counter = itertools.count(time.time())
 
     def unique_nvr(self, name='glibc', product_version='el7'):
         return '{}-1.0-{}.{}'.format(name, next(self._counter), product_version)

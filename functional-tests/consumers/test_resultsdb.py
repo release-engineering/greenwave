@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import hashlib
 import json
 import mock
 import pprint
+import time
 
 from greenwave.consumers import resultsdb
 
@@ -568,7 +570,9 @@ def test_no_message_for_nonapplicable_policies(
 def test_consume_new_result_container_image(
         mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
-    nvr = 'fedora@sha256:017eb7de7927da933a04a6c1ff59da0c41dcea194aaa6b5dd7148df286b92433'
+    unique_id = str(time.time()).encode('utf-8')
+    sha256 = hashlib.sha256(unique_id).hexdigest()
+    nvr = 'fedora@sha256:{}'.format(sha256)
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='baseos-qe.baseos-ci.tier1.functional',
                                            outcome='PASSED', _type='container-image')
@@ -643,8 +647,7 @@ def test_consume_new_result_container_image(
                         "fedora"
                     ],
                     "item": [
-                        ("fedora@sha256:017eb7de7927da933a04a6c1ff59da0c"
-                         "41dcea194aaa6b5dd7148df286b92433")
+                        "fedora@sha256:{}".format(sha256)
                     ],
                     "system_provider": [
                         "openstack"
@@ -653,7 +656,7 @@ def test_consume_new_result_container_image(
                         "https://example.com"
                     ],
                     "digest": [
-                        "sha256:017eb7de7927da933a04a6c1ff59da0c41dcea194aaa6b5dd7148df286b92433"
+                        "sha256:{}".format(sha256)
                     ],
                     "xunit": [
                         "https://somewhere.com/job/ci-openstack/4794/artifacts/results.xml"
