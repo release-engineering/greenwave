@@ -2,6 +2,7 @@
 
 import json
 import pytest
+import re
 
 from textwrap import dedent
 
@@ -67,8 +68,9 @@ def test_version_endpoint(requests_session, greenwave_server):
 def test_about_endpoint_jsonp(requests_session, greenwave_server):
     r = requests_session.get(greenwave_server + 'api/v1.0/about?callback=bac123')
     assert r.status_code == 200
-    assert 'bac123' in r.text
-    assert '"version": "%s"' % __version__ in r.text
+    expected = 'bac123({"version":"%s"});' % __version__
+    actual = re.sub(r'\s+', '', r.text)
+    assert expected == actual
 
 
 @pytest.mark.smoke

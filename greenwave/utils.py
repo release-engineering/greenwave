@@ -56,7 +56,7 @@ def jsonp(func):
             resp = func(*args, **kwargs)
             resp.set_data('{}({});'.format(
                 str(callback),
-                resp.get_data()
+                resp.get_data().decode('utf-8')
             ))
             resp.mimetype = 'application/javascript'
             return resp
