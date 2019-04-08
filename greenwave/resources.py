@@ -20,12 +20,14 @@ import xmlrpc.client
 from flask import current_app
 from werkzeug.exceptions import BadGateway
 
+from greenwave import __version__
 from greenwave.cache import cached
 import greenwave.utils
 
 log = logging.getLogger(__name__)
 
 requests_session = requests.Session()
+requests_session.headers["User-Agent"] = f"greenwave {__version__}"
 
 
 class CachedResults(object):
