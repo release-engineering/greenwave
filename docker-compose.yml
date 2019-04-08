@@ -4,33 +4,8 @@ services:
     build: .
     user: ${DEV_USER_ID:-1000}
     working_dir: /code
-    environment:
-      HOME: /home/dev
-      PATH: /home/dev/.local/bin:/usr/bin
-      GREENWAVE_TEST_URL: http://dev:8080/
-      WAIVERDB_TEST_URL: http://waiverdb:5004/
-      RESULTSDB_TEST_URL: http://resultsdb:5001/
-      PYTEST_ADDOPTS: "-o cache_dir=/home/dev/.pytest_cache"
-    command:
-      - "/bin/bash"
-      - "-c"
-      - |
-        set -e
-
-        # Check if UID is same as owner of the mounted home directory
-        # (avoids creating files with wrong owner).
-        real_dev_id="$$(stat --format %u ~)"
-        if [[ $$real_dev_id != $$UID ]]; then
-            echo "Set correct DEV_USER_ID in .env file (should be same as owner of docker/home)."
-            exit 1
-        fi
-
-        exec /usr/bin/gunicorn-3 \
-          --reload \
-          --bind=0.0.0.0:8080 \
-          --access-logfile=- \
-          --enable-stdio-inheritance \
-          greenwave.wsgi:app
+    env_file: docker/dev.env
+    command: ["bash", "-c", "./docker/dev-command.sh"]
     volumes:
       - ./:/code:ro,z
       - ../waiverdb:/waiverdb:ro,z
@@ -48,11 +23,7 @@ services:
   resultsdb-db:
     image: postgres:9.5.2
     restart: always
-    environment:
-      POSTGRES_USER: resultsdb
-      POSTGRES_PASSWORD: resultsdb
-      POSTGRES_DB: resultsdb
-      POSTGRES_INITDB_ARGS: "--auth='ident' --auth='trust'"
+    env_file: docker/resultsdb-db.env
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 30s
@@ -63,21 +34,9 @@ services:
     build:
       context: ../resultsdb
       dockerfile: openshift/Dockerfile
-    command:
-      - "/bin/bash"
-      - "-c"
-      - |
-        set -e
-        resultsdb init_db
-        exec mod_wsgi-express-3 start-server /usr/share/resultsdb/resultsdb.wsgi \
-            --user apache --group apache \
-            --port 5001 --threads 5 \
-            --include-file /etc/httpd/conf.d/resultsdb.conf \
-            --log-level info \
-            --log-to-terminal \
-            --access-log \
-            --startup-log
+    command: ["bash", "-c", "/start.sh"]
     volumes:
+      - ./docker/resultsdb-command.sh:/start.sh:ro,z
       - ./docker/resultsdb-settings.py:/etc/resultsdb/settings.py:ro,z
       - ./docker/resultsdb.conf:/etc/httpd/conf.d/resultsdb.conf:ro,z
     ports:
@@ -89,33 +48,16 @@ services:
   waiverdb-db:
     image: postgres:9.5.2
     restart: always
-    environment:
-      POSTGRES_USER: waiverdb
-      POSTGRES_PASSWORD: waiverdb
-      POSTGRES_DB: waiverdb
-      POSTGRES_INITDB_ARGS: "--auth='ident' --auth='trust'"
+    env_file: docker/waiverdb-db.env
 
   waiverdb:
     image: "quay.io/factory2/waiverdb:latest"
     working_dir: /code
-    environment:
-      DATABASE_PASSWORD: waiverdb
-      SECRET_KEY: waiverdb
-    command:
-      - "/bin/bash"
-      - "-c"
-      - |
-        set -e
-        python3 waiverdb/manage.py wait-for-db
-        python3 waiverdb/manage.py db upgrade
-        exec /usr/bin/gunicorn-3 \
-          --reload \
-          --bind=0.0.0.0:5004 \
-          --access-logfile=- \
-          --enable-stdio-inheritance \
-          waiverdb.wsgi:app
+    env_file: docker/waiverdb.env
+    command: ["bash", "-c", "/start.sh"]
     volumes:
       - ../waiverdb:/code:ro,z
+      - ./docker/waiverdb-command.sh:/start.sh:ro,z
       - ./docker/waiverdb-settings.py:/etc/waiverdb/settings.py:ro,z
       - ./docker/client_secrets.json:/etc/secret/client_secrets.json:ro,z
     ports:
