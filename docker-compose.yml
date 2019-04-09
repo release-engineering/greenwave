@@ -8,8 +8,6 @@ services:
     command: ["bash", "-c", "./docker/dev-command.sh"]
     volumes:
       - ./:/code:ro,z
-      - ../waiverdb:/waiverdb:ro,z
-      - ../resultsdb:/resultsdb:ro,z
       - ./docker/home:/home/dev:Z
       - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
       - ./conf/policies/:/etc/greenwave/policies/:ro,z
@@ -56,7 +54,7 @@ services:
     env_file: docker/waiverdb.env
     command: ["bash", "-c", "/start.sh"]
     volumes:
-      - ../waiverdb:/code:ro,z
+      - ../waiverdb:/code:ro,Z
       - ./docker/waiverdb-command.sh:/start.sh:ro,z
       - ./docker/waiverdb-settings.py:/etc/waiverdb/settings.py:ro,z
       - ./docker/client_secrets.json:/etc/secret/client_secrets.json:ro,z

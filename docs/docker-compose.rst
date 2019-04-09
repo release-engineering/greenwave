@@ -16,8 +16,7 @@ Install development requirements:
 
 .. code-block:: console
 
-  $ docker-compose exec dev pip3 install --user -r dev-requirements.txt -r requirements.txt
-  $ docker-compose exec dev pip3 install --user -r ../resultsdb/requirements.txt
+  $ docker-compose exec dev pip3 install --user -r dev-requirements.txt
 
 You can run the unit and functional tests with the following command:
 
