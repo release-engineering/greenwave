@@ -12,7 +12,6 @@ to the message bus about the newly satisfied/unsatisfied policy.
 import logging
 import re
 
-from flask import current_app
 import fedmsg.consumers
 import requests
 
@@ -63,7 +62,7 @@ def _guess_product_version(toparse, koji_build=False):
     return None
 
 
-def _subject_product_version(subject_identifier, subject_type):
+def _subject_product_version(subject_identifier, subject_type, koji_base_url=None):
     if subject_type == 'koji_build':
         try:
             short_prod_version = subject_identifier.split('.')[-1]
@@ -77,7 +76,6 @@ def _subject_product_version(subject_identifier, subject_type):
     if subject_type == "redhat-module":
         return "rhel-8"
 
-    koji_base_url = current_app.config['KOJI_BASE_URL']
     if koji_base_url:
         proxy = xmlrpc.client.ServerProxy(koji_base_url)
         try:
@@ -154,8 +152,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
     config_key = 'resultsdb_handler'
 
-    def __init__(self, hub, config_obj=None, *args, **kwargs):
-        #pylint: disable=keyword-arg-before-vararg
+    def __init__(self, hub, *args, **kwargs):
         """
         Initialize the ResultsDBHandler, subscribing it to the appropriate topics.
 
@@ -170,9 +167,13 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         self.topic = ['.'.join([prefix, env, suffix])]
         self.fedmsg_config = fedmsg.config.load_config()
 
+        config = kwargs.pop('config', None)
+
         super(ResultsDBHandler, self).__init__(hub, *args, **kwargs)
 
-        self.flask_app = greenwave.app_factory.create_app(config_obj)
+        self.flask_app = greenwave.app_factory.create_app(config)
+        self.greenwave_api_url = self.flask_app.config['GREENWAVE_API_URL']
+        self.koji_base_url = self.flask_app.config['KOJI_BASE_URL']
         self.cache = self.flask_app.cache
 
         log.info('Greenwave resultsdb handler listening on: %s', self.topic)
@@ -262,7 +263,8 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             result_id (int): A result ID to ignore for comparison.
             testcase (munch.Munch): The name of a testcase to consider.
         """
-        product_version = _subject_product_version(subject_identifier, subject_type)
+        product_version = _subject_product_version(
+            subject_identifier, subject_type, self.koji_base_url)
         policies = self.flask_app.config['policies']
         contexts_product_versions = applicable_decision_context_product_version_pairs(
             policies,
@@ -274,7 +276,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         log.info('Getting greenwave info')
 
         for decision_context, product_version in sorted(contexts_product_versions):
-            greenwave_url = current_app.config['GREENWAVE_API_URL'] + '/decision'
+            greenwave_url = self.greenwave_api_url + '/decision'
 
             data = {
                 'decision_context': decision_context,

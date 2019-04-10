@@ -12,7 +12,6 @@ to the message bus about the newly satisfied/unsatisfied policy.
 import logging
 import json
 
-from flask import current_app
 import fedmsg.consumers
 import requests
 
@@ -59,9 +58,12 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
         self.topic = ['.'.join([prefix, env, suffix])]
         self.fedmsg_config = fedmsg.config.load_config()
 
+        config = kwargs.pop('config', None)
+
         super(WaiverDBHandler, self).__init__(hub, *args, **kwargs)
 
-        self.flask_app = greenwave.app_factory.create_app()
+        self.flask_app = greenwave.app_factory.create_app(config)
+        self.greenwave_api_url = self.flask_app.config['GREENWAVE_API_URL']
         log.info('Greenwave waiverdb handler listening on: %s', self.topic)
 
     def consume(self, message):
@@ -103,7 +105,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                 'subject_identifier': subject_identifier,
             }
             response = requests_session.post(
-                current_app.config['GREENWAVE_API_URL'] + '/decision',
+                self.greenwave_api_url + '/decision',
                 headers={'Content-Type': 'application/json'},
                 data=json.dumps(data))
 
@@ -118,7 +120,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                 'ignore_waiver': [waiver_id],
             })
             response = requests_session.post(
-                current_app.config['GREENWAVE_API_URL'] + '/decision',
+                self.greenwave_api_url + '/decision',
                 headers={'Content-Type': 'application/json'},
                 data=json.dumps(data))
 

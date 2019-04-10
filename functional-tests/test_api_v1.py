@@ -77,7 +77,7 @@ def test_about_endpoint_jsonp(requests_session, greenwave_server):
 def test_version_redirect(requests_session, greenwave_server):
     r = requests_session.get(greenwave_server + 'api/v1.0/version')
     assert r.status_code == 200
-    assert '"version": "%s"' % __version__ in r.text
+    assert __version__, r.json()['version']
     assert r.url.endswith('about')
 
 
