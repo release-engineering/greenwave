@@ -227,7 +227,7 @@ def retrieve_waivers(product_version, subject_type, subject_identifiers, when):
             'subject_identifier': subject_identifier
         }
         if when:
-            d['since']: '1900-01-01T00:00:00.000000,{}'.format(when)
+            d['since'] = '1900-01-01T00:00:00.000000,{}'.format(when)
         filters.append(d)
     response = requests_session.post(
         current_app.config['WAIVERDB_API_URL'] + '/waivers/+filtered',
