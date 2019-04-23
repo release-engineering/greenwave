@@ -24,6 +24,20 @@ You can run the unit and functional tests with the following command:
 
   $ docker-compose exec dev pytest
 
+You could encounter following error when executing the application or tests in
+both in and outside the container.
+
+.. code-block:: console
+
+  ImportError while loading conftest '/code/conftest.py'.
+  py._path.local.LocalPath.ImportMismatchError: ('conftest', '/home/user/proj/greenwave/conftest.py', local('/code/conftest.py'))
+
+To resolve this, run this command in the project directory:
+
+.. code-block:: console
+
+  $ find -name '*.pyc' -delete
+
 Rationale
 ---------
 
