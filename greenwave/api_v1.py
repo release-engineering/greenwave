@@ -272,10 +272,59 @@ def make_decision():
            ],
        }
 
+    **Sample On-demand policy request**:
+
+    Note: Greenwave would not publish a message on the message bus when an on-demand
+          policy request is received.
+
+    .. sourcecode:: http
+
+       POST /api/v1.0/decision HTTP/1.1
+       Accept: application/json
+       Content-Type: application/json
+
+       {
+           "subject_identifier": "cross-gcc-7.0.1-0.3.el8",
+           "verbose": false,
+           "subject_type": "koji_build",
+           "rules": [
+               {
+                   "type": "PassingTestCaseRule",
+                   "test_case_name": "fake.testcase.tier0.validation"
+               }
+           ],
+           "product_version": ["rhel-8"],
+           "excluded_packages": ["python2-*"]
+       }
+
+
+
+    **Sample On-demand policy response**:
+
+    .. sourcecode:: none
+
+       HTTP/1.0 200
+       Content-Length: 228
+       Content-Type: application/json
+
+       {
+           "policies_satisfied": True,
+           "satisfied_requirements": [
+               {
+                   "result_id": 7403736,
+                   "testcase": "fake.testcase.tier0.validation",
+                   "type": "test-result-passed"
+                }
+           ],
+           "summary": "All required tests passed",
+           "unsatisfied_requirements": []
+       }
+
     :jsonparam string product_version: The product version string used for querying WaiverDB.
     :jsonparam string decision_context: The decision context string, identified by a
         free-form string label. It is to be named through coordination between policy
         author and calling application, for example ``bodhi_update_push_stable``.
+        Do not use this parameter with `rules`.
     :jsonparam string subject_type: The type of software artefact we are
         making a decision about, for example ``koji_build``.
         See :ref:`subject-types` for a list of possible subject types.
@@ -296,6 +345,11 @@ def make_decision():
         the decision.
     :jsonparam string when: A date (or datetime) in ISO8601 format. Greenwave will
         take a decision considering only results and waivers from that point in time.
+    :jsonparam list rules: A list of dictionaries containing the 'type' and 'test_case_name'
+        of an individual rule used to specify on-demand policy.
+        For example, [{"type":"PassingTestCaseRule", "test_case_name":"dist.abicheck"},
+                      {"type":"RemoteRule"}]
+        Do not use this parameter along with `decision_context`.
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
     """  # noqa: E501
