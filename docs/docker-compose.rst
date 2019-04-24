@@ -6,7 +6,8 @@ Quickstart
 
 Start local development containers of ResultsDB and WaiverDB using
 ``docker-compose``. If you want the containers to run in the foreground, omit
-the ``-d`` flag.
+the ``-d`` flag. If you want to create the containers again (after some code
+changes) add ``--force-recreate`` flag.
 
 .. code-block:: console
 
