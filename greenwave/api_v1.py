@@ -8,6 +8,7 @@ from prometheus_client import generate_latest
 from greenwave import __version__
 from greenwave.policies import (summarize_answers,
                                 RemotePolicy,
+                                OnDemandPolicy,
                                 _missing_decision_contexts_in_parent_policies)
 from greenwave.resources import ResultsRetriever, retrieve_waivers
 from greenwave.safe_yaml import SafeYAMLError
@@ -271,10 +272,59 @@ def make_decision():
            ],
        }
 
+    **Sample On-demand policy request**:
+
+    Note: Greenwave would not publish a message on the message bus when an on-demand
+          policy request is received.
+
+    .. sourcecode:: http
+
+       POST /api/v1.0/decision HTTP/1.1
+       Accept: application/json
+       Content-Type: application/json
+
+       {
+           "subject_identifier": "cross-gcc-7.0.1-0.3.el8",
+           "verbose": false,
+           "subject_type": "koji_build",
+           "rules": [
+               {
+                   "type": "PassingTestCaseRule",
+                   "test_case_name": "fake.testcase.tier0.validation"
+               }
+           ],
+           "product_version": ["rhel-8"],
+           "excluded_packages": ["python2-*"]
+       }
+
+
+
+    **Sample On-demand policy response**:
+
+    .. sourcecode:: none
+
+       HTTP/1.0 200
+       Content-Length: 228
+       Content-Type: application/json
+
+       {
+           "policies_satisfied": True,
+           "satisfied_requirements": [
+               {
+                   "result_id": 7403736,
+                   "testcase": "fake.testcase.tier0.validation",
+                   "type": "test-result-passed"
+                }
+           ],
+           "summary": "All required tests passed",
+           "unsatisfied_requirements": []
+       }
+
     :jsonparam string product_version: The product version string used for querying WaiverDB.
     :jsonparam string decision_context: The decision context string, identified by a
         free-form string label. It is to be named through coordination between policy
         author and calling application, for example ``bodhi_update_push_stable``.
+        Do not use this parameter with `rules`.
     :jsonparam string subject_type: The type of software artefact we are
         making a decision about, for example ``koji_build``.
         See :ref:`subject-types` for a list of possible subject types.
@@ -295,26 +345,44 @@ def make_decision():
         the decision.
     :jsonparam string when: A date (or datetime) in ISO8601 format. Greenwave will
         take a decision considering only results and waivers from that point in time.
+    :jsonparam list rules: A list of dictionaries containing the 'type' and 'test_case_name'
+        of an individual rule used to specify on-demand policy.
+        For example, [{"type":"PassingTestCaseRule", "test_case_name":"dist.abicheck"},
+                      {"type":"RemoteRule"}]
+        Do not use this parameter along with `decision_context`.
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
     """  # noqa: E501
-    if request.get_json():
-        if ('product_version' not in request.get_json() or
-                not request.get_json()['product_version']):
+    data = request.get_json()
+    if data:
+        if not data.get('product_version'):
             log.error('Missing required product version')
             raise BadRequest('Missing required product version')
-        if ('decision_context' not in request.get_json() or
-                not request.get_json()['decision_context']):
-            log.error('Missing required decision context')
-            raise BadRequest('Missing required decision context')
+        if not data.get('decision_context') and not data.get('rules'):
+            log.error('Either decision_context or rules is required.')
+            raise BadRequest('Either decision_context or rules is required.')
     else:
         log.error('No JSON payload in request')
         raise UnsupportedMediaType('No JSON payload in request')
 
-    data = request.get_json()
     log.debug('New decision request for data: %s', data)
     product_version = data['product_version']
-    decision_context = data['decision_context']
+
+    decision_context = data.get('decision_context', None)
+    rules = data.get('rules', [])
+    if decision_context and rules:
+        log.error('Cannot have both decision_context and rules')
+        raise BadRequest('Cannot have both decision_context and rules')
+
+    on_demand_policies = []
+    if rules:
+        request_data = {key: data[key] for key in data if key not in ('subject', 'subject_type')}
+        for subject_type, subject_identifier in _decision_subjects_for_request(data):
+            request_data['subject_type'] = subject_type
+            request_data['subject_identifier'] = subject_identifier
+            on_demand_policy = OnDemandPolicy.create_from_json(request_data)
+            on_demand_policies.append(on_demand_policy)
+
     verbose = data.get('verbose', False)
     if not isinstance(verbose, bool):
         log.error('Invalid verbose flag, must be a bool')
@@ -341,9 +409,10 @@ def make_decision():
         verify=current_app.config['REQUESTS_VERIFY'],
         url=current_app.config['RESULTSDB_API_URL'])
 
+    policies = on_demand_policies or current_app.config['policies']
     for subject_type, subject_identifier in _decision_subjects_for_request(data):
         subject_policies = [
-            policy for policy in current_app.config['policies']
+            policy for policy in policies
             if policy.matches(
                 decision_context=decision_context,
                 product_version=product_version,
@@ -382,12 +451,15 @@ def make_decision():
     response = {
         'policies_satisfied': all(answer.is_satisfied for answer in answers),
         'summary': summarize_answers(answers),
-        'applicable_policies': [policy.id for policy in applicable_policies],
         'satisfied_requirements':
             [answer.to_json() for answer in answers if answer.is_satisfied],
         'unsatisfied_requirements':
             [answer.to_json() for answer in answers if not answer.is_satisfied],
     }
+
+    # Check if on-demand policy was specified
+    if not rules:
+        response.update({'applicable_policies': [policy.id for policy in applicable_policies]})
 
     if verbose:
         # removing duplicated elements...

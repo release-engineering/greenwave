@@ -97,7 +97,8 @@ def test_cannot_make_decision_without_product_version(requests_session, greenwav
 
 
 @pytest.mark.smoke
-def test_cannot_make_decision_without_decision_context(requests_session, greenwave_server):
+def test_cannot_make_decision_without_decision_context_and_user_policies(
+        requests_session, greenwave_server):
     data = {
         'product_version': 'fedora-26',
         'subject_type': 'bodhi_update',
@@ -107,7 +108,7 @@ def test_cannot_make_decision_without_decision_context(requests_session, greenwa
                               headers={'Content-Type': 'application/json'},
                               data=json.dumps(data))
     assert r.status_code == 400
-    assert 'Missing required decision context' == r.json()['message']
+    assert 'Either decision_context or rules is required.' == r.json()['message']
 
 
 @pytest.mark.smoke
@@ -1408,3 +1409,176 @@ def test_api_with_when(requests_session, greenwave_server, testdatabuilder):
     res_data = r.json()
 
     assert len(res_data['results']) == 2
+
+
+@pytest.mark.smoke
+def test_cannot_make_decision_with_both_decision_context_and_user_policies(
+        requests_session, greenwave_server):
+    data = {
+        'product_version': 'fedora-26',
+        'subject_type': 'bodhi_update',
+        'subject_identifier': 'FEDORA-2018-ec7cb4d5eb',
+        'decision_context': 'koji_build_push_missing_results',
+        'rules': [
+            {
+                'type': 'PassingTestCaseRule',
+                'test_case_name': 'osci.brew-build.rpmdeplint.functional'
+            },
+        ],
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 400
+    assert ('Cannot have both decision_context and rules') == r.json()['message']
+
+
+@pytest.mark.smoke
+def test_cannot_make_decision_without_required_rule_type(
+        requests_session, greenwave_server):
+    data = {
+        'product_version': 'fedora-26',
+        'subject_type': 'bodhi_update',
+        'subject_identifier': 'FEDORA-2018-ec7cb4d5eb',
+        'rules': [
+            {
+                'typo': 'PassingTestCaseRule',
+                'test_case_name': 'dist.abicheck'
+            },
+            {
+                'type': 'PassingTestCaseRule',
+                'test_case_name': 'dist.rpmdeplint'
+            },
+        ],
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 400
+    assert ('Key \'type\' is required for every rule') == r.json()['message']
+
+
+@pytest.mark.smoke
+def test_cannot_make_decision_without_required_rule_testcase_name(
+        requests_session, greenwave_server):
+    data = {
+        'product_version': 'fedora-26',
+        'subject_type': 'bodhi_update',
+        'subject_identifier': 'FEDORA-2018-ec7cb4d5eb',
+        'rules': [
+            {
+                'type': 'PassingTestCaseRule',
+                'test_case_name': 'dist.abicheck'
+            },
+            {
+                'type': 'PassingTestCaseRule'
+            },
+        ],
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 400
+    assert ('Key \'test_case_name\' is required if not a RemoteRule') == r.json()['message']
+
+
+def test_make_a_decision_with_verbose_flag_on_demand_policy(
+        requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    results = []
+    expected_waivers = []
+    # First one failed but was waived
+    results.append(testdatabuilder.create_result(item=nvr,
+                                                 testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                                 outcome='FAILED'))
+    expected_waivers.append(
+        testdatabuilder.create_waiver(nvr=nvr,
+                                      product_version='fedora-31',
+                                      testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                      comment='This is fine'))
+    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
+        results.append(testdatabuilder.create_result(item=nvr,
+                                                     testcase_name=testcase_name,
+                                                     outcome='PASSED'))
+
+    data = {
+        'product_version': 'fedora-31',
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
+        'verbose': True,
+        'rules': [
+            {
+                'type': 'PassingTestCaseRule',
+                'test_case_name': 'dist.abicheck'
+            },
+            {
+                'type': 'PassingTestCaseRule',
+                'test_case_name': 'dist.rpmdeplint'
+            },
+            {
+                'type': 'PassingTestCaseRule',
+                'test_case_name': 'dist.upgradepath'
+            },
+        ],
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+
+    assert len(res_data['results']) == len(results)
+    assert res_data['results'] == list(reversed(results))
+    assert len(res_data['waivers']) == len(expected_waivers)
+    assert res_data['waivers'] == expected_waivers
+    assert len(res_data['satisfied_requirements']) == len(results)
+    assert len(res_data['unsatisfied_requirements']) == 0
+
+
+def test_make_a_decision_on_demand_policy(
+        requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    results = []
+    expected_waivers = []
+    # First one failed but was waived
+    results.append(testdatabuilder.create_result(item=nvr,
+                                                 testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                                 outcome='FAILED'))
+    expected_waivers.append(
+        testdatabuilder.create_waiver(nvr=nvr,
+                                      product_version='fedora-31',
+                                      testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0],
+                                      comment='This is fine'))
+    for testcase_name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]:
+        results.append(testdatabuilder.create_result(item=nvr,
+                                                     testcase_name=testcase_name,
+                                                     outcome='PASSED'))
+
+    data = {
+        'id': 'on_demand',
+        'product_version': 'fedora-31',
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
+        'rules': [
+            {
+                'type': 'PassingTestCaseRule',
+                'test_case_name': 'dist.abicheck'
+            },
+            {
+                'type': 'PassingTestCaseRule',
+                'test_case_name': 'dist.rpmdeplint'
+            },
+            {
+                'type': 'PassingTestCaseRule',
+                'test_case_name': 'dist.upgradepath'
+            },
+        ],
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+    assert r.status_code == 200
+    res_data = r.json()
+
+    assert len(res_data['satisfied_requirements']) == len(results)
+    assert len(res_data['unsatisfied_requirements']) == 0

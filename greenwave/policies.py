@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import greenwave.resources
+from werkzeug.exceptions import BadRequest
 from flask import current_app
 
 from greenwave.safe_yaml import (
@@ -305,6 +306,36 @@ class Rule(SafeYAMLObject):
         """
         return True
 
+    @staticmethod
+    def process_on_demand_rules(rules):
+        """
+        Validates rules and creates objects for them.
+
+        Args:
+            rules (json): User specified rules
+
+        Returns:
+            list: Returns a list of appropriate objects
+        """
+        if not all([rule.get('type') for rule in rules]):
+            raise BadRequest('Key \'type\' is required for every rule')
+        if not all([rule.get('test_case_name') for rule in rules if rule['type'] != 'RemoteRule']):
+            raise BadRequest('Key \'test_case_name\' is required if not a RemoteRule')
+
+        processed_rules = []
+        for rule in rules:
+            if rule['type'] == 'RemoteRule':
+                processed_rules.append(RemoteRule())
+            elif rule['type'] == 'PassingTestCaseRule':
+                temp_rule = PassingTestCaseRule()
+                temp_rule.test_case_name = rule['test_case_name']  # pylint: disable=W0201
+                temp_rule.scenario = rule.get('scenario')  # pylint: disable=W0201
+                processed_rules.append(temp_rule)
+            else:
+                raise BadRequest('Invalid rule type {}'.format(rule['type']))
+
+        return processed_rules
+
 
 def waives_invalid_gating_yaml(waiver, subject_type, subject_identifier):
     return (waiver['testcase'] == 'invalid-gating-yaml' and
@@ -334,6 +365,12 @@ class RemoteRule(Rule):
             return []
 
         policies = RemotePolicy.safe_load_all(response)
+        if isinstance(policy, OnDemandPolicy):
+            return [
+                sub_policy for sub_policy in policies
+                if set(sub_policy.product_versions) == set(policy.product_versions)
+            ]
+
         return [
             sub_policy for sub_policy in policies
             if sub_policy.decision_context == policy.decision_context
@@ -590,6 +627,49 @@ class Policy(SafeYAMLObject):
     @property
     def safe_yaml_label(self):
         return 'Policy {!r}'.format(self.id or 'untitled')
+
+
+class OnDemandPolicy(Policy):
+    root_yaml_tag = '!Policy'
+    safe_yaml_attributes = {}
+
+    def __init__(self):
+        self.id = None
+        self.product_versions = None
+        self.subject_type = None
+        self.rules = None
+        self.blacklist = None
+        self.excluded_packages = None
+        self.packages = None
+        self.relevance_key = None
+
+    @classmethod
+    def create_from_json(cls, data_dict):
+        policy = cls()
+        policy.id = data_dict.get('id')
+        policy.product_versions = [data_dict['product_version']]
+        policy.subject_type = data_dict['subject_type']
+        policy.rules = Rule.process_on_demand_rules(data_dict['rules'])
+        policy.blacklist = data_dict.get('blacklist', [])
+        policy.excluded_packages = data_dict.get('excluded_packages', [])
+        policy.packages = data_dict.get('packages', [])
+        policy.relevance_key = data_dict.get('relevance_key')
+
+        # Validate the data before processing.
+        policy.__validate_attributes()  # pylint: disable=W0212
+        return policy
+
+    def __validate_attributes(self):
+        """ Validates types of the attributes. """
+        list_attributes = ['product_versions', 'rules', 'excluded_packages', 'packages']
+        for attribute in self.__dict__.keys():
+            if attribute in list_attributes and not isinstance(
+                    getattr(self, attribute, None), list):
+                raise TypeError('{} should be a list.'.format(attribute))
+            elif attribute not in list_attributes:
+                if getattr(self, attribute, None) and not isinstance(
+                        getattr(self, attribute, None), str):
+                    raise TypeError('{} should be a string.'.format(attribute))
 
 
 class RemotePolicy(Policy):

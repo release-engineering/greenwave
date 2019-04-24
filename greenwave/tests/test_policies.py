@@ -16,7 +16,8 @@ from greenwave.policies import (
     TestResultMissing,
     TestResultFailed,
     TestResultPassed,
-    InvalidGatingYaml
+    InvalidGatingYaml,
+    OnDemandPolicy
 )
 from greenwave.resources import ResultsRetriever
 from greenwave.safe_yaml import SafeYAMLError
@@ -889,3 +890,60 @@ def test_policy_with_subject_type_redhat_module(tmpdir):
     decision = policy.check('fedora-29', nsvc, results, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
+
+
+@pytest.mark.parametrize('namespace', ["rpms", ""])
+def test_remote_rule_policy_on_demand_policy(namespace):
+    """ Testing the RemoteRule with the koji interaction when on_demand policy is given.
+    In this case we are just mocking koji """
+
+    nvr = 'nethack-1.2.3-1.el9000'
+
+    serverside_json = {
+        'product_version': 'fedora-26',
+        'id': 'taskotron_release_critical_tasks_with_remoterule',
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
+        'rules': [
+            {
+                'type': 'RemoteRule'
+            },
+        ],
+    }
+
+    remote_fragment = dedent("""
+        --- !Policy
+        id: "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+        - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """)
+
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = remote_fragment
+                policy = OnDemandPolicy.create_from_json(serverside_json)  # pylint: disable=W0212
+                waivers = []
+
+                # Ensure that presence of a result is success.
+                results = DummyResultsRetriever(nvr, 'dist.upgradepath')
+                decision = policy.check('fedora-26', nvr, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], RuleSatisfied)
+
+                # Ensure that absence of a result is failure.
+                results = DummyResultsRetriever()
+                decision = policy.check('fedora-26', nvr, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultMissing)
+
+                # And that a result with a failure, is a failure.
+                results = DummyResultsRetriever(nvr, 'dist.upgradepath', 'FAILED')
+                decision = policy.check('fedora-26', nvr, results, waivers)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultFailed)
