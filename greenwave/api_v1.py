@@ -297,8 +297,6 @@ def make_decision():
            "excluded_packages": ["python2-*"]
        }
 
-
-
     **Sample On-demand policy response**:
 
     .. sourcecode:: none
@@ -348,8 +346,7 @@ def make_decision():
     :jsonparam list rules: A list of dictionaries containing the 'type' and 'test_case_name'
         of an individual rule used to specify on-demand policy.
         For example, [{"type":"PassingTestCaseRule", "test_case_name":"dist.abicheck"},
-                      {"type":"RemoteRule"}]
-        Do not use this parameter along with `decision_context`.
+        {"type":"RemoteRule"}]. Do not use this parameter along with `decision_context`.
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
     """  # noqa: E501
