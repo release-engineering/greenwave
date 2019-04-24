@@ -17,7 +17,10 @@ import requests
 
 import greenwave.app_factory
 from greenwave.api_v1 import subject_type_identifier_to_list
-from greenwave.monitoring import publish_decision_exceptions_waiver_counter
+from greenwave.monitor import (
+    publish_decision_exceptions_waiver_counter,
+    messaging_tx_to_send_counter, messaging_tx_stopped_counter,
+    messaging_tx_sent_ok_counter, messaging_tx_failed_counter)
 from greenwave.policies import applicable_decision_context_product_version_pairs
 from greenwave.utils import right_before_this_time
 
@@ -100,6 +103,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
             product_version=product_version)
 
         for decision_context, product_version in sorted(contexts_product_versions):
+            messaging_tx_to_send_counter.labels(handler='waiverdb').inc()
             data = {
                 'decision_context': decision_context,
                 'product_version': product_version,
@@ -113,6 +117,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
             if not response.ok:
                 log.error(response.text)
+                messaging_tx_stopped_counter.labels(handler='waiverdb').inc()
                 continue
 
             decision = response.json()
@@ -128,44 +133,58 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
 
             if not response.ok:
                 log.error(response.text)
+                messaging_tx_stopped_counter.labels(handler='waiverdb').inc()
                 continue
 
             old_decision = response.json()
 
             if decision == old_decision:
                 log.debug('Skipped emitting fedmsg, decision did not change: %s', decision)
-            else:
-                msg = decision
-                decision.update({
-                    'subject_type': subject_type,
-                    'subject_identifier': subject_identifier,
-                    # subject is for backwards compatibility only:
-                    'subject': subject_type_identifier_to_list(subject_type,
-                                                               subject_identifier),
-                    'testcase': testcase,
-                    'decision_context': decision_context,
-                    'product_version': product_version,
-                    'previous': old_decision,
-                })
-                log.info(
-                    'Emitted a message on the bus, %r, with the topic '
-                    '"greenwave.decision.update"', decision)
-                if self.flask_app.config['MESSAGING'] == 'fedmsg':
-                    log.debug('  - to fedmsg')
+                messaging_tx_stopped_counter.labels(handler='waiverdb').inc()
+                continue
+
+            msg = decision
+            decision.update({
+                'subject_type': subject_type,
+                'subject_identifier': subject_identifier,
+                # subject is for backwards compatibility only:
+                'subject': subject_type_identifier_to_list(subject_type,
+                                                           subject_identifier),
+                'testcase': testcase,
+                'decision_context': decision_context,
+                'product_version': product_version,
+                'previous': old_decision,
+            })
+            log.info(
+                'Emitting a message on the bus, %r, with the topic '
+                '"greenwave.decision.update"', decision)
+            if self.flask_app.config['MESSAGING'] == 'fedmsg':
+                log.debug('  - to fedmsg')
+                try:
                     fedmsg.publish(topic='decision.update', msg=msg)
-                elif self.flask_app.config['MESSAGING'] == 'fedora-message':
-                    log.debug('  - to fedora-messaging')
-                    try:
-                        msg = fedora_messaging.api.Message(
-                            topic='greenwave.decision.update',
-                            body=msg
-                        )
-                        fedora_messaging.api.publish(msg)
-                    except fedora_messaging.exceptions.PublishReturned as e:
-                        log.warning(
-                            'Fedora Messaging broker rejected message %s: %s',
-                            msg.id, e)
-                    except fedora_messaging.exceptions.ConnectionException as e:
-                        log.warning('Error sending message %s: %s', msg.id, e)
-                    except Exception:  # pylint: disable=broad-except
-                        log.exception('Error sending fedora-messaging message')
+                    messaging_tx_sent_ok_counter.labels(handler='waiverdb').inc()
+                except Exception:
+                    messaging_tx_failed_counter.labels(handler='waiverdb').inc()
+                    raise
+            elif self.flask_app.config['MESSAGING'] == 'fedora-message':
+                log.debug('  - to fedora-messaging')
+                try:
+                    msg = fedora_messaging.api.Message(
+                        topic='greenwave.decision.update',
+                        body=msg
+                    )
+                    fedora_messaging.api.publish(msg)
+                    messaging_tx_sent_ok_counter.labels(handler='waiverdb').inc()
+                except fedora_messaging.exceptions.PublishReturned as e:
+                    log.warning(
+                        'Fedora Messaging broker rejected message %s: %s',
+                        msg.id, e)
+                    messaging_tx_stopped_counter.labels(handler='waiverdb').inc()
+                except fedora_messaging.exceptions.ConnectionException as e:
+                    log.warning('Error sending message %s: %s', msg.id, e)
+                    messaging_tx_failed_counter.labels(handler='waiverdb').inc()
+                except Exception:  # pylint: disable=broad-except
+                    log.exception('Error sending fedora-messaging message')
+                    messaging_tx_failed_counter.labels(handler='waiverdb').inc()
+
+            messaging_tx_stopped_counter.labels(handler='waiverdb').inc()

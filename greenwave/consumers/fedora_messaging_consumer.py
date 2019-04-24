@@ -13,6 +13,9 @@ import logging
 
 from greenwave.consumers.resultsdb import ResultsDBHandler
 from greenwave.consumers.waiverdb import WaiverDBHandler
+from greenwave.monitor import (
+    messaging_rx_counter, messaging_rx_ignored_counter,
+    messaging_rx_processed_ok_counter, messaging_rx_failed_counter)
 
 from fedora_messaging.config import conf
 
@@ -41,9 +44,11 @@ def fedora_messaging_callback(message):
     """
     log.info(
         'Received message from fedora-messaging with topic: %s', message.topic)
+    messaging_rx_counter.inc()
     consumer_config = conf["consumer_config"]
     if message.topic.endswith("taskotron.result.new"):
         # New resultsdb results
+        messaging_rx_counter.labels(handler="resultsdb").inc()
         config = {
             "topic_prefix": consumer_config["topic_prefix"],
             "environment": consumer_config["environment"],
@@ -53,10 +58,16 @@ def fedora_messaging_callback(message):
         handler = ResultsDBHandler(hub)
         msg = {"body": {'msg': message.body}}
         log.info('Sending message received to: ResultsDBHandler')
-        handler.consume(msg)
+        try:
+            handler.consume(msg)
+            messaging_rx_processed_ok_counter.labels(handler="resultsdb").inc()
+        except Exception:
+            messaging_rx_failed_counter.labels(handler="resultsdb").inc()
+            raise
 
     elif message.topic.endswith('waiver.new'):
         # New waiver submitted
+        messaging_rx_counter.labels(handler="waiverdb").inc()
         config = {
             "topic_prefix": consumer_config["topic_prefix"],
             "environment": consumer_config["environment"],
@@ -66,4 +77,11 @@ def fedora_messaging_callback(message):
         handler = WaiverDBHandler(hub)
         msg = {"body": {'msg': message.body}}
         log.info('Sending message received to: WaiverDBHandler')
-        handler.consume(msg)
+        try:
+            handler.consume(msg)
+            messaging_rx_processed_ok_counter.labels(handler="waiverdb").inc()
+        except Exception:
+            messaging_rx_failed_counter.labels(handler="waiverdb").inc()
+            raise
+
+    messaging_rx_ignored_counter.inc()
