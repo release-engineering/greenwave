@@ -35,4 +35,5 @@ RUN pip3 install . --no-deps
 RUN rm -rf ./fedmsg.d
 USER 1001
 EXPOSE 8080
-ENTRYPOINT docker/install-ca.sh && gunicorn-3 --workers 8 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance greenwave.wsgi:app
+ENTRYPOINT ["docker/docker-entrypoint.sh"]
+CMD ["/usr/bin/gunicorn-3", "--workers", "8", "--bind", "0.0.0.0:8080", "--access-logfile", "-", "--enable-stdio-inheritance", "greenwave.wsgi:app"]

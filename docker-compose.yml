@@ -1,0 +1,72 @@
+version: '2.1'
+services:
+  dev:
+    build: .
+    user: ${DEV_USER_ID:-1000}
+    working_dir: /code
+    env_file: docker/dev.env
+    command: ["bash", "-c", "./docker/dev-command.sh"]
+    volumes:
+      - ./:/code:ro,z
+      - ./docker/home:/home/dev:Z
+      - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
+      - ./conf/policies/:/etc/greenwave/policies/:ro,z
+    ports:
+      - 8080:8080
+    depends_on:
+      - memcached
+      - resultsdb
+      - waiverdb
+
+  resultsdb-db:
+    image: postgres:9.5.2
+    restart: always
+    env_file: docker/resultsdb-db.env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  resultsdb:
+    build:
+      context: ../resultsdb
+      dockerfile: openshift/Dockerfile
+    command: ["bash", "-c", "/start.sh"]
+    volumes:
+      - ./docker/resultsdb-command.sh:/start.sh:ro,z
+      - ./docker/resultsdb-settings.py:/etc/resultsdb/settings.py:ro,z
+      - ./docker/resultsdb.conf:/etc/httpd/conf.d/resultsdb.conf:ro,z
+    ports:
+      - 5001:5001
+    depends_on:
+      resultsdb-db:
+        condition: service_healthy
+
+  waiverdb-db:
+    image: postgres:9.5.2
+    restart: always
+    env_file: docker/waiverdb-db.env
+
+  waiverdb:
+    image: "quay.io/factory2/waiverdb:latest"
+    working_dir: /code
+    env_file: docker/waiverdb.env
+    command: ["bash", "-c", "/start.sh"]
+    volumes:
+      - ../waiverdb:/code:ro,Z
+      - ./docker/waiverdb-command.sh:/start.sh:ro,z
+      - ./docker/waiverdb-settings.py:/etc/waiverdb/settings.py:ro,z
+      - ./docker/client_secrets.json:/etc/secret/client_secrets.json:ro,z
+    ports:
+     - 5004:5004
+    user: '0'
+    depends_on:
+      - waiverdb-db
+
+  memcached:
+    image: "docker.io/modularitycontainers/memcached"
+
+networks:
+  default:
+    driver: bridge

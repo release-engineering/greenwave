@@ -1,46 +1,43 @@
 Docker-compose for Greenwave
 ===========================================
 
-virtualenv and docker-compose Quickstart
-----------------------------------------
+Quickstart
+----------
 
 Start local development containers of ResultsDB and WaiverDB using
 ``docker-compose``. If you want the containers to run in the foreground, omit
-the ``-d`` flag.
+the ``-d`` flag. If you want to create the containers again (after some code
+changes) add ``--force-recreate`` flag.
 
 .. code-block:: console
 
-  $ sudo docker-compose -f docker/docker-compose.yml up -d resultsdb waiverdb
+  $ docker-compose up -d
 
-Create a Python virtualenv:
-
-.. code-block:: console
-
-  $ mkvirtualenv greenwave -p python3
-  $ pip install -r requirements.txt
-  $ pip install -r dev-requirements.txt
-
-Create a local configuration file:
+Install development requirements:
 
 .. code-block:: console
 
-  $ cp conf/settings.py.example conf/settings.py
+  $ docker-compose exec dev pip3 install --user -r dev-requirements.txt
 
-Run the development server:
-
-.. code-block:: console
-
-  $ DEV=true FLASK_ENV=development python3 run-dev-server.py
-
-You can run the unit tests, which live in the ``greenwave.tests`` package, with
-the following command:
+You can run the unit and functional tests with the following command:
 
 .. code-block:: console
 
-   $ pytest greenwave/tests/
+  $ docker-compose exec dev pytest
 
-The functional tests will not work this setup since they require ResultsDB,
-WaiverDB, and Postgresql to be running locally.
+You could encounter following error when executing the application or tests in
+both in and outside the container.
+
+.. code-block:: console
+
+  ImportError while loading conftest '/code/conftest.py'.
+  py._path.local.LocalPath.ImportMismatchError: ('conftest', '/home/user/proj/greenwave/conftest.py', local('/code/conftest.py'))
+
+To resolve this, run this command in the project directory:
+
+.. code-block:: console
+
+  $ find -name '*.pyc' -delete
 
 Rationale
 ---------
