@@ -178,7 +178,7 @@ node('fedora-29') {
      * locally not in Openshift for now. */
     sh installDepsCmd
 
-    def openshiftHost = 'greenwave-test.cloud.paas.upshift.redhat.com'
+    def openshiftHost = 'greenwave-test.cloud.paas.psi.redhat.com'
     def buildTag = "${env.BUILD_TAG}".replace('jenkins-','')
     def waiverdbURL = "waiverdb-test-${buildTag}-web-${openshiftHost}"
     def resultsdbURL = "resultsdb-test-${buildTag}-api-${openshiftHost}"
@@ -192,8 +192,8 @@ node('fedora-29') {
     sh "curl ${waiverdbRepo}/${waiverdbTemplate} > openshift/${waiverdbTemplate}"
 
     stage('Perform functional tests') {
-        openshift.withCluster('Upshift-GA') {
-            openshift.withCredentials('upshift-greenwave-test-jenkins-credentials') {
+        openshift.withCluster('psi') {
+            openshift.withCredentials('psi-greenwave-test-jenkins-credentials') {
                 openshift.withProject('greenwave-test') {
                     def rtemplate = readYaml file: 'openshift/resultsdb-test-template.yaml'
                     // TODO: move this image to the factory2 project in the docker registry
