@@ -49,7 +49,9 @@ services:
     env_file: docker/waiverdb-db.env
 
   waiverdb:
-    image: "quay.io/factory2/waiverdb:latest"
+    build:
+      context: ../waiverdb
+      dockerfile: openshift/containers/waiverdb/Dockerfile
     working_dir: /code
     env_file: docker/waiverdb.env
     command: ["bash", "-c", "/start.sh"]
