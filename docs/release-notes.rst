@@ -2,6 +2,36 @@
 Release Notes
 =============
 
+Greenwave 1.2.0
+===============
+
+Released 15 May 2019
+
+* Return warning if there is no parent policy for a remote rule policy: users mistakenly
+  configure a parent policy with a ``decision_context`` and a ``gating.yaml`` file with another
+  ``decision_context``. This can cause unnecessary delays for the user. In order to avoid this,
+  add a check in the ``validate_gating_yaml`` endpoint to print a warning message notifying the
+  user about it.
+* Bug fix - Omit comparing result_id values for decision change: when Greenwave receives a new
+  result message from ResultsDB, it tries to compare the old decision (ignoring the new result)
+  with new one (for all its policies) so it can publish decision update message only when the
+  decision changed.
+  The new decision was seen as "changed" when any of its data differ from the old decision.
+  The problem is that decision data include result IDs so it's always seen as "changed" if
+  the new result is part of the new decision.
+* Check old decision before a specific time: the decision endpoint allows to pass results and
+  waivers IDs lists to ignore (``ignore_result``, ``ignore_waiver``). These are used to compare
+  the new decision with older one. In case of multiple new results or waivers there could be a race
+  condition. This change introduces new parameters results_since and waivers_since, used to
+  determin the decision before these specific dates. This solves the race conditions.
+  ``ignore_result`` and ``ignore_waiver`` are not used anymore to gather the old decision, but they
+  are still parameters of the API for backwards compatibility.
+* Add support for on-demand policies: enhancing the ``/decision`` endpoint API to allow a new parameter
+  ``rules`` that will allow the user to pass some rules. These rules will be immediately processes by
+  Greenwave that will, "on demand", check the decision (as usually querying ResultsDB and WaiverDB)
+  for those rules and return a response.
+
+
 Greenwave 1.1.0
 ===============
 
