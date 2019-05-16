@@ -70,6 +70,7 @@ setup(
         ' certain gating points in a software delivery pipeline'
     ),
     long_description=README,
+    long_description_content_type="text/markdown",
     # Possible options are at https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'Development Status :: 1 - Planning',
