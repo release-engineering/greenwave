@@ -39,6 +39,15 @@ To resolve this, run this command in the project directory:
 
   $ find -name '*.pyc' -delete
 
+To execute tests for WaiverDB you also need to install the development
+dependencies first.
+
+.. code-block:: console
+
+  $ docker-compose exec waiverdb pip3 install --user -r requirements.txt
+  $ docker-compose exec waiverdb dnf -y install python3-ldap
+  $ docker-compose exec waiverdb python3 -m pytest
+
 Rationale
 ---------
 
