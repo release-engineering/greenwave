@@ -293,7 +293,7 @@ def make_decision():
                    "test_case_name": "fake.testcase.tier0.validation"
                }
            ],
-           "product_version": ["rhel-8"],
+           "product_version": "rhel-8",
            "excluded_packages": ["python2-*"]
        }
 
