@@ -44,7 +44,6 @@ def fedora_messaging_callback(message):
     """
     log.info(
         'Received message from fedora-messaging with topic: %s', message.topic)
-    messaging_rx_counter.inc()
     consumer_config = conf["consumer_config"]
     if message.topic.endswith("taskotron.result.new"):
         # New resultsdb results
@@ -83,5 +82,5 @@ def fedora_messaging_callback(message):
         except Exception:
             messaging_rx_failed_counter.labels(handler="waiverdb").inc()
             raise
-
-    messaging_rx_ignored_counter.inc()
+    else:
+        messaging_rx_ignored_counter.inc()
