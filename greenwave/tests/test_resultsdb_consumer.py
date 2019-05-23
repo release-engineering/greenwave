@@ -444,9 +444,7 @@ def test_decision_change_for_modules(
 
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')
-@mock.patch('greenwave.resources.retrieve_scm_from_koji')
 def test_real_fedora_messaging_msg(
-        mock_retrieve_scm_from_koji,
         mock_retrieve_decision,
         mock_retrieve_results):
     message = {
