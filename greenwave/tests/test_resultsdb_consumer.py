@@ -440,3 +440,129 @@ def test_decision_change_for_modules(
                 'subject_identifier': nsvc,
                 'previous': None,
             }
+
+
+@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
+@mock.patch('greenwave.resources.retrieve_decision')
+@mock.patch('greenwave.resources.retrieve_scm_from_koji')
+def test_real_fedora_messaging_msg(
+        mock_retrieve_scm_from_koji,
+        mock_retrieve_decision,
+        mock_retrieve_results):
+    message = {
+        'msg': {
+            'task': {
+                'type': 'bodhi_update',
+                'item': 'FEDORA-2019-9244c8b209',
+                'name': 'update.advisory_boot'
+            },
+            'result': {
+                'id': 23523568,
+                'submit_time': '2019-04-24 13:06:12 UTC',
+                'prev_outcome': None,
+                'outcome': 'PASSED',
+                'log_url': 'https://openqa.stg.fedoraproject.org/tests/528801'
+            }
+        }
+    }
+
+    result = {
+        "data": {
+            "arch": [
+                "x86_64"
+            ],
+            "firmware": [
+                "bios"
+            ],
+            "item": [
+                "FEDORA-2019-9244c8b209"
+            ],
+            "meta.conventions": [
+                "result fedora.bodhi"
+            ],
+            "scenario": [
+                "fedora.updates-server.x86_64.64bit"
+            ],
+            "source": [
+                "openqa"
+            ],
+            "type": [
+                "bodhi_update"
+            ]
+        },
+        "groups": [
+            "61d11797-79cd-579f-b150-349cc77e0941",
+            "222c442c-5d94-528f-9b9e-3fb379edf657",
+            "0f3309ea-6d4c-59b2-b422-d73e9b8511f3"
+        ],
+        "href": "https://taskotron.stg.fedoraproject.org/resultsdb_api/api/v2.0/results/23523568",
+        "id": 23523568,
+        "note": "",
+        "outcome": "PASSED",
+        "ref_url": "https://openqa.stg.fedoraproject.org/tests/528801",
+        "submit_time": "2019-04-24T13:06:12.135146",
+        "testcase": {
+            "href": "https://taskotron.stg.fedoraproject.org/resultsdb_api/api/v2.0/testcases/update.advisory_boot", # noqa
+            "name": "update.advisory_boot",
+            "ref_url": "https://openqa.stg.fedoraproject.org/tests/546627"
+        }
+    }
+
+    policies = dedent("""
+        --- !Policy
+        id: test_policy
+        product_versions: [fedora-rawhide]
+        decision_context: test_context
+        subject_type: bodhi_update
+        rules:
+          - !PassingTestCaseRule {test_case_name: update.advisory_boot}
+    """)
+
+    config = 'fedora-messaging'
+    publish = 'greenwave.consumers.resultsdb.fedora_messaging.api.publish'
+
+    with mock.patch('greenwave.config.Config.MESSAGING', config):
+        with mock.patch(publish) as mock_fedmsg:
+            result = {
+                'id': 1,
+                'testcase': {'name': 'dist.rpmdeplint'},
+                'outcome': 'PASSED',
+                'data': {'item': 'FEDORA-2019-9244c8b209', 'type': 'bodhi_update'},
+                'submit_time': '2019-04-24 13:06:12.135146'
+            }
+            mock_retrieve_results.return_value = [result]
+
+            def retrieve_decision(url, data):
+                #pylint: disable=unused-argument
+                if 'when' in data:
+                    return None
+                return {}
+            mock_retrieve_decision.side_effect = retrieve_decision
+
+            hub = mock.MagicMock()
+            hub.config = {
+                'environment': 'environment',
+                'topic_prefix': 'topic_prefix',
+            }
+            handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
+
+            handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
+            with handler.flask_app.app_context():
+                handler.consume(message)
+
+            assert len(mock_fedmsg.mock_calls) == 1
+
+            mock_call = mock_fedmsg.mock_calls[0][1][0]
+            assert mock_call.topic == 'greenwave.decision.update'
+            actual_msgs_sent = mock_call.body
+
+            assert actual_msgs_sent == {
+                'decision_context': 'test_context',
+                'product_version': 'fedora-rawhide',
+                'subject': [
+                    {'item': 'FEDORA-2019-9244c8b209', 'type': 'bodhi_update'},
+                ],
+                'subject_type': 'bodhi_update',
+                'subject_identifier': 'FEDORA-2019-9244c8b209',
+                'previous': None,
+            }

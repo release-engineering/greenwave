@@ -239,12 +239,16 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         message = message.get('body', message)
         log.debug('Processing message "%s"', message)
 
+        msg = message['msg']
         try:
-            testcase = message['msg']['testcase']['name']  # New format
+            testcase = msg['testcase']['name']
         except KeyError:
-            testcase = message['msg']['task']['name']  # Old format
+            testcase = msg['task']['name']
 
-        submit_time = message['msg']['submit_time']
+        try:
+            submit_time = msg['submit_time']
+        except KeyError:
+            submit_time = msg['result']['submit_time']
 
         with self.flask_app.app_context():
             for subject_type, subject_identifier in self.announcement_subjects(message):
