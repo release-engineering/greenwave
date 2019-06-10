@@ -25,7 +25,14 @@ Here is an example :file:`gating.yaml` file:
    decision_context: bodhi_update_push_testing
    subject_type: koji_build
    rules:
-     - !PassingTestCaseRule {test_case_name: dist.depcheck}
+     - !PassingTestCaseRule {test_case_name: org.centos.prod.ci.pipeline.allpackages-build.package.test.functional.complete}
+   --- !Policy
+   product_versions:
+     - fedora-*
+   decision_context: bodhi_update_push_stable
+   subject_type: koji_build
+   rules:
+     - !PassingTestCaseRule {test_case_name: org.centos.prod.ci.pipeline.allpackages-build.package.test.functional.complete}
 
 The structure of the file is the same as the policies in Greenwave's
 configuration, with the only difference that the "id" key is optional.
