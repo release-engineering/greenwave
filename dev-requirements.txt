@@ -10,7 +10,5 @@ mock
 fedora-messaging
 
 # Documentation build requirements
-# Pin sphinx until https://bitbucket.org/birkenfeld/sphinx-contrib/issues/182 is fixed and released
-sphinx==1.5.6
+sphinx
 sphinxcontrib-httpdomain
-sphinxcontrib-issuetracker

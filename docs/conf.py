@@ -37,7 +37,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinxcontrib.autohttp.flask',
-    'sphinxcontrib.issuetracker',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -185,41 +184,3 @@ epub_exclude_files = ['search.html']
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://docs.python.org/3/': 'python-intersphinx.inv'}
 
-# Configuration for issue tracker magic linking.
-issuetracker = None
-issuetracker_url = 'https://pagure.io/'
-issuetracker_project = 'greenwave'
-
-# Until Pagure support is merged: https://github.com/ignatenkobrain/sphinxcontrib-issuetracker/pull/15
-import requests
-from sphinxcontrib.issuetracker import Issue
-PAGURE_URL = '{0.url}/{0.project}/issue/{1}'
-PAGURE_API_URL = '{0.url}/api/0/{0.project}/issue/{1}'
-HEADERS = {
-    'User-Agent': 'sphinxcontrib-issuetracker'
-}
-def get(app, url):
-    try:
-        response = requests.get(url, headers=HEADERS)
-        if response.status_code == requests.codes.ok:
-            return response
-        elif response.status_code != requests.codes.not_found:
-            msg = 'GET {0.url} failed with code {0.status_code}'
-            app.warn(msg.format(response))
-    except IOError as e:
-        msg = 'GET {0} failed with error: {1}'
-        app.warn(msg.format(url, e))
-def lookup_pagure_issue(app, tracker_config, issue_id):
-    if not tracker_config.url:
-        raise ValueError('URL required, try: https://pagure.io/')
-    issue_url = PAGURE_URL.format(tracker_config, issue_id)
-    response = get(app, PAGURE_API_URL.format(tracker_config, issue_id))
-    if response:
-        title = response.json()['title']
-        closed = response.json()['status'] != 'Open'
-        return Issue(id=issue_id, title=title, closed=closed, url=issue_url)
-    else:
-        return Issue(id=issue_id, title=None, closed=False, url=issue_url)
-
-def setup(app):
-    app.connect('issuetracker-lookup-issue', lookup_pagure_issue)
