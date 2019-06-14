@@ -69,11 +69,12 @@ The document is a map (dictionary) with the following keys:
    of software artefact -- in this example, the policy applies to Bodhi
    updates.
 
-   The subject type must be one of the fixed set of types known to Greenwave.
-   See the :ref:`subject-types` section below for a list of possible types.
+   The subject type can be any string. A list of commonly used subject types
+   can be found in the :ref:`subject-types` section.
 
-   This shouldn't be defined in ``gating.yaml`` files (see :ref:`remote-rule`)
-   - the value there is always ``koji_build``.
+   In the ``gating.yaml`` files (see :ref:`remote-rule`) the allowed values
+   are ``koji_build`` and ``redhat-module`` - if not specified
+   the default value will be ``koji_build``.
 
 ``product_versions``
    A policy applies to one or more "product versions". When you ask Greenwave
@@ -131,7 +132,10 @@ The document is a map (dictionary) with the following keys:
 Subject types
 =============
 
-Greenwave can make decisions about the following types of software artefacts:
+Greenwave can make decisions about any type of software artefacts, the value of
+this field just needs to be a string.
+
+But these are common examples of types (just for reference):
 
 ``koji_build``
    A build stored in the `Koji`_ build system. Builds are identified by their
@@ -154,6 +158,8 @@ Greenwave can make decisions about the following types of software artefacts:
    reflected in their directory name, for example
    ``Fedora-Rawhide-20170508.n.0``.
 
+The ``RemoteRule`` feature is enabled only for ``subject_type`` equal to ``koji_build``
+and ``redhat-module``.
 
 .. _rule-types:
 
