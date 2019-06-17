@@ -28,7 +28,6 @@ class DummyResultsRetriever(ResultsRetriever):
             self, subject_identifier=None, testcase=None, outcome='PASSED',
             subject_type='koji_build'):
         super(DummyResultsRetriever, self).__init__(
-            cache=mock.Mock(),
             ignore_results=[],
             when='',
             timeout=0,

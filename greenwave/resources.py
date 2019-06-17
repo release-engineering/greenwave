@@ -30,30 +30,11 @@ requests_session = requests.Session()
 requests_session.headers["User-Agent"] = f"greenwave {__version__}"
 
 
-class CachedResults(object):
-    """
-    Results data in cache.
-    """
-    def __init__(self):
-        self.results = []
-        self.can_fetch_more = True
-        self.last_page = -1
-
-
-def results_cache_key(subject_type, subject_identifier, testcase):
-    """
-    Returns cache key for results for given parameters.
-    """
-    return "greenwave.resources:CachedResults|{} {} {}".format(
-        subject_type, subject_identifier, testcase)
-
-
 class ResultsRetriever(object):
     """
-    Retrieves results from cache or ResultsDB.
+    Retrieves results from ResultsDB.
     """
-    def __init__(self, cache, ignore_results, when, timeout, verify, url):
-        self.cache = cache
+    def __init__(self, ignore_results, when, timeout, verify, url):
         self.ignore_results = ignore_results
         self.when = when
         self.timeout = timeout

@@ -93,27 +93,6 @@ def _subject_product_version(subject_identifier, subject_type, koji_base_url=Non
             pass
 
 
-def _invalidate_results_cache(
-        cache, subject_type, subject_identifier, testcase):
-    """
-    Removes results for given parameters from cache.
-    """
-    key = greenwave.resources.results_cache_key(
-        subject_type, subject_identifier, testcase)
-
-    log.debug("Invalidating cache for %r", key)
-
-    try:
-        cache.delete(key)
-    except KeyError:
-        log.debug("No cache value found for %r", key)
-
-    # Also invalidate query results without test case name.
-    if testcase:
-        _invalidate_results_cache(
-            cache, subject_type, subject_identifier, testcase=None)
-
-
 def _equals_except_keys(lhs, rhs, except_keys):
     keys = lhs.keys() - except_keys
     return lhs.keys() == rhs.keys() \
@@ -253,8 +232,6 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
         with self.flask_app.app_context():
             for subject_type, subject_identifier in self.announcement_subjects(message):
                 log.debug('Considering subject %s: %r', subject_type, subject_identifier)
-                _invalidate_results_cache(
-                    self.cache, subject_type, subject_identifier, testcase)
                 self._publish_decision_changes(subject_type, subject_identifier,
                                                submit_time, testcase)
 

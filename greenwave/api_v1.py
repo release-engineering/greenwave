@@ -399,7 +399,6 @@ def make_decision():
     verbose_waivers = []
     applicable_policies = []
     results_retriever = ResultsRetriever(
-        cache=current_app.cache,
         ignore_results=ignore_results,
         when=when,
         timeout=current_app.config['REQUESTS_TIMEOUT'],
