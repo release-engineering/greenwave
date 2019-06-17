@@ -10,9 +10,10 @@ from greenwave.policies import (summarize_answers,
                                 RemotePolicy,
                                 OnDemandPolicy,
                                 _missing_decision_contexts_in_parent_policies)
-from greenwave.resources import ResultsRetriever, retrieve_waivers
+from greenwave.resources import ResultsRetriever, WaiversRetriever
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
+from greenwave.waivers import waive_answers
 from greenwave.monitor import (
     registry,
     decision_exception_counter,
@@ -396,14 +397,20 @@ def make_decision():
 
     answers = []
     verbose_results = []
-    verbose_waivers = []
     applicable_policies = []
-    results_retriever = ResultsRetriever(
-        ignore_results=ignore_results,
+    retriever_args = dict(
         when=when,
         timeout=current_app.config['REQUESTS_TIMEOUT'],
-        verify=current_app.config['REQUESTS_VERIFY'],
-        url=current_app.config['RESULTSDB_API_URL'])
+        verify=current_app.config['REQUESTS_VERIFY'])
+    results_retriever = ResultsRetriever(
+        ignore_ids=ignore_results,
+        url=current_app.config['RESULTSDB_API_URL'],
+        **retriever_args)
+    waivers_retriever = WaiversRetriever(
+        ignore_ids=ignore_waivers,
+        url=current_app.config['WAIVERDB_API_URL'],
+        **retriever_args)
+    waiver_filters = []
 
     policies = on_demand_policies or current_app.config['policies']
     for subject_type, subject_identifier in _decision_subjects_for_request(data):
@@ -427,22 +434,40 @@ def make_decision():
                 'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
                     subject_type, decision_context, product_version))
 
-        waivers = retrieve_waivers(
-            product_version, subject_type, [subject_identifier], when)
-        if ignore_waivers:
-            waivers = [w for w in waivers if w['id'] not in ignore_waivers]
-
         for policy in subject_policies:
             answers.extend(
-                policy.check(product_version, subject_identifier, results_retriever, waivers))
+                policy.check(
+                    product_version,
+                    subject_identifier,
+                    results_retriever))
 
         applicable_policies.extend(subject_policies)
 
         if verbose:
-            # Retrieve test results for all items when verbose output is requested.
+            # Retrieve test results and waivers for all items when verbose output is requested.
             verbose_results.extend(
                 results_retriever.retrieve(subject_type, subject_identifier))
-            verbose_waivers.extend(waivers)
+            waiver_filters.append(dict(
+                subject_type=subject_type,
+                subject_identifier=subject_identifier,
+                product_version=product_version,
+            ))
+
+    if not verbose:
+        for answer in answers:
+            if not answer.is_satisfied:
+                waiver_filters.append(dict(
+                    subject_type=answer.subject_type,
+                    subject_identifier=answer.subject_identifier,
+                    product_version=product_version,
+                    testcase=answer.test_case_name,
+                ))
+
+    if waiver_filters:
+        waivers = waivers_retriever.retrieve(waiver_filters)
+    else:
+        waivers = []
+    answers = waive_answers(answers, waivers)
 
     response = {
         'policies_satisfied': all(answer.is_satisfied for answer in answers),
@@ -458,10 +483,9 @@ def make_decision():
         response.update({'applicable_policies': [policy.id for policy in applicable_policies]})
 
     if verbose:
-        # removing duplicated elements...
         response.update({
             'results': list({result['id']: result for result in verbose_results}.values()),
-            'waivers': list({waiver['id']: waiver for waiver in verbose_waivers}.values()),
+            'waivers': list({waiver['id']: waiver for waiver in waivers}.values()),
         })
 
     log.debug('Response: %s', response)

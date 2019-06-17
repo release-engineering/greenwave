@@ -93,6 +93,12 @@ class RuleNotSatisfied(Answer):
     def to_json(self):
         raise NotImplementedError()
 
+    def to_waived(self):
+        """
+        Transform unsatisfied answer to waived one.
+        """
+        raise NotImplementedError()
+
 
 class TestResultMissing(RuleNotSatisfied):
     """
@@ -116,6 +122,13 @@ class TestResultMissing(RuleNotSatisfied):
             # For backwards compatibility only:
             'item': subject_type_identifier_to_item(self.subject_type, self.subject_identifier),
         }
+
+    def to_waived(self):
+        return TestResultMissingWaived(
+            self.subject_type,
+            self.subject_identifier,
+            self.test_case_name,
+            self.scenario)
 
 
 class TestResultMissingWaived(RuleSatisfied):
@@ -163,6 +176,9 @@ class TestResultFailed(RuleNotSatisfied):
             'scenario': self.scenario,
         }
 
+    def to_waived(self):
+        return TestResultPassed(self.test_case_name, self.result_id)
+
 
 class InvalidGatingYaml(RuleNotSatisfied):
     """
@@ -183,6 +199,9 @@ class InvalidGatingYaml(RuleNotSatisfied):
             'subject_identifier': self.subject_identifier,
             'details': self.details
         }
+
+    def to_waived(self):
+        return None
 
 
 class TestResultPassed(RuleSatisfied):
@@ -275,7 +294,12 @@ class Rule(SafeYAMLObject):
 
     This base class is not used directly.
     """
-    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
+    def check(
+            self,
+            policy,
+            product_version,
+            subject_identifier,
+            results_retriever):
         """
         Evaluate this policy rule for the given item.
 
@@ -286,7 +310,6 @@ class Rule(SafeYAMLObject):
                 example, Koji build NVR, Bodhi update id, ...)
             results_retriever (ResultsRetriever): Object for retrieving data
                 from ResultsDB.
-            waivers (list): List of waiver objects looked up in WaiverDB for the results.
 
         Returns:
             Answer: An instance of a subclass of :py:class:`Answer` describing the result.
@@ -337,12 +360,6 @@ class Rule(SafeYAMLObject):
         return processed_rules
 
 
-def waives_invalid_gating_yaml(waiver, subject_type, subject_identifier):
-    return (waiver['testcase'] == 'invalid-gating-yaml' and
-            waiver['subject']['type'] == subject_type and
-            waiver['subject']['item'] == subject_identifier)
-
-
 class RemoteRule(Rule):
     yaml_tag = '!RemoteRule'
     safe_yaml_attributes = {}
@@ -376,14 +393,15 @@ class RemoteRule(Rule):
             if sub_policy.decision_context == policy.decision_context
         ]
 
-    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
-
+    def check(
+            self,
+            policy,
+            product_version,
+            subject_identifier,
+            results_retriever):
         try:
             policies = self._get_sub_policies(policy, subject_identifier)
         except SafeYAMLError as e:
-            if any(waives_invalid_gating_yaml(waiver, policy.subject_type, subject_identifier)
-                    for waiver in waivers):
-                return []
             return [
                 InvalidGatingYaml(
                     policy.subject_type, subject_identifier, 'invalid-gating-yaml', str(e))
@@ -393,7 +411,7 @@ class RemoteRule(Rule):
         for remote_policy in policies:
             if remote_policy.matches_product_version(product_version):
                 response = remote_policy.check(
-                    product_version, subject_identifier, results_retriever, waivers)
+                    product_version, subject_identifier, results_retriever)
 
                 if isinstance(response, list):
                     answers.extend(response)
@@ -438,11 +456,14 @@ class PassingTestCaseRule(Rule):
         'scenario': SafeYAMLString(optional=True),
     }
 
-    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
+    def check(
+            self,
+            policy,
+            product_version,
+            subject_identifier,
+            results_retriever):
         matching_results = results_retriever.retrieve(
             policy.subject_type, subject_identifier, self.test_case_name)
-        matching_waivers = [
-            w for w in waivers if (w['testcase'] == self.test_case_name and w['waived'] is True)]
 
         if self.scenario is not None:
             matching_results = [
@@ -451,10 +472,7 @@ class PassingTestCaseRule(Rule):
 
         # Investigate the absence of result first.
         if not matching_results:
-            if not matching_waivers:
-                return TestResultMissing(
-                    policy.subject_type, subject_identifier, self.test_case_name, self.scenario)
-            return TestResultMissingWaived(
+            return TestResultMissing(
                 policy.subject_type, subject_identifier, self.test_case_name, self.scenario)
 
         # For compose make decisions based on all architectures and variants.
@@ -474,7 +492,10 @@ class PassingTestCaseRule(Rule):
                 if arch_variant not in visited_arch_variants:
                     visited_arch_variants.add(arch_variant)
                     answer = self._answer_for_result(
-                        result, waivers, policy.subject_type, subject_identifier)
+                        result,
+                        product_version,
+                        policy.subject_type,
+                        subject_identifier)
                     answers.append(answer)
 
             return answers
@@ -485,7 +506,10 @@ class PassingTestCaseRule(Rule):
         answers = []
         for result in matching_results:
             answers.append(self._answer_for_result(
-                result, waivers, policy.subject_type, subject_identifier))
+                result,
+                product_version,
+                policy.subject_type,
+                subject_identifier))
         return answers
 
     def matches(self, policy, **attributes):
@@ -499,25 +523,14 @@ class PassingTestCaseRule(Rule):
             'scenario': self.scenario,
         }
 
-    def _answer_for_result(self, result, waivers, subject_type, subject_identifier):
+    def _answer_for_result(
+            self, result, product_version, subject_type, subject_identifier):
         if result['outcome'] in ('PASSED', 'INFO'):
             log.debug('Test result passed for the result_id %s and testcase %s,'
                       ' because the outcome is %s', result['id'], self.test_case_name,
                       result['outcome'])
             return TestResultPassed(self.test_case_name, result['id'])
 
-        # TODO limit who is allowed to waive
-
-        matching_waivers = [w for w in waivers if (
-            w['subject_type'] == subject_type and
-            w['subject_identifier'] == result['data']['item'][0] and
-            w['testcase'] == result['testcase']['name'] and
-            w['waived'] is True
-        )]
-        if matching_waivers:
-            log.debug('Found matching waivers for the result_id %s and the testcase %s,'
-                      ' so the Test result is PASSED', result['id'], self.test_case_name)
-            return TestResultPassed(self.test_case_name, result['id'])
         if result['outcome'] in ('QUEUED', 'RUNNING'):
             log.debug('Test result MISSING for the subject_type %s, subject_identifier %s and '
                       'testcase %s, because the outcome is %s', subject_type, subject_identifier,
@@ -544,7 +557,12 @@ class ObsoleteRule(Rule):
         tag = self.yaml_tag or '!' + type(self).__name__
         raise SafeYAMLError('{} is obsolete. {}'.format(tag, self.advice))
 
-    def check(self, policy, product_version, subject_identifier, results_retriever, waivers):
+    def check(
+            self,
+            policy,
+            product_version,
+            subject_identifier,
+            results_retriever):
         raise ValueError('This rule is obsolete and can\'t be checked')
 
 
@@ -598,7 +616,11 @@ class Policy(SafeYAMLObject):
 
         return not self.rules or any(rule.matches(self, **attributes) for rule in self.rules)
 
-    def check(self, product_version, subject_identifier, results_retriever, waivers):
+    def check(
+            self,
+            product_version,
+            subject_identifier,
+            results_retriever):
         # If an item is about a package and it is in the blacklist, return RuleSatisfied()
         if self.subject_type == 'koji_build':
             name = subject_identifier.rsplit('-', 2)[0]
@@ -614,7 +636,10 @@ class Policy(SafeYAMLObject):
         answers = []
         for rule in self.rules:
             response = rule.check(
-                self, product_version, subject_identifier, results_retriever, waivers)
+                self,
+                product_version,
+                subject_identifier,
+                results_retriever)
             if isinstance(response, list):
                 answers.extend(response)
             else:
