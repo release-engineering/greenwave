@@ -64,12 +64,9 @@ class ResultsRetriever(object):
     def _retrieve_helper(self, params, subject_type, subject_identifier):
         results = []
         if subject_type == 'koji_build':
-            params['type'] = subject_type
+            params['type'] = 'koji_build,brew-build'
             params['item'] = subject_identifier
             results = self._make_request(params=params)
-
-            params['type'] = 'brew-build'
-            results.extend(self._make_request(params=params))
 
             del params['type']
             del params['item']

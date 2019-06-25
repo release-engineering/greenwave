@@ -40,7 +40,7 @@ class DummyResultsRetriever(ResultsRetriever):
 
     def _make_request(self, params):
         if (params.get('item') == self.subject_identifier and
-                params.get('type') == self.subject_type and
+                ('type' not in params or self.subject_type in params['type'].split(',')) and
                 params.get('testcases') == self.testcase):
             return [{
                 'id': 123,
