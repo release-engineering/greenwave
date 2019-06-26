@@ -166,7 +166,7 @@ class WaiverDBHandler(fedmsg.consumers.FedmsgConsumer):
                 except Exception:
                     messaging_tx_failed_counter.labels(handler='waiverdb').inc()
                     raise
-            elif self.flask_app.config['MESSAGING'] == 'fedora-message':
+            elif self.flask_app.config['MESSAGING'] == 'fedora-messaging':
                 log.debug('  - to fedora-messaging')
                 try:
                     msg = fedora_messaging.api.Message(
