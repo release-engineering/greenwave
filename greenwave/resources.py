@@ -138,6 +138,7 @@ def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace):
 _retrieve_gating_yaml_error = 'Error occurred looking for gating.yaml file in the dist-git repo.'
 
 
+@greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
 def _retrieve_yaml_remote_rule_web(rev, pkg_name, pkg_namespace):
     """ Retrieve the gating.yaml file from the dist-git web UI. """
     data = {
@@ -170,8 +171,16 @@ def _retrieve_yaml_remote_rule_git_archive(rev, pkg_name, pkg_namespace):
     dist_git_base_url = current_app.config['DIST_GIT_BASE_URL'].rstrip('/')
     dist_git_url = f'{dist_git_base_url}/{pkg_namespace}/{pkg_name}'
     cmd = ['git', 'archive', f'--remote={dist_git_url}', rev, 'gating.yaml']
-    git_archive = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error_output = git_archive.communicate()
+    # Retry thrice if TimeoutExpired exception is raised
+    MAX_RETRY = 3
+    for tries in range(MAX_RETRY):
+        try:
+            git_archive = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output, error_output = git_archive.communicate(timeout=30)
+            break
+        except subprocess.TimeoutExpired:
+            git_archive.kill()
+            continue
 
     if git_archive.returncode != 0:
         error_output = error_output.decode('utf-8')
