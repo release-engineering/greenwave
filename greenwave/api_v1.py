@@ -486,7 +486,7 @@ def validate_gating_yaml_post():
 
     .. sourcecode:: none
 
-       HTTP/1.0 200 OK
+       HTTP/1.0 400 Bad Request
        Content-Length: 52
        Content-Type: application/json
        Date: Fri, 22 Jun 2018 11:19:35 GMT
