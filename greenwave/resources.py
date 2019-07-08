@@ -9,8 +9,6 @@ waiverdb, etc..).
 import logging
 import re
 import json
-import requests
-import urllib3.exceptions
 from io import BytesIO
 import tarfile
 import subprocess
@@ -20,14 +18,12 @@ import xmlrpc.client
 from flask import current_app
 from werkzeug.exceptions import BadGateway
 
-from greenwave import __version__
 from greenwave.cache import cached
-import greenwave.utils
+from greenwave.request_session import get_requests_session
 
 log = logging.getLogger(__name__)
 
-requests_session = requests.Session()
-requests_session.headers["User-Agent"] = f"greenwave {__version__}"
+requests_session = get_requests_session()
 
 
 class ResultsRetriever(object):
@@ -85,7 +81,6 @@ class ResultsRetriever(object):
 
 
 @cached
-@greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_scm_from_koji(nvr):
     """ Retrieve cached rev and namespace from koji using the nvr """
     koji_url = current_app.config['KOJI_BASE_URL']
@@ -170,8 +165,16 @@ def _retrieve_yaml_remote_rule_git_archive(rev, pkg_name, pkg_namespace):
     dist_git_base_url = current_app.config['DIST_GIT_BASE_URL'].rstrip('/')
     dist_git_url = f'{dist_git_base_url}/{pkg_namespace}/{pkg_name}'
     cmd = ['git', 'archive', f'--remote={dist_git_url}', rev, 'gating.yaml']
-    git_archive = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error_output = git_archive.communicate()
+    # Retry thrice if TimeoutExpired exception is raised
+    MAX_RETRY = 3
+    for tries in range(MAX_RETRY):
+        try:
+            git_archive = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output, error_output = git_archive.communicate(timeout=30)
+            break
+        except subprocess.TimeoutExpired:
+            git_archive.kill()
+            continue
 
     if git_archive.returncode != 0:
         error_output = error_output.decode('utf-8')
@@ -190,7 +193,6 @@ def _retrieve_yaml_remote_rule_git_archive(rev, pkg_name, pkg_namespace):
 
 
 # NOTE - not cached, for now.
-@greenwave.utils.retry(wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_waivers(product_version, subject_type, subject_identifiers, when):
     if not subject_identifiers:
         return []
@@ -218,7 +220,6 @@ def retrieve_waivers(product_version, subject_type, subject_identifiers, when):
 
 
 # NOTE - not cached.
-@greenwave.utils.retry(timeout=300, interval=30, wait_on=urllib3.exceptions.NewConnectionError)
 def retrieve_decision(greenwave_url, data):
     timeout = current_app.config['REQUESTS_TIMEOUT']
     verify = current_app.config['REQUESTS_VERIFY']

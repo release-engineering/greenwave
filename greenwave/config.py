@@ -25,10 +25,6 @@ class Config(object):
     REQUESTS_TIMEOUT = (6.1, 15)
     REQUESTS_VERIFY = True
 
-    # General options for retrying failed operations (querying external services)
-    RETRY_TIMEOUT = 6
-    RETRY_INTERVAL = 2
-
     POLICIES_DIR = '/etc/greenwave/policies'
 
     MESSAGING = 'fedmsg'

@@ -3,7 +3,6 @@
 import functools
 import logging
 import os
-import time
 import hashlib
 import datetime
 
@@ -112,33 +111,6 @@ def insert_headers(response):
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         response.headers['Access-Control-Allow-Method'] = 'POST, OPTIONS'
     return response
-
-
-def retry(timeout=None, interval=None, wait_on=Exception):
-    """ A decorator that allows to retry a section of code...
-    ...until success or timeout.
-
-    If omitted, the values for `timeout` and `interval` are
-    taken from the global configuration.
-    """
-    def wrapper(function):
-        @functools.wraps(function)
-        def inner(*args, **kwargs):
-            _timeout = timeout or current_app.config['RETRY_TIMEOUT']
-            _interval = interval or current_app.config['RETRY_INTERVAL']
-            # These can be configured per-function, or globally if omitted.
-            start = time.time()
-            while True:
-                try:
-                    return function(*args, **kwargs)
-                except wait_on as e:  # pylint: disable=broad-except
-                    log.warning("Exception %r raised from %r.  Retry in %rs",
-                                e, function, _interval)
-                    time.sleep(_interval)
-                    if (time.time() - start) >= _timeout:
-                        raise  # This re-raises the last exception.
-        return inner
-    return wrapper
 
 
 def sha1_mangle_key(key):

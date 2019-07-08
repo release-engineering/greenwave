@@ -13,7 +13,6 @@ import logging
 import json
 
 import fedmsg.consumers
-import requests
 
 import greenwave.app_factory
 from greenwave.api_v1 import subject_type_identifier_to_list
@@ -23,6 +22,7 @@ from greenwave.monitor import (
     messaging_tx_sent_ok_counter, messaging_tx_failed_counter)
 from greenwave.policies import applicable_decision_context_product_version_pairs
 from greenwave.utils import right_before_this_time
+from greenwave.request_session import get_requests_session
 
 try:
     import fedora_messaging.api
@@ -31,7 +31,7 @@ except ImportError:
     pass
 
 
-requests_session = requests.Session()
+requests_session = get_requests_session()
 
 
 log = logging.getLogger(__name__)
