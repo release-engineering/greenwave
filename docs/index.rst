@@ -18,6 +18,7 @@ gating points in a software delivery pipeline, based on test results stored in
    policies
    package-specific-policies
    api
+   messaging
    dev-guide
    release-notes
 
