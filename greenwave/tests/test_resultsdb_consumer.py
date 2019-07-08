@@ -346,6 +346,17 @@ def test_guess_product_version_with_koji():
     assert product_version == 'fedora-rawhide'
 
 
+@pytest.mark.parametrize('nvr', (
+    'badnvr.elastic-1-228',
+    'badnvr-1.2-1.elastic8',
+    'el99',
+    'badnvr-1.2.f30',
+))
+def test_guess_product_version_failure(nvr):
+    product_version = greenwave.consumers.resultsdb._subject_product_version(nvr, 'koji_build')
+    assert product_version is None
+
+
 @pytest.mark.parametrize("config,publish", parameters)
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')

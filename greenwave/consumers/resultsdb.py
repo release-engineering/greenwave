@@ -46,7 +46,7 @@ def _guess_product_version(toparse, koji_build=False):
         product_version = 'fedora-'
     elif toparse.startswith('epel'):
         product_version = 'epel-'
-    elif toparse.startswith('el'):
+    elif toparse.startswith('el') and len(toparse) > 2 and toparse[2].isdigit():
         product_version = 'rhel-'
     elif toparse.startswith('fc') or toparse.startswith('Fedora'):
         product_version = 'fedora-'
@@ -69,9 +69,10 @@ def _guess_product_version(toparse, koji_build=False):
 def _subject_product_version(subject_identifier, subject_type, koji_proxy=None):
     if subject_type == 'koji_build':
         try:
-            short_prod_version = subject_identifier.split('.')[-1]
+            _, _, release = subject_identifier.rsplit('-', 2)
+            _, short_prod_version = release.rsplit('.', 1)
             return _guess_product_version(short_prod_version, koji_build=True)
-        except KeyError:
+        except (KeyError, ValueError):
             pass
 
     if subject_type == "compose":
