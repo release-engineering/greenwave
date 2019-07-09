@@ -560,6 +560,7 @@ def test_real_fedora_messaging_msg(
             }
             handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
 
+            handler.koji_proxy = None
             handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
             with handler.flask_app.app_context():
                 handler.consume(message)

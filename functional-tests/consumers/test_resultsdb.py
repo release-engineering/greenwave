@@ -551,6 +551,7 @@ def test_consume_new_result_container_image(
         }
     }
     handler = create_resultdb_handler(greenwave_server)
+    handler.koji_proxy = None
     handler.consume(message)
 
     # get old decision
