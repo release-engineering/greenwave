@@ -250,15 +250,20 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             submit_time (string): date. After this date, results will be ignored for comparison.
             testcase (munch.Munch): the name of a testcase to consider.
         """
-        product_version = _subject_product_version(
-            subject_identifier, subject_type, self.koji_proxy)
-        policies = self.flask_app.config['policies']
-        contexts_product_versions = applicable_decision_context_product_version_pairs(
-            policies,
+        policy_attributes = dict(
             subject_type=subject_type,
             subject_identifier=subject_identifier,
             testcase=testcase,
-            product_version=product_version)
+        )
+
+        product_version = _subject_product_version(
+            subject_identifier, subject_type, self.koji_proxy)
+        if product_version:
+            policy_attributes['product_version'] = product_version
+
+        policies = self.flask_app.config['policies']
+        contexts_product_versions = applicable_decision_context_product_version_pairs(
+            policies, **policy_attributes)
 
         log.info('Getting greenwave info')
 
