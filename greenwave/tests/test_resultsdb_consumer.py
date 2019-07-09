@@ -330,6 +330,22 @@ def test_guess_product_version():
         assert product_version == 'rhel-8'
 
 
+def test_guess_product_version_with_koji():
+    class DummyKojiProxy():
+        def getBuild(self, subject_identifier):
+            assert 'fake_koji_build' == subject_identifier
+
+    koji_proxy = mock.MagicMock()
+    koji_proxy.getBuild.return_value = {'task_id': 666}
+    koji_proxy.getTaskRequest.return_value = ['git://example.com/project', 'rawhide', {}]
+
+    product_version = greenwave.consumers.resultsdb._subject_product_version(
+        'fake_koji_build', 'container-build', koji_proxy)
+    koji_proxy.getBuild.assert_called_once_with('fake_koji_build')
+    koji_proxy.getTaskRequest.assert_called_once_with(666)
+    assert product_version == 'fedora-rawhide'
+
+
 @pytest.mark.parametrize("config,publish", parameters)
 @mock.patch('greenwave.resources.ResultsRetriever.retrieve')
 @mock.patch('greenwave.resources.retrieve_decision')

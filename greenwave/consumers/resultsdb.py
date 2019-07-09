@@ -66,7 +66,7 @@ def _guess_product_version(toparse, koji_build=False):
     return None
 
 
-def _subject_product_version(subject_identifier, subject_type, koji_base_url=None):
+def _subject_product_version(subject_identifier, subject_type, koji_proxy=None):
     if subject_type == 'koji_build':
         try:
             short_prod_version = subject_identifier.split('.')[-1]
@@ -80,12 +80,11 @@ def _subject_product_version(subject_identifier, subject_type, koji_base_url=Non
     if subject_type == "redhat-module":
         return "rhel-8"
 
-    if koji_base_url:
-        proxy = xmlrpc.client.ServerProxy(koji_base_url)
+    if koji_proxy:
         try:
-            build = proxy.getBuild(subject_identifier)
+            build = koji_proxy.getBuild(subject_identifier)
             if build:
-                target = proxy.getTaskRequest(build['task_id'])[1]
+                target = koji_proxy.getTaskRequest(build['task_id'])[1]
                 return _guess_product_version(target, koji_build=True)
         except KeyError:
             pass
@@ -156,8 +155,13 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
 
         self.flask_app = greenwave.app_factory.create_app(config)
         self.greenwave_api_url = self.flask_app.config['GREENWAVE_API_URL']
-        self.koji_base_url = self.flask_app.config['KOJI_BASE_URL']
         self.cache = self.flask_app.cache
+
+        koji_base_url = self.flask_app.config['KOJI_BASE_URL']
+        if koji_base_url:
+            self.koji_proxy = xmlrpc.client.ServerProxy(koji_base_url)
+        else:
+            self.koji_proxy = None
 
         log.info('Greenwave resultsdb handler listening on: %s', self.topic)
 
@@ -247,7 +251,7 @@ class ResultsDBHandler(fedmsg.consumers.FedmsgConsumer):
             testcase (munch.Munch): the name of a testcase to consider.
         """
         product_version = _subject_product_version(
-            subject_identifier, subject_type, self.koji_base_url)
+            subject_identifier, subject_type, self.koji_proxy)
         policies = self.flask_app.config['policies']
         contexts_product_versions = applicable_decision_context_product_version_pairs(
             policies,
