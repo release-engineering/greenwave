@@ -26,58 +26,87 @@ log = logging.getLogger(__name__)
 requests_session = get_requests_session()
 
 
-class ResultsRetriever(object):
-    """
-    Retrieves results from ResultsDB.
-    """
-    def __init__(self, ignore_results, when, timeout, verify, url):
-        self.ignore_results = ignore_results
-        self.when = when
+class BaseRetriever:
+    def __init__(self, ignore_ids, when, timeout, verify, url):
+        self.ignore_ids = ignore_ids
         self.timeout = timeout
         self.verify = verify
         self.url = url
 
-    def retrieve(self, subject_type, subject_identifier, testcase=None, scenarios=None):
-        """
-        Return generator over results.
-        """
-        params = {}
-        if self.when:
-            params.update({'since': '1900-01-01T00:00:00.000000,{}'.format(self.when)})
+        if when:
+            self.since = '1900-01-01T00:00:00.000000,{}'.format(when)
+        else:
+            self.since = None
+
+    def retrieve(self, *args, **kwargs):
+        items = self._retrieve_all(*args, **kwargs)
+        return [item for item in items if item['id'] not in self.ignore_ids]
+
+    def _retrieve_data(self, params):
+        response = self._make_request(params, verify=self.verify, timeout=self.timeout)
+        response.raise_for_status()
+        return response.json()['data']
+
+
+class ResultsRetriever(BaseRetriever):
+    """
+    Retrieves results from cache or ResultsDB.
+    """
+    def _retrieve_all(self, subject_type, subject_identifier, testcase=None, scenarios=None):
+        params = {
+            '_distinct_on': 'scenario,system_architecture'
+        }
+        if self.since:
+            params.update({'since': self.since})
         if testcase:
             params.update({'testcases': testcase})
         if scenarios:
             params.update({'scenario': ','.join(scenarios)})
-        return self._retrieve_helper(params, subject_type, subject_identifier)
 
-    def _make_request(self, params):
-        params['_distinct_on'] = 'scenario,system_architecture'
-        response = requests_session.get(
-            self.url + '/results/latest', params=params, verify=self.verify, timeout=self.timeout)
-        response.raise_for_status()
-        return response.json()['data']
-
-    def _retrieve_helper(self, params, subject_type, subject_identifier):
         results = []
         if subject_type == 'koji_build':
             params['type'] = 'koji_build,brew-build'
             params['item'] = subject_identifier
-            results = self._make_request(params=params)
+            results = self._retrieve_data(params)
 
             del params['type']
             del params['item']
             params['original_spec_nvr'] = subject_identifier
-            results.extend(self._make_request(params=params))
+            results.extend(self._retrieve_data(params))
         elif subject_type == 'compose':
             params['productmd.compose.id'] = subject_identifier
-            results = self._make_request(params=params)
+            results = self._retrieve_data(params)
         else:
             params['type'] = subject_type
             params['item'] = subject_identifier
-            results = self._make_request(params=params)
+            results = self._retrieve_data(params)
 
-        results = [r for r in results if r['id'] not in self.ignore_results]
         return results
+
+    def _make_request(self, params, **request_args):
+        return requests_session.get(
+            self.url + '/results/latest',
+            params=params,
+            **request_args)
+
+
+class WaiversRetriever(BaseRetriever):
+    """
+    Retrieves waivers from WaiverDB.
+    """
+    def _retrieve_all(self, filters):
+        if self.since:
+            for filter_ in filters:
+                filter_.update({'since': self.since})
+        waivers = self._retrieve_data(filters)
+        return [waiver for waiver in waivers if waiver['waived']]
+
+    def _make_request(self, params, **request_args):
+        return requests_session.post(
+            self.url + '/waivers/+filtered',
+            headers={'Content-Type': 'application/json'},
+            data=json.dumps({'filters': params}),
+            **request_args)
 
 
 @cached
@@ -190,33 +219,6 @@ def _retrieve_yaml_remote_rule_git_archive(rev, pkg_name, pkg_namespace):
     gating_yaml_archive = tarfile.open(fileobj=BytesIO(output))
     gating_yaml = gating_yaml_archive.extractfile('gating.yaml').read().decode('utf-8')
     return gating_yaml
-
-
-# NOTE - not cached, for now.
-def retrieve_waivers(product_version, subject_type, subject_identifiers, when):
-    if not subject_identifiers:
-        return []
-
-    timeout = current_app.config['REQUESTS_TIMEOUT']
-    verify = current_app.config['REQUESTS_VERIFY']
-    filters = []
-    for subject_identifier in subject_identifiers:
-        d = {
-            'product_version': product_version,
-            'subject_type': subject_type,
-            'subject_identifier': subject_identifier
-        }
-        if when:
-            d['since'] = '1900-01-01T00:00:00.000000,{}'.format(when)
-        filters.append(d)
-    response = requests_session.post(
-        current_app.config['WAIVERDB_API_URL'] + '/waivers/+filtered',
-        headers={'Content-Type': 'application/json'},
-        data=json.dumps({'filters': filters}),
-        verify=verify,
-        timeout=timeout)
-    response.raise_for_status()
-    return response.json()['data']
 
 
 # NOTE - not cached.
