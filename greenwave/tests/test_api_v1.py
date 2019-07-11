@@ -90,3 +90,14 @@ def test_make_decision_retrieves_waivers_once_on_verbose_and_missing(mock_result
     assert 200 == response.status_code
     assert '1 of 1 required test results missing' == response.json['summary']
     mock_waivers.assert_called_once()
+
+
+def test_life_decision():
+    app = create_app('greenwave.config.TestingConfig')
+    client = app.test_client()
+    data = {
+        'question': 'Where am I going to be in 5 years?'
+    }
+    response = client.get('/api/v1.0/life-decision', json=data)
+    assert response.status_code == 200
+    assert type(response.data.decode("utf-8")) == str
