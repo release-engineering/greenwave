@@ -493,7 +493,6 @@ class PassingTestCaseRule(Rule):
                     visited_arch_variants.add(arch_variant)
                     answer = self._answer_for_result(
                         result,
-                        product_version,
                         policy.subject_type,
                         subject_identifier)
                     answers.append(answer)
@@ -507,7 +506,6 @@ class PassingTestCaseRule(Rule):
         for result in matching_results:
             answers.append(self._answer_for_result(
                 result,
-                product_version,
                 policy.subject_type,
                 subject_identifier))
         return answers
@@ -524,7 +522,7 @@ class PassingTestCaseRule(Rule):
         }
 
     def _answer_for_result(
-            self, result, product_version, subject_type, subject_identifier):
+            self, result, subject_type, subject_identifier):
         if result['outcome'] in ('PASSED', 'INFO'):
             log.debug('Test result passed for the result_id %s and testcase %s,'
                       ' because the outcome is %s', result['id'], self.test_case_name,

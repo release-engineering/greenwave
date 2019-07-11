@@ -1,6 +1,7 @@
 import requests
 
 from requests.adapters import HTTPAdapter
+# pylint: disable=E0401
 from requests.packages.urllib3.util.retry import Retry
 
 from greenwave import __version__

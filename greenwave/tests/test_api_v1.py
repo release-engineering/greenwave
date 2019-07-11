@@ -63,6 +63,8 @@ def make_decision(**kwargs):
 
 
 def test_make_decision_retrieves_waivers_on_missing(mock_results, mock_waivers):
+    mock_results.return_value = []
+    mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
     assert '1 of 1 required test results missing' == response.json['summary']
@@ -71,6 +73,7 @@ def test_make_decision_retrieves_waivers_on_missing(mock_results, mock_waivers):
 
 def test_make_decision_retrieves_waivers_on_failed(mock_results, mock_waivers):
     mock_results.return_value = [make_result(outcome='FAILED')]
+    mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
     assert '1 of 1 required tests failed' == response.json['summary']
@@ -79,6 +82,7 @@ def test_make_decision_retrieves_waivers_on_failed(mock_results, mock_waivers):
 
 def test_make_decision_retrieves_waivers_omitted_on_passed(mock_results, mock_waivers):
     mock_results.return_value = [make_result(outcome='PASSED')]
+    mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
     assert 'All required tests passed' == response.json['summary']
@@ -86,6 +90,8 @@ def test_make_decision_retrieves_waivers_omitted_on_passed(mock_results, mock_wa
 
 
 def test_make_decision_retrieves_waivers_once_on_verbose_and_missing(mock_results, mock_waivers):
+    mock_results.return_value = []
+    mock_waivers.return_value = []
     response = make_decision(verbose=True)
     assert 200 == response.status_code
     assert '1 of 1 required test results missing' == response.json['summary']

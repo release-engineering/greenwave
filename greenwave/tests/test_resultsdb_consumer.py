@@ -331,6 +331,7 @@ def test_guess_product_version():
 
 
 def test_guess_product_version_with_koji():
+    # pylint: disable=W0212,W0612
     class DummyKojiProxy():
         def getBuild(self, subject_identifier):
             assert 'fake_koji_build' == subject_identifier
@@ -353,6 +354,7 @@ def test_guess_product_version_with_koji():
     'badnvr-1.2.f30',
 ))
 def test_guess_product_version_failure(nvr):
+    # pylint: disable=W0212
     product_version = greenwave.consumers.resultsdb._subject_product_version(nvr, 'koji_build')
     assert product_version is None
 
