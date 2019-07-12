@@ -16,7 +16,7 @@ _DUMMY_FILTERS = ['dummy_filter']
 
 
 def test_waivers_retriever_retrieves_not_ignored_ids():
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     retriever = WaiversRetriever(**_DUMMY_RETRIEVER_ARGUMENTS)
     retriever.ignore_ids = [100]
     waiver = dict(
@@ -33,7 +33,7 @@ def test_waivers_retriever_retrieves_not_ignored_ids():
 
 
 def test_waivers_retriever_ignores_ids():
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     retriever = WaiversRetriever(**_DUMMY_RETRIEVER_ARGUMENTS)
     retriever.ignore_ids = [99]
     waiver = dict(
@@ -50,7 +50,7 @@ def test_waivers_retriever_ignores_ids():
 
 
 def test_waivers_retriever_ignores_no_waived():
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     retriever = WaiversRetriever(**_DUMMY_RETRIEVER_ARGUMENTS)
     waiver = dict(
         id=99,
