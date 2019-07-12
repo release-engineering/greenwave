@@ -435,15 +435,6 @@ def make_decision():
                 'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
                     subject_type, decision_context, product_version))
 
-        for policy in subject_policies:
-            answers.extend(
-                policy.check(
-                    product_version,
-                    subject_identifier,
-                    results_retriever))
-
-        applicable_policies.extend(subject_policies)
-
         if verbose:
             # Retrieve test results and waivers for all items when verbose output is requested.
             verbose_results.extend(
@@ -453,6 +444,15 @@ def make_decision():
                 subject_identifier=subject_identifier,
                 product_version=product_version,
             ))
+
+        for policy in subject_policies:
+            answers.extend(
+                policy.check(
+                    product_version,
+                    subject_identifier,
+                    results_retriever))
+
+        applicable_policies.extend(subject_policies)
 
     if not verbose:
         for answer in answers:
