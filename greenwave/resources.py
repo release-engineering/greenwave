@@ -52,7 +52,20 @@ class ResultsRetriever(BaseRetriever):
     """
     Retrieves results from cache or ResultsDB.
     """
+    def __init__(self, **args):
+        super().__init__(**args)
+        self.cache = {}
+
     def _retrieve_all(self, subject_type, subject_identifier, testcase=None, scenarios=None):
+        # Get test case result from cache if all test case results were already
+        # retrieved for given subject type/ID.
+        cache_key = (subject_type, subject_identifier, scenarios)
+        if testcase and cache_key in self.cache:
+            for result in self.cache[cache_key]:
+                if result['testcase']['name'] == testcase:
+                    return [result]
+            return []
+
         params = {
             '_distinct_on': 'scenario,system_architecture'
         }
@@ -80,6 +93,9 @@ class ResultsRetriever(BaseRetriever):
             params['type'] = subject_type
             params['item'] = subject_identifier
             results = self._retrieve_data(params)
+
+        if not testcase:
+            self.cache[cache_key] = results
 
         return results
 
