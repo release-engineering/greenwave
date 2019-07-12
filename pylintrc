@@ -1,2 +1,2 @@
 [MESSAGES CONTROL]
-disable=R,C,no-member,fixme,W0622
+disable=R,C,no-member,fixme,redefined-builtin,redefined-outer-name

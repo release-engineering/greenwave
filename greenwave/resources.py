@@ -196,7 +196,7 @@ def _retrieve_yaml_remote_rule_git_archive(rev, pkg_name, pkg_namespace):
     cmd = ['git', 'archive', f'--remote={dist_git_url}', rev, 'gating.yaml']
     # Retry thrice if TimeoutExpired exception is raised
     MAX_RETRY = 3
-    for tries in range(MAX_RETRY):
+    for _ in range(MAX_RETRY):
         try:
             git_archive = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error_output = git_archive.communicate(timeout=30)

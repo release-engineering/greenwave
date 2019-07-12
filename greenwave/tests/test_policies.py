@@ -912,7 +912,7 @@ def test_remote_rule_policy_on_demand_policy(namespace):
             scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = remote_fragment
-                policy = OnDemandPolicy.create_from_json(serverside_json)  # pylint: disable=W0212
+                policy = OnDemandPolicy.create_from_json(serverside_json)
 
                 # Ensure that presence of a result is success.
                 results = DummyResultsRetriever(nvr, 'dist.upgradepath')

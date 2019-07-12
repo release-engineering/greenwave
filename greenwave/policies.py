@@ -331,6 +331,7 @@ class Rule(SafeYAMLObject):
 
     @staticmethod
     def process_on_demand_rules(rules):
+        #pylint: disable=attribute-defined-outside-init
         """
         Validates rules and creates objects for them.
 
@@ -351,8 +352,8 @@ class Rule(SafeYAMLObject):
                 processed_rules.append(RemoteRule())
             elif rule['type'] == 'PassingTestCaseRule':
                 temp_rule = PassingTestCaseRule()
-                temp_rule.test_case_name = rule['test_case_name']  # pylint: disable=W0201
-                temp_rule.scenario = rule.get('scenario')  # pylint: disable=W0201
+                temp_rule.test_case_name = rule['test_case_name']
+                temp_rule.scenario = rule.get('scenario')
                 processed_rules.append(temp_rule)
             else:
                 raise BadRequest('Invalid rule type {}'.format(rule['type']))
@@ -493,7 +494,6 @@ class PassingTestCaseRule(Rule):
                     visited_arch_variants.add(arch_variant)
                     answer = self._answer_for_result(
                         result,
-                        product_version,
                         policy.subject_type,
                         subject_identifier)
                     answers.append(answer)
@@ -507,7 +507,6 @@ class PassingTestCaseRule(Rule):
         for result in matching_results:
             answers.append(self._answer_for_result(
                 result,
-                product_version,
                 policy.subject_type,
                 subject_identifier))
         return answers
@@ -524,7 +523,7 @@ class PassingTestCaseRule(Rule):
         }
 
     def _answer_for_result(
-            self, result, product_version, subject_type, subject_identifier):
+            self, result, subject_type, subject_identifier):
         if result['outcome'] in ('PASSED', 'INFO'):
             log.debug('Test result passed for the result_id %s and testcase %s,'
                       ' because the outcome is %s', result['id'], self.test_case_name,
@@ -681,7 +680,7 @@ class OnDemandPolicy(Policy):
         policy.relevance_key = data_dict.get('relevance_key')
 
         # Validate the data before processing.
-        policy.__validate_attributes()  # pylint: disable=W0212
+        policy.__validate_attributes()  # pylint: disable=protected-access
         return policy
 
     def __validate_attributes(self):
