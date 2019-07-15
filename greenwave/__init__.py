@@ -8,4 +8,4 @@ It provides a :ref:`http-api` for applications to use.
 .. _Flask: http://flask.pocoo.org/
 .. _SQLAlchemy: http://sqlalchemy.org/
 """
-__version__ = '1.2.0'
+__version__ = '1.2.1'
