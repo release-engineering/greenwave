@@ -19,7 +19,7 @@ def create_resultdb_handler(greenwave_server, cache_config=None):
         cache_config)
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
 def test_consume_new_result(
         mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
@@ -159,7 +159,7 @@ def test_consume_new_result(
     }
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
 def test_consume_unchanged_result(
         mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
@@ -193,7 +193,7 @@ def test_consume_unchanged_result(
     assert len(mock_fedmsg.mock_calls) == 0
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
 def test_consume_compose_id_result(
         mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
@@ -262,7 +262,7 @@ def test_consume_compose_id_result(
     mock_fedmsg.assert_called_once_with(topic='decision.update', msg=msg)
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
 def test_consume_legacy_result(
         mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
@@ -394,7 +394,7 @@ def test_consume_legacy_result(
     mock_fedmsg.assert_any_call(topic='decision.update', msg=second_msg)
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
 def test_no_message_for_nonapplicable_policies(
         mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):
@@ -432,7 +432,7 @@ def test_no_message_for_nonapplicable_policies(
     mock_fedmsg.assert_not_called()
 
 
-@mock.patch('greenwave.consumers.resultsdb.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
 def test_consume_new_result_container_image(
         mock_fedmsg, requests_session, greenwave_server,
         testdatabuilder):

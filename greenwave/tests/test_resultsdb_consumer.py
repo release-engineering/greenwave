@@ -111,8 +111,8 @@ def test_no_announcement_subjects_for_old_compose_message():
 
 
 parameters = [
-    ('fedmsg', 'greenwave.consumers.resultsdb.fedmsg.publish'),
-    ('fedora-messaging', 'greenwave.consumers.resultsdb.fedora_messaging.api.publish'),
+    ('fedmsg', 'greenwave.consumers.consumer.fedmsg.publish'),
+    ('fedora-messaging', 'greenwave.consumers.consumer.fedora_messaging.api.publish'),
 ]
 
 
@@ -546,7 +546,7 @@ def test_real_fedora_messaging_msg(
     """)
 
     config = 'fedora-messaging'
-    publish = 'greenwave.consumers.resultsdb.fedora_messaging.api.publish'
+    publish = 'greenwave.consumers.consumer.fedora_messaging.api.publish'
 
     with mock.patch('greenwave.config.Config.MESSAGING', config):
         with mock.patch(publish) as mock_fedmsg:
