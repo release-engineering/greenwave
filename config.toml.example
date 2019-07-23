@@ -14,8 +14,8 @@ callback = "greenwave.consumers.fedora_messaging_consumer:fedora_messaging_callb
 queue = "greenwave"
 exchange = "amq.topic"
 routing_keys = [
-    "org.fedoraproject.prod.taskotron.result.new",
-    "org.fedoraproject.stg.taskotron.result.new",
+    "org.fedoraproject.prod.resultsdb.result.new",
+    "org.fedoraproject.stg.resultsdb.result.new",
     "org.fedoraproject.prod.waiver.new",
     "org.fedoraproject.stg.waiver.new",
 ]
@@ -64,4 +64,4 @@ handlers = ["console"]
 topic_prefix = 'org.fedoraproject'
 environment = 'dev'
 waiverdb_topic_suffix = 'waiver.new'
-resultsdb_topic_suffix = 'taskotron.result.new'
+resultsdb_topic_suffix = 'resultsdb.result.new'
