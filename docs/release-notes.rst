@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+Greenwave 1.2.2
+===============
+
+Released 23 June 2019
+
+* Use fedora-messaging topic "resultsdb.result.new" instead of
+  "resultsdb.result.new".
+
 Greenwave 1.2.1
 ===============
 
