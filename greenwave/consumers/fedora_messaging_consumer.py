@@ -45,7 +45,7 @@ def fedora_messaging_callback(message):
     log.info(
         'Received message from fedora-messaging with topic: %s', message.topic)
     consumer_config = conf["consumer_config"]
-    if message.topic.endswith("taskotron.result.new"):
+    if message.topic.endswith("resultsdb.result.new"):
         # New resultsdb results
         messaging_rx_counter.labels(handler="resultsdb").inc()
         config = {
