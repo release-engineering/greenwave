@@ -158,3 +158,25 @@ everything was configured in the correct way).
 If your gating.yaml file will be misconfigured, Greenwave will reply
 that the gating.yaml file is wrong. If you just want to skip this check
 without build again, just look at the previous section in this page.
+
+
+.. _fetching-gating-yaml:
+
+How is gating.yaml file retrieved?
+----------------------------------
+
+The "gating.yaml" file is downloaded from a dist-git repository based on the
+source URL of a specific build in Koji.
+
+The file is fetched from specific git commit (the revision is part of the
+build's source URL).
+
+More specifically, Greenwave first gets the build data ``koji call getBuild
+$NVR``. Then it parses URL in "source" field to get namespace ("rpms" or
+"containers" etc.), the git commit and package name (or rather the git
+repository name).
+
+The "gating.yaml" URL is constructed based on ``DIST_GIT_URL_TEMPLATE``
+specified in Greenwave configuration. The URL template is something like::
+
+    {DIST_GIT_BASE_URL}/{pkg_namespace}/{pkg_name}/raw/{rev}/f/gating.yaml
