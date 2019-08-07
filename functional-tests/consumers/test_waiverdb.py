@@ -23,7 +23,7 @@ def create_waiverdb_handler(greenwave_server):
 
 
 @pytest.mark.parametrize('subject_type', ('koji_build', 'brew-build'))
-@mock.patch('greenwave.consumers.waiverdb.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
 def test_consume_new_waiver(
         mock_fedmsg, requests_session, greenwave_server, testdatabuilder,
         subject_type):
