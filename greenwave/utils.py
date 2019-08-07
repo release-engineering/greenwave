@@ -5,6 +5,7 @@ import logging
 import os
 import hashlib
 import datetime
+import urllib3
 
 from flask import jsonify, current_app, request
 from flask.config import Config
@@ -34,6 +35,13 @@ def json_error(error):
         current_app.logger.exception('Timeout error: {}'.format(error))
         msg = 'Timeout connecting to upstream server: {}'.format(error)
         status_code = 504
+    elif isinstance(error, urllib3.exceptions.MaxRetryError):
+        current_app.logger.exception('Connection error: {}'.format(error))
+        if error.url.endswith('gating.yaml'):
+            msg = 'There was an error retrieving the gating.yaml file at {}'.format(error.url)
+        else:
+            msg = 'Error connecting to {}'.format(error.url)
+        status_code = 502
     else:
         current_app.logger.exception('Unexpected server error: {}'.format(error))
         msg = 'Server encountered unexpected error'

@@ -2,6 +2,7 @@
 
 import subprocess
 import io
+import socket
 
 import pytest
 import mock
@@ -9,7 +10,7 @@ from werkzeug.exceptions import BadGateway
 
 import greenwave.app_factory
 from greenwave.resources import (
-    retrieve_scm_from_koji_build, retrieve_yaml_remote_rule)
+    retrieve_scm_from_koji_build, retrieve_yaml_remote_rule, retrieve_scm_from_koji)
 
 KOJI_URL = 'https://koji.fedoraproject.org/kojihub'
 
@@ -155,3 +156,15 @@ def test_retrieve_yaml_remote_rule_git_archive_error(mock_subp):
     with pytest.raises(BadGateway, match=expected_error):
         with app.app_context():
             retrieve_yaml_remote_rule('85e796daaa', 'python-requests', 'rpms')
+
+
+@mock.patch('greenwave.resources.xmlrpc.client.ServerProxy')
+def test_retrieve_scm_from_koji_build_socket_error(mock_xmlrpc_client):
+    mock_auth_server = mock_xmlrpc_client.return_value
+    mock_auth_server.getBuild.side_effect = socket.error('Socket is closed')
+    app = greenwave.app_factory.create_app()
+    nvr = 'nethack-3.6.1-3.fc29'
+    expected_error = 'Could not reach Koji: Socket is closed'
+    with pytest.raises(socket.error, match=expected_error):
+        with app.app_context():
+            retrieve_scm_from_koji(nvr)

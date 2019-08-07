@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import pytest
+import urllib3
 
 import json
 
@@ -17,7 +18,8 @@ from greenwave.utils import json_error
     (ConnectionError('ERROR'), 502, 'ERROR'),
     (ConnectTimeout('TIMEOUT'), 502, 'TIMEOUT'),
     (Timeout('TIMEOUT'), 504, 'TIMEOUT'),
-    (InternalServerError(), 500, 'The server encountered an internal error')
+    (InternalServerError(), 500, 'The server encountered an internal error'),
+    (urllib3.exceptions.MaxRetryError('MAX_RETRY', '.../gating.yaml'), 502, 'There was an error retrieving the gating.yaml file at .../gating.yaml')
 ])
 def test_json_connection_error(error, expected_status_code,
                                expected_error_message_part):
