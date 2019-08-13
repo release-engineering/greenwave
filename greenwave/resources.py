@@ -133,7 +133,7 @@ def retrieve_scm_from_koji(nvr):
     try:
         proxy = xmlrpc.client.ServerProxy(koji_url)
         build = proxy.getBuild(nvr)
-    except (xmlrpc.client.ProtocolError, socket.error)  as err:
+    except (xmlrpc.client.ProtocolError, socket.error) as err:
         raise ConnectionError('Could not reach Koji: {}'.format(err))
     return retrieve_scm_from_koji_build(nvr, build, koji_url)
 
