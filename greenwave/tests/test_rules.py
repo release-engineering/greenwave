@@ -1,9 +1,10 @@
 import mock
+import pytest
 
 from textwrap import dedent
 
 from greenwave.app_factory import create_app
-from greenwave.policies import Policy
+from greenwave.policies import Policy, RemoteRule
 from greenwave.safe_yaml import SafeYAMLError
 
 
@@ -75,3 +76,57 @@ def test_match_remote_rule(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remot
         assert not rule.matches(policy, subject_identifier=nvr)
         assert not rule.matches(policy, subject_identifier=nvr, testcase='some_test_case')
         assert not rule.matches(policy, subject_identifier=nvr, testcase='other_test_case')
+
+
+@pytest.mark.parametrize(('required_flag', 'required_value'), (
+    ('true', True),
+    ('True', True),
+    ('on', True),
+    ('On', True),
+    ('ON', True),
+    ('yes', True),
+    ('Yes', True),
+    ('YES', True),
+
+    ('false', False),
+    ('False', False),
+    ('off', False),
+    ('Off', False),
+    ('OFF', False),
+    ('no', False),
+    ('No', False),
+    ('NO', False),
+))
+def test_remote_rule_requiered_flag(required_flag, required_value):
+    policy_yaml = dedent("""
+        --- !Policy
+        id: test
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {required: %s}
+    """) % required_flag
+    policies = Policy.safe_load_all(policy_yaml)
+    assert len(policies) == 1
+    assert len(policies[0].rules) == 1
+    assert isinstance(policies[0].rules[0], RemoteRule)
+    assert policies[0].rules[0].required == required_value
+
+
+@pytest.mark.parametrize('required_flag', (
+    '', '0', '1', 'nope', 'TRUe', 'oN'
+))
+def test_remote_rule_requiered_flag_bad(required_flag):
+    policy_yaml = dedent("""
+        --- !Policy
+        id: test
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {required: %s}
+    """) % required_flag
+    error = 'Expected a boolean value, got: {}'.format(required_flag)
+    with pytest.raises(SafeYAMLError, match=error):
+        Policy.safe_load_all(policy_yaml)

@@ -10,6 +10,7 @@ from werkzeug.exceptions import BadRequest
 from flask import current_app
 
 from greenwave.safe_yaml import (
+    SafeYAMLBool,
     SafeYAMLChoice,
     SafeYAMLList,
     SafeYAMLObject,
@@ -204,6 +205,29 @@ class InvalidGatingYaml(RuleNotSatisfied):
         return None
 
 
+class MissingGatingYaml(RuleNotSatisfied):
+    """
+    Remote policy not found in remote repository.
+    """
+
+    test_case_name = 'missing-gating-yaml'
+
+    def __init__(self, subject_type, subject_identifier):
+        self.subject_type = subject_type
+        self.subject_identifier = subject_identifier
+
+    def to_json(self):
+        return {
+            'type': 'missing-gating-yaml',
+            'testcase': self.test_case_name,
+            'subject_type': self.subject_type,
+            'subject_identifier': self.subject_identifier,
+        }
+
+    def to_waived(self):
+        return None
+
+
 class TestResultPassed(RuleSatisfied):
     """
     A required test case passed (that is, its outcome in ResultsDB was
@@ -363,7 +387,9 @@ class Rule(SafeYAMLObject):
 
 class RemoteRule(Rule):
     yaml_tag = '!RemoteRule'
-    safe_yaml_attributes = {}
+    safe_yaml_attributes = {
+        'required': SafeYAMLBool(optional=True, default=False),
+    }
 
     def _get_sub_policies(self, policy, subject_identifier):
         if policy.subject_type not in ['koji_build', 'redhat-module']:
@@ -380,7 +406,7 @@ class RemoteRule(Rule):
 
         if response is None:
             # greenwave extension file not found
-            return []
+            return None
 
         policies = RemotePolicy.safe_load_all(response)
         if isinstance(policy, OnDemandPolicy):
@@ -407,6 +433,11 @@ class RemoteRule(Rule):
                 InvalidGatingYaml(
                     policy.subject_type, subject_identifier, 'invalid-gating-yaml', str(e))
             ]
+
+        if policies is None:
+            if self.required:
+                return [MissingGatingYaml(policy.subject_type, subject_identifier)]
+            return []
 
         answers = []
         for remote_policy in policies:
