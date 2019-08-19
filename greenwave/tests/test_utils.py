@@ -20,7 +20,7 @@ from greenwave.utils import json_error
     (Timeout('TIMEOUT'), 504, 'TIMEOUT'),
     (InternalServerError(), 500, 'The server encountered an internal error'),
     (urllib3.exceptions.MaxRetryError(
-        'MAX_RETRY', '.../gating.yaml'), 502, ('There was an error retrieving the'
+        'MAX_RETRY', '.../gating.yaml'), 502, ('There was an error retrieving the '
                                                'gating.yaml file at .../gating.yaml'))
 ])
 def test_json_connection_error(error, expected_status_code,
