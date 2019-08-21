@@ -274,6 +274,30 @@ def make_decision():
            ],
        }
 
+    **Sample request 2**:
+
+    It is possible to use this additional format that allows the user to ask for
+    multiple artifacts within a single request. The subject_identifier (= ``item``)
+    and subject_type (= ``type``) are listed multiple times under the ``subject``
+    parameter.
+
+    NB: this mode will affect Greenwave performances, especially it is recommended
+    not to ask for more than 100 decision subjects at the same time, or Greenwave
+    won't probably manage to complete the request successfully.
+
+    .. sourcecode:: http
+
+       POST /api/v1.0/decision HTTP/1.1
+       Accept: application/json
+       Content-Type: application/json
+
+       {
+           "decision_context": "bodhi_update_push_stable",
+           "product_version": "fedora-26",
+           "subject": [{"item": "cross-gcc-7.0.1-0.3.fc26", "type": "koji_build"}],
+           "verbose": true
+       }
+
     **Sample On-demand policy request**:
 
     Note: Greenwave would not publish a message on the message bus when an on-demand
