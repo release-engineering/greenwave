@@ -292,9 +292,22 @@ def make_decision():
        Content-Type: application/json
 
        {
+           "product_version": "fedora-30",
            "decision_context": "bodhi_update_push_stable",
-           "product_version": "fedora-26",
-           "subject": [{"item": "cross-gcc-7.0.1-0.3.fc26", "type": "koji_build"}],
+           "subject": [
+             {
+               "item": "python2-2.7.16-1.fc30",
+               "type": "koji_build"
+             },
+             {
+               "item": "python2-docs-2.7.16-1.fc30",
+               "type": "koji_build"
+             },
+             {
+               "item": "FEDORA-2019-0c91ce7b3c",
+               "type": "bodhi_update"
+             }
+           ],
            "verbose": true
        }
 
