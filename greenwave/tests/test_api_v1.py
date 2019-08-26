@@ -139,6 +139,30 @@ def test_make_decision_with_no_tests_required_and_missing_gating_yaml(mock_resul
             mock_waivers.assert_not_called()
 
 
+def test_make_decision_with_missing_required_gating_yaml(mock_results, mock_waivers):
+    mock_results.return_value = []
+    mock_waivers.return_value = []
+    policies = """
+        --- !Policy
+        id: "test_policy"
+        product_versions:
+          - fedora-rawhide
+        decision_context: test_policies
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {required: true}
+    """
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = None
+            response = make_decision(policies=policies)
+            assert 200 == response.status_code
+            assert not response.json['policies_satisfied']
+            assert '1 of 1 required tests failed' == response.json['summary']
+            mock_waivers.assert_called_once()
+
+
 def test_life_decision():
     app = create_app('greenwave.config.TestingConfig')
     client = app.test_client()

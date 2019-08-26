@@ -17,6 +17,7 @@ from greenwave.policies import (
     TestResultFailed,
     TestResultPassed,
     InvalidGatingYaml,
+    MissingGatingYaml,
     OnDemandPolicy
 )
 from greenwave.resources import ResultsRetriever
@@ -550,6 +551,33 @@ def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
                     decision = policy.check('fedora-26', nvr, results)
                     decision = waive_answers(decision, waivers)
                     assert len(decision) == 0
+
+
+def test_remote_rule_required():
+    """ Testing the RemoteRule with required flag set """
+    nvr = 'nethack-1.2.3-1.el9000'
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = None
+                policies = Policy.safe_load_all(dedent("""
+                    --- !Policy
+                    id: test
+                    product_versions: [fedora-rawhide]
+                    decision_context: test
+                    subject_type: koji_build
+                    rules:
+                      - !RemoteRule {required: true}
+                """))
+                policy = policies[0]
+                results = DummyResultsRetriever()
+                decision = policy.check('fedora-rawhide', nvr, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], MissingGatingYaml)
+                assert not decision[0].is_satisfied
+                assert decision[0].subject_identifier == nvr
 
 
 def test_parse_policies_missing_tag():

@@ -30,6 +30,30 @@ class SafeYAMLAttribute(object):
         raise NotImplementedError()
 
 
+class SafeYAMLBool(SafeYAMLAttribute):
+    """
+    YAML object attribute representing a boolean value.
+    """
+    def __init__(self, default=False, **args):
+        super().__init__(**args)
+        self.default = default
+
+    def from_yaml(self, loader, node):
+        value = loader.construct_scalar(node)
+        value = yaml.safe_load(value)
+        if isinstance(value, bool):
+            return value
+
+        raise SafeYAMLError('Expected a boolean value, got: {}'.format(value))
+
+    def to_json(self, value):
+        return value
+
+    @property
+    def default_value(self):
+        return self.default
+
+
 class SafeYAMLString(SafeYAMLAttribute):
     """
     YAML object attribute representing a string value.

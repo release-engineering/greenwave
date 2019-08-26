@@ -70,6 +70,45 @@ The side effect is that all the policies defined in the gating.yaml
 file will be completely ignored by Greenwave.
 
 
+.. _missing-gating-yaml:
+
+Missing gating.yaml file
+------------------------
+
+Missing gating.yaml file (i.e. not present in dist-git repo of the tested
+package in the required revision) is just skipped and not treated as
+unsatisfied requirement by default. To change this, ``required`` boolean
+attribute of ``RemoteRule`` must be set to ``true``.
+
+.. code-block:: yaml
+
+   --- !Policy
+   id: some_policy
+   product_versions: [fedora-*]
+   decision_context: bodhi_update_push_testing
+   subject_type: koji_build
+   rules:
+     - !RemoteRule {required: true}
+
+For such policy, if gating.yaml is missing, could result in the following
+decision.
+
+.. code-block:: json
+
+   {
+     "applicable_policies": ["some_policy"],
+     "policies_satisfied": false,
+     "satisfied_requirements": []
+     "summary": "1 of 1 required tests failed",
+     "unsatisfied_requirements": [{
+       "subject_identifier": "nethack-1.2.3-1.f31",
+       "subject_type": "koji_build",
+       "testcase": "missing-gating-yaml",
+       "type": "missing-gating-yaml"
+     }],
+   }
+
+
 .. _tutorial-configure-remoterule:
 
 Tutorial - How to configure the RemoteRule
