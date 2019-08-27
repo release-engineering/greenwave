@@ -2,6 +2,20 @@
 Release Notes
 =============
 
+Greenwave 1.3.0
+===============
+
+Released 27 June 2019
+
+* ``RemoteRule`` has a new optional attribute ``required`` which allows to
+  treat a missing ``gating.yaml`` file as a failed requirement. See
+  :ref:`missing-gating-yaml`.
+* Status code 500 is no longer returned if a ``gating.yaml`` file cannot be
+  retrieved. Instead, status code 502 is returned with a specific error.
+* Documentation now contains recommendation for the maximum number of subjects
+  in a single decision request. See sample requests for
+  :http:post:`/api/v1.0/decision`.
+
 Greenwave 1.2.2
 ===============
 
