@@ -7,6 +7,7 @@ from textwrap import dedent
 
 import greenwave.app_factory
 import greenwave.consumers.resultsdb
+from greenwave.product_versions import subject_product_version
 from greenwave.policies import Policy
 
 
@@ -313,7 +314,6 @@ def test_remote_rule_decision_change_not_matching(
 
 
 def test_guess_product_version():
-    # pylint: disable=protected-access
     hub = mock.MagicMock()
     hub.config = {
         'environment': 'environment',
@@ -321,30 +321,37 @@ def test_guess_product_version():
     }
     handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
     with handler.flask_app.app_context():
-        product_version = greenwave.consumers.resultsdb._subject_product_version(
+        product_version = subject_product_version(
             'release-e2e-test-1.0.1685-1.el5', 'koji_build')
         assert product_version == 'rhel-5'
 
-        product_version = greenwave.consumers.resultsdb._subject_product_version(
+        product_version = subject_product_version(
             'rust-toolset-rhel8-20181010170614.b09eea91', 'redhat-module')
         assert product_version == 'rhel-8'
 
 
 def test_guess_product_version_with_koji():
-    # pylint: disable=protected-access,unused-variable
-    class DummyKojiProxy():
-        def getBuild(self, subject_identifier):
-            assert 'fake_koji_build' == subject_identifier
-
     koji_proxy = mock.MagicMock()
     koji_proxy.getBuild.return_value = {'task_id': 666}
     koji_proxy.getTaskRequest.return_value = ['git://example.com/project', 'rawhide', {}]
 
-    product_version = greenwave.consumers.resultsdb._subject_product_version(
+    product_version = subject_product_version(
         'fake_koji_build', 'container-build', koji_proxy)
     koji_proxy.getBuild.assert_called_once_with('fake_koji_build')
     koji_proxy.getTaskRequest.assert_called_once_with(666)
     assert product_version == 'fedora-rawhide'
+
+
+def test_guess_product_version_with_koji_without_task_id():
+    koji_proxy = mock.MagicMock()
+    koji_proxy.getBuild.return_value = {'task_id': None}
+
+    product_version = subject_product_version(
+        'fake_koji_build', 'container-build', koji_proxy)
+
+    koji_proxy.getBuild.assert_called_once_with('fake_koji_build')
+    koji_proxy.getTaskRequest.assert_not_called()
+    assert product_version is None
 
 
 @pytest.mark.parametrize('nvr', (
@@ -354,8 +361,7 @@ def test_guess_product_version_with_koji():
     'badnvr-1.2.f30',
 ))
 def test_guess_product_version_failure(nvr):
-    # pylint: disable=protected-access
-    product_version = greenwave.consumers.resultsdb._subject_product_version(nvr, 'koji_build')
+    product_version = subject_product_version(nvr, 'koji_build')
     assert product_version is None
 
 
@@ -592,5 +598,93 @@ def test_real_fedora_messaging_msg(
                 ],
                 'subject_type': 'bodhi_update',
                 'subject_identifier': 'FEDORA-2019-9244c8b209',
+                'previous': None,
+            }
+
+
+@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
+@mock.patch('greenwave.resources.retrieve_decision')
+def test_container_brew_build(
+        mock_retrieve_decision,
+        mock_retrieve_results):
+    message = {
+        'msg': {
+            'submit_time': '2019-08-27T13:57:53.490376',
+            'testcase': {
+                'name': 'example_test',
+            },
+            'data': {
+                'brew_task_id': ['666'],
+                'type': ['brew-build'],
+                'item': ['example-container'],
+            }
+        }
+    }
+
+    policies = dedent("""
+        --- !Policy
+        id: test_policy
+        product_versions: [example_product_version]
+        decision_context: test_context
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: example_test}
+    """)
+
+    config = 'fedora-messaging'
+    publish = 'greenwave.consumers.consumer.fedora_messaging.api.publish'
+
+    with mock.patch('greenwave.config.Config.MESSAGING', config):
+        with mock.patch(publish) as mock_fedmsg:
+            result = {
+                'id': 1,
+                'testcase': {'name': 'example_test'},
+                'outcome': 'PASSED',
+                'data': {'item': 'example-container', 'type': 'koji_build'},
+                'submit_time': '2019-04-24 13:06:12.135146'
+            }
+            mock_retrieve_results.return_value = [result]
+
+            def retrieve_decision(url, data):
+                #pylint: disable=unused-argument
+                if 'when' in data:
+                    return None
+                return {}
+            mock_retrieve_decision.side_effect = retrieve_decision
+
+            hub = mock.MagicMock()
+            hub.config = {
+                'environment': 'environment',
+                'topic_prefix': 'topic_prefix',
+            }
+            handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
+
+            koji_proxy = mock.MagicMock()
+            koji_proxy.getBuild.return_value = None
+            koji_proxy.getTaskRequest.return_value = [
+                'git://example.com/project', 'example_product_version', {}]
+            handler.koji_proxy = koji_proxy
+
+            handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
+            with handler.flask_app.app_context():
+                handler.consume(message)
+
+            koji_proxy.getBuild.assert_not_called()
+            koji_proxy.getTaskRequest.assert_called_once_with(666)
+
+            assert len(mock_fedmsg.mock_calls) == 1
+
+            mock_call = mock_fedmsg.mock_calls[0][1][0]
+            assert mock_call.topic == 'greenwave.decision.update'
+            actual_msgs_sent = mock_call.body
+
+            assert actual_msgs_sent == {
+                'decision_context': 'test_context',
+                'product_version': 'example_product_version',
+                'subject': [
+                    {'item': 'example-container', 'type': 'koji_build'},
+                ],
+                'subject_type': 'koji_build',
+                'subject_identifier': 'example-container',
                 'previous': None,
             }
