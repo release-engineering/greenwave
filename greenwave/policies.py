@@ -468,6 +468,9 @@ class RemoteRule(Rule):
             logging.exception(
                 'Failed to retrieve policies for %r', subject_identifier)
 
+        if sub_policies is None:
+            return False
+
         return any(sub_policy.matches(**attributes) for sub_policy in sub_policies)
 
     def to_json(self):
