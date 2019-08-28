@@ -2,6 +2,17 @@
 Release Notes
 =============
 
+Greenwave 1.3.1
+===============
+
+Released 28 June 2019
+
+* In previous version, if ``gating.yaml`` was missing for a subject in a new
+  result, decision update message was not published even if the decision
+  changed. This is fixed now.
+* ResultsDB consumer now uses ``brew_task_id`` from ResultsDB message data if
+  available instead of getting the task ID from Brew/Koji.
+
 Greenwave 1.3.0
 ===============
 
