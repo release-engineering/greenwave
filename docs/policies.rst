@@ -263,18 +263,9 @@ Greenwave will check if a gating.yaml exists, if it does, it pulls it
 down, loads it, and uses it to additionally evaluate the subject of the
 decision.
 
-Greenwave has two mechanisms to retrieve the gating.yaml file: ``git archive``,
-and using a git front-end. The ``git archive`` mechanism is preferred but
-the dist-git server may not support it.
-
-Below is an example configuration for using the ``git archive`` mechanism:
-
-.. code-block:: console
-
-   DIST_GIT_BASE_URL = 'git://src.fedoraproject.org'
-   KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
-
-Below is an example configuration for using the git front-end mechanism:
+Greenwave requires these configuration parameters ``KOJI_BASE_URL``,
+``DIST_GIT_BASE_URL`` and ``DIST_GIT_URL_TEMPLATE``. Here's the default
+for the Fedora instance:
 
 .. code-block:: console
 

@@ -37,10 +37,8 @@ def test_remote_rules_misconfigured(mock_load_policies):
         create_app(config)
 
 
-@mock.patch('shutil.which')
-def test_can_use_remote_rule_http(mock_which):
+def test_can_use_remote_rule_http():
     """ Test that _can_use_remote_rule verifies the configuration properly if HTTP is used. """
-    mock_which.return_value = None
     config = {
         'DIST_GIT_BASE_URL': 'https://dist-git.domain.local',
         'KOJI_BASE_URL': 'https://koji.domain.local/kojihub',
@@ -48,26 +46,9 @@ def test_can_use_remote_rule_http(mock_which):
                                   'gating.yaml')
     }
     assert _can_use_remote_rule(config) is True
-    mock_which.assert_not_called()
-
-
-@pytest.mark.parametrize('git_installed', (True, False))
-@mock.patch('shutil.which')
-def test_can_use_remote_rule_git_archive(mock_which, git_installed):
-    """ Test that _can_use_remote_rule checks if git is installed if git archive is used. """
-    mock_which.return_value = '/usr/bin/git' if git_installed else None
-    config = {
-        'DIST_GIT_BASE_URL': 'git://dist-git.domain.local',
-        'KOJI_BASE_URL': 'https://koji.domain.local/kojihub'
-    }
-    assert _can_use_remote_rule(config) is git_installed
-    mock_which.assert_called_once_with('git')
 
 
 @pytest.mark.parametrize('config', (
-    {
-        'DIST_GIT_BASE_URL': 'git://dist-git.domain.local',
-    },
     {
         'DIST_GIT_BASE_URL': 'https://dist-git.domain.local',
     },
