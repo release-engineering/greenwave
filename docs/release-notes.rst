@@ -2,10 +2,19 @@
 Release Notes
 =============
 
+Greenwave 1.3.2
+===============
+
+Released 9 September 2019
+
+* Removed pull of ``gating.yaml`` with ``git archive``. SHA1 hashes seem not
+  be to allowed when invoking git-archive. Since the ``rev`` field is needed to
+  retrieve the ``gating.yaml`` file, this mode was removed.
+
 Greenwave 1.3.1
 ===============
 
-Released 28 June 2019
+Released 28 August 2019
 
 * In previous version, if ``gating.yaml`` was missing for a subject in a new
   result, decision update message was not published even if the decision
