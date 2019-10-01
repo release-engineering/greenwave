@@ -10,6 +10,7 @@ to the message bus about the newly satisfied/unsatisfied policy.
 """
 
 from greenwave.consumers.consumer import Consumer
+from greenwave.subjects.factory import create_subject
 
 
 class WaiverDBHandler(Consumer):
@@ -30,14 +31,12 @@ class WaiverDBHandler(Consumer):
 
         product_version = msg['product_version']
         testcase = msg['testcase']
-        subject_type = msg['subject_type']
-        subject_identifier = msg['subject_identifier']
+        subject = create_subject(msg['subject_type'], msg['subject_identifier'])
         submit_time = msg['timestamp']
 
         self._publish_decision_change(
             submit_time=submit_time,
-            subject_type=subject_type,
-            subject_identifier=subject_identifier,
+            subject=subject,
             testcase=testcase,
             product_version=product_version,
             publish_testcase=True,

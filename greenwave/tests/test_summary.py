@@ -8,16 +8,20 @@ from greenwave.policies import (
     InvalidGatingYaml,
 )
 
+from greenwave.subjects.subject import Subject
+from greenwave.subjects.subject_type import GenericSubjectType
 
+
+testSubject = Subject(GenericSubjectType('koji_build'), 'nethack-1.2.3-1.el9000')
 testResultPassed = RuleSatisfied()
 testResultFailed = TestResultFailed(
-    'koji_build', 'nethack-1.2.3-1.el9000', 'test', None, 1)
+    testSubject, 'test', None, 1)
 testResultMissing = TestResultMissing(
-    'koji_build', 'nethack-1.2.3-1.el9000', 'test', None)
+    testSubject, 'test', None)
 testResultMissingWaived = TestResultMissingWaived(
-    'koji_build', 'nethack-1.2.3-1.el9000', 'test', None)
+    testSubject, 'test', None)
 testInvalidGatingYaml = InvalidGatingYaml(
-    'koji_build', 'nethack-1.2.3-1.el9000', 'test', 'Missing !Policy tag')
+    testSubject, 'test', 'Missing !Policy tag')
 
 
 def test_summary_passed():

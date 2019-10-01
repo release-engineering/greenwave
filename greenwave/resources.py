@@ -54,10 +54,10 @@ class ResultsRetriever(BaseRetriever):
         super().__init__(**args)
         self.cache = {}
 
-    def _retrieve_all(self, subject_type, subject_identifier, testcase=None, scenarios=None):
+    def _retrieve_all(self, subject, testcase=None, scenarios=None):
         # Get test case result from cache if all test case results were already
-        # retrieved for given subject type/ID.
-        cache_key = (subject_type, subject_identifier, scenarios)
+        # retrieved for given Subject.
+        cache_key = (subject.type, subject.identifier, scenarios)
         if testcase and cache_key in self.cache:
             for result in self.cache[cache_key]:
                 if result['testcase']['name'] == testcase:
@@ -75,22 +75,9 @@ class ResultsRetriever(BaseRetriever):
             params.update({'scenario': ','.join(scenarios)})
 
         results = []
-        if subject_type == 'koji_build':
-            params['type'] = 'koji_build,brew-build'
-            params['item'] = subject_identifier
-            results = self._retrieve_data(params)
-
-            del params['type']
-            del params['item']
-            params['original_spec_nvr'] = subject_identifier
-            results.extend(self._retrieve_data(params))
-        elif subject_type == 'compose':
-            params['productmd.compose.id'] = subject_identifier
-            results = self._retrieve_data(params)
-        else:
-            params['type'] = subject_type
-            params['item'] = subject_identifier
-            results = self._retrieve_data(params)
+        for query in subject.result_queries():
+            query.update(params)
+            results.extend(self._retrieve_data(query))
 
         if not testcase:
             self.cache[cache_key] = results

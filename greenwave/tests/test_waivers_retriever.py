@@ -21,7 +21,7 @@ def test_waivers_retriever_retrieves_not_ignored_ids():
     retriever.ignore_ids = [100]
     waiver = dict(
         id=99,
-        subject_type='koji-build',
+        subject_type='koji_build',
         subject_identifier='nethack-1.2.3-1.rawhide',
         product_version='rawhide',
         testcase='test1',
@@ -38,7 +38,7 @@ def test_waivers_retriever_ignores_ids():
     retriever.ignore_ids = [99]
     waiver = dict(
         id=99,
-        subject_type='koji-build',
+        subject_type='koji_build',
         subject_identifier='nethack-1.2.3-1.rawhide',
         product_version='rawhide',
         testcase='test1',
@@ -54,7 +54,7 @@ def test_waivers_retriever_ignores_no_waived():
     retriever = WaiversRetriever(**_DUMMY_RETRIEVER_ARGUMENTS)
     waiver = dict(
         id=99,
-        subject_type='koji-build',
+        subject_type='koji_build',
         subject_identifier='nethack-1.2.3-1.rawhide',
         product_version='rawhide',
         testcase='test1',

@@ -22,33 +22,37 @@ from greenwave.policies import (
 )
 from greenwave.resources import ResultsRetriever
 from greenwave.safe_yaml import SafeYAMLError
+from greenwave.subjects.factory import create_subject
 from greenwave.waivers import waive_answers
 
 
+def create_test_subject(type_id, item):
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        return create_subject(type_id, item)
+
+
 class DummyResultsRetriever(ResultsRetriever):
-    def __init__(
-            self, subject_identifier=None, testcase=None, outcome='PASSED',
-            subject_type='koji_build'):
+    def __init__(self, subject=None, testcase=None, outcome='PASSED'):
         super(DummyResultsRetriever, self).__init__(
             ignore_ids=[],
             when='',
             timeout=0,
             verify=False,
             url='')
-        self.subject_identifier = subject_identifier
-        self.subject_type = subject_type
+        self.subject = subject
         self.testcase = testcase
         self.outcome = outcome
 
     def _retrieve_data(self, params):
-        if (params.get('item') == self.subject_identifier and
-                ('type' not in params or self.subject_type in params['type'].split(',')) and
+        if (self.subject and params.get('item') == self.subject.identifier and
+                ('type' not in params or self.subject.type in params['type'].split(',')) and
                 params.get('testcases') == self.testcase):
             return [{
                 'id': 123,
                 'data': {
-                    'item': [self.subject_identifier],
-                    'type': [self.subject_type],
+                    'item': [self.subject.identifier],
+                    'type': [self.subject.type],
                 },
                 'testcase': {'name': self.testcase},
                 'outcome': self.outcome,
@@ -57,21 +61,22 @@ class DummyResultsRetriever(ResultsRetriever):
 
 
 def test_summarize_answers():
+    subject = create_test_subject('koji_build', 'nvr')
     assert summarize_answers([RuleSatisfied()]) == \
         'All required tests passed'
-    assert summarize_answers([TestResultFailed('koji_build', 'nvr', 'test', None, 'id'),
+    assert summarize_answers([TestResultFailed(subject, 'test', None, 'id'),
                               RuleSatisfied()]) == \
         '1 of 2 required tests failed'
-    assert summarize_answers([TestResultMissing('koji_build', 'nvr', 'test', None)]) == \
+    assert summarize_answers([TestResultMissing(subject, 'test', None)]) == \
         '1 of 1 required test results missing'
-    assert summarize_answers([TestResultMissing('koji_build', 'nvr', 'test', None),
-                              TestResultFailed('koji_build', 'nvr', 'test', None, 'id')]) == \
+    assert summarize_answers([TestResultMissing(subject, 'test', None),
+                              TestResultFailed(subject, 'test', None, 'id')]) == \
         '1 of 2 required tests failed, 1 result missing'
-    assert summarize_answers([TestResultMissing('koji_build', 'nvr', 'testa', None),
-                              TestResultMissing('koji_build', 'nvr', 'testb', None),
-                              TestResultFailed('koji_build', 'nvr', 'test', None, 'id')]) == \
+    assert summarize_answers([TestResultMissing(subject, 'testa', None),
+                              TestResultMissing(subject, 'testb', None),
+                              TestResultFailed(subject, 'test', None, 'id')]) == \
         '1 of 3 required tests failed, 2 results missing'
-    assert summarize_answers([TestResultMissing('koji_build', 'nvr', 'test', None),
+    assert summarize_answers([TestResultMissing(subject, 'test', None),
                              RuleSatisfied()]) == \
         '1 of 2 required test results missing'
 
@@ -92,10 +97,10 @@ def test_decision_with_missing_result(tmpdir):
     policy = policies[0]
 
     results = DummyResultsRetriever()
-    subject_identifier = 'some_nevr'
+    subject = create_test_subject('koji_build', 'some_nevr')
 
     # Ensure that absence of a result is failure.
-    decision = policy.check('fedora-rawhide', subject_identifier, results)
+    decision = policy.check('fedora-rawhide', subject, results)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultMissing)
 
@@ -122,9 +127,10 @@ def test_waive_brew_koji_mismatch(tmpdir):
     policy = policies[0]
 
     item = 'some_nevr'
-    results = DummyResultsRetriever(item, 'sometest', 'FAILED', 'brew-build')
+    subject = create_test_subject('koji_build', item)
+    results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
 
-    decision = policy.check('fedora-rawhide', item, results)
+    decision = policy.check('fedora-rawhide', subject, results)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
@@ -136,7 +142,7 @@ def test_waive_brew_koji_mismatch(tmpdir):
         'product_version': 'fedora-rawhide',
         'waived': True,
     }]
-    decision = policy.check('fedora-rawhide', item, results)
+    decision = policy.check('fedora-rawhide', subject, results)
     decision = waive_answers(decision, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
@@ -164,9 +170,10 @@ def test_waive_bodhi_update(tmpdir):
     policy = policies[0]
 
     item = 'some_bodhi_update'
-    results = DummyResultsRetriever(item, 'sometest', 'FAILED', 'bodhi_update')
+    subject = create_test_subject('bodhi_update', item)
+    results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
 
-    decision = policy.check('fedora-rawhide', item, results)
+    decision = policy.check('fedora-rawhide', subject, results)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultFailed)
 
@@ -178,7 +185,7 @@ def test_waive_bodhi_update(tmpdir):
         'product_version': 'fedora-rawhide',
         'waived': True,
     }]
-    decision = policy.check('fedora-rawhide', item, results)
+    decision = policy.check('fedora-rawhide', subject, results)
     decision = waive_answers(decision, waivers)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
@@ -280,7 +287,7 @@ def test_remote_rule_policy(tmpdir, namespace):
     """ Testing the RemoteRule with the koji interaction.
     In this case we are just mocking koji """
 
-    nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -315,20 +322,20 @@ def test_remote_rule_policy(tmpdir, namespace):
                 policy = policies[0]
 
                 # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(nvr, 'dist.upgradepath')
-                decision = policy.check('fedora-26', nvr, results)
+                results = DummyResultsRetriever(subject, 'dist.upgradepath')
+                decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
 
                 # Ensure that absence of a result is failure.
                 results = DummyResultsRetriever()
-                decision = policy.check('fedora-26', nvr, results)
+                decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultMissing)
 
                 # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(nvr, 'dist.upgradepath', 'FAILED')
-                decision = policy.check('fedora-26', nvr, results)
+                results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
+                decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
 
@@ -339,6 +346,7 @@ def test_remote_rule_policy_redhat_module(tmpdir, namespace):
     In this case we are just mocking koji """
 
     nvr = '389-ds-1.4-820181127205924.9edba152'
+    subject = create_test_subject('redhat-module', nvr)
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -374,22 +382,21 @@ def test_remote_rule_policy_redhat_module(tmpdir, namespace):
                 policy = policies[0]
 
                 # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(nvr, 'baseos-ci.redhat-module.tier0.functional',
-                                                subject_type='redhat-module')
-                decision = policy.check('rhel-8', nvr, results)
+                results = DummyResultsRetriever(subject, 'baseos-ci.redhat-module.tier0.functional')
+                decision = policy.check('rhel-8', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
 
                 # Ensure that absence of a result is failure.
-                results = DummyResultsRetriever(subject_type='redhat-module')
-                decision = policy.check('rhel-8', nvr, results)
+                results = DummyResultsRetriever(subject)
+                decision = policy.check('rhel-8', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultMissing)
 
                 # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(nvr, 'baseos-ci.redhat-module.tier0.functional',
-                                                'FAILED', subject_type='redhat-module')
-                decision = policy.check('rhel-8', nvr, results)
+                results = DummyResultsRetriever(
+                    subject, 'baseos-ci.redhat-module.tier0.functional', 'FAILED')
+                decision = policy.check('rhel-8', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
 
@@ -399,6 +406,7 @@ def test_remote_rule_policy_redhat_container_image(tmpdir):
     In this case we are just mocking koji """
 
     nvr = '389-ds-1.4-820181127205924.9edba152'
+    subject = create_test_subject('redhat-container-image', nvr)
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -435,29 +443,27 @@ def test_remote_rule_policy_redhat_container_image(tmpdir):
 
                 # Ensure that presence of a result is success.
                 results = DummyResultsRetriever(
-                    nvr, 'baseos-ci.redhat-container-image.tier0.functional',
-                    subject_type='redhat-container-image')
-                decision = policy.check('rhel-8', nvr, results)
+                    subject, 'baseos-ci.redhat-container-image.tier0.functional')
+                decision = policy.check('rhel-8', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
 
                 # Ensure that absence of a result is failure.
-                results = DummyResultsRetriever(subject_type='redhat-container-image')
-                decision = policy.check('rhel-8', nvr, results)
+                results = DummyResultsRetriever(subject)
+                decision = policy.check('rhel-8', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultMissing)
 
                 # And that a result with a failure, is a failure.
                 results = DummyResultsRetriever(
-                    nvr, 'baseos-ci.redhat-container-image.tier0.functional', 'FAILED',
-                    subject_type='redhat-container-image')
-                decision = policy.check('rhel-8', nvr, results)
+                    subject, 'baseos-ci.redhat-container-image.tier0.functional', 'FAILED')
+                decision = policy.check('rhel-8', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
 
 
 def test_remote_rule_policy_optional_id(tmpdir):
-    nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -490,7 +496,7 @@ def test_remote_rule_policy_optional_id(tmpdir):
 
                 results = DummyResultsRetriever()
                 expected_details = "Policy 'untitled': Attribute 'product_versions' is required"
-                decision = policy.check('fedora-26', nvr, results)
+                decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], InvalidGatingYaml)
                 assert decision[0].is_satisfied is False
@@ -500,7 +506,7 @@ def test_remote_rule_policy_optional_id(tmpdir):
 def test_remote_rule_malformed_yaml(tmpdir):
     """ Testing the RemoteRule with a malformed gating.yaml file """
 
-    nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -545,7 +551,7 @@ def test_remote_rule_malformed_yaml(tmpdir):
                     policy = policies[0]
 
                     results = DummyResultsRetriever()
-                    decision = policy.check('fedora-26', nvr, results)
+                    decision = policy.check('fedora-26', subject, results)
                     assert len(decision) == 1
                     assert isinstance(decision[0], InvalidGatingYaml)
                     assert decision[0].is_satisfied is False
@@ -555,7 +561,7 @@ def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
     """ Testing the RemoteRule with a malformed gating.yaml file
     But this time waiving the error """
 
-    nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -610,14 +616,14 @@ def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
                         'comment': 'Waiving the invalid gating.yaml file',
                         'waived': True,
                     }]
-                    decision = policy.check('fedora-26', nvr, results)
+                    decision = policy.check('fedora-26', subject, results)
                     decision = waive_answers(decision, waivers)
                     assert len(decision) == 0
 
 
 def test_remote_rule_required():
     """ Testing the RemoteRule with required flag set """
-    nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
         with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
@@ -635,11 +641,11 @@ def test_remote_rule_required():
                 """))
                 policy = policies[0]
                 results = DummyResultsRetriever()
-                decision = policy.check('fedora-rawhide', nvr, results)
+                decision = policy.check('fedora-rawhide', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], MissingGatingYaml)
                 assert not decision[0].is_satisfied
-                assert decision[0].subject_identifier == nvr
+                assert decision[0].subject.identifier == subject.identifier
 
 
 def test_parse_policies_missing_tag():
@@ -715,8 +721,9 @@ def test_policy_with_arbitrary_subject_type(tmpdir):
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
-    results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest', 'PASSED', 'kind-of-magic')
-    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results)
+    subject = create_test_subject('kind-of-magic', 'nethack-1.2.3-1.el9000')
+    results = DummyResultsRetriever(subject, 'sometest', 'PASSED')
+    decision = policy.check('rhel-9000', subject, results)
     assert len(decision) == 1
     assert isinstance(decision[0], TestResultPassed)
 
@@ -743,8 +750,9 @@ def test_policy_with_packages_whitelist(tmpdir, package, num_decisions):
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
-    results = DummyResultsRetriever('nethack-1.2.3-1.el9000', 'sometest', 'PASSED', 'koji_build')
-    decision = policy.check('rhel-9000', 'nethack-1.2.3-1.el9000', results)
+    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+    results = DummyResultsRetriever(subject, 'sometest', 'PASSED')
+    decision = policy.check('rhel-9000', subject, results)
     assert len(decision) == num_decisions
     if num_decisions:
         assert isinstance(decision[0], TestResultPassed)
@@ -923,6 +931,7 @@ def test_policies_to_json():
 
 def test_policy_with_subject_type_component_version(tmpdir):
     nv = '389-ds-base-1.4.0.10'
+    subject = create_test_subject('component-version', nv)
     p = tmpdir.join('fedora.yaml')
     p.write(dedent("""
         --- !Policy
@@ -937,9 +946,8 @@ def test_policy_with_subject_type_component_version(tmpdir):
         """))
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
-    results = DummyResultsRetriever(nv, 'test_for_new_type', 'PASSED',
-                                    'component-version')
-    decision = policy.check('fedora-29', nv, results)
+    results = DummyResultsRetriever(subject, 'test_for_new_type', 'PASSED')
+    decision = policy.check('fedora-29', subject, results)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
@@ -947,6 +955,7 @@ def test_policy_with_subject_type_component_version(tmpdir):
 @pytest.mark.parametrize('subject_type', ["redhat-module", "redhat-container-image"])
 def test_policy_with_subject_type_redhat_module(tmpdir, subject_type):
     nsvc = 'httpd:2.4:20181018085700:9edba152'
+    subject = create_test_subject(subject_type, nsvc)
     p = tmpdir.join('fedora.yaml')
     p.write(dedent("""
         --- !Policy
@@ -961,9 +970,8 @@ def test_policy_with_subject_type_redhat_module(tmpdir, subject_type):
         """ % subject_type))
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
-    results = DummyResultsRetriever(nsvc, 'test_for_redhat_module_type', 'PASSED',
-                                    subject_type)
-    decision = policy.check('fedora-29', nsvc, results)
+    results = DummyResultsRetriever(subject, 'test_for_redhat_module_type', 'PASSED')
+    decision = policy.check('fedora-29', subject, results)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)
 
@@ -974,6 +982,7 @@ def test_remote_rule_policy_on_demand_policy(namespace):
     In this case we are just mocking koji """
 
     nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_test_subject('koji_build', nvr)
 
     serverside_json = {
         'product_version': 'fedora-26',
@@ -1006,30 +1015,30 @@ def test_remote_rule_policy_on_demand_policy(namespace):
                 policy = OnDemandPolicy.create_from_json(serverside_json)
 
                 # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(nvr, 'dist.upgradepath')
-                decision = policy.check('fedora-26', nvr, results)
+                results = DummyResultsRetriever(subject, 'dist.upgradepath')
+                decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
 
                 # Ensure that absence of a result is failure.
                 results = DummyResultsRetriever()
-                decision = policy.check('fedora-26', nvr, results)
+                decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultMissing)
 
                 # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(nvr, 'dist.upgradepath', 'FAILED')
-                decision = policy.check('fedora-26', nvr, results)
+                results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
+                decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
 
 
 @pytest.mark.parametrize('two_rules', (True, False))
 def test_on_demand_policy_match(two_rules):
-    """ Testing the RemoteRule with the koji interaction when on_demand policy is given.
-    In this case we are just mocking koji """
+    """ Proceed other rules when there's no source URL in Koji build """
 
     nvr = 'httpd-2.4.el9000'
+    subject = create_test_subject('koji_build', nvr)
 
     serverside_json = {
         'product_version': 'fedora-30',
@@ -1057,15 +1066,15 @@ def test_on_demand_policy_match(two_rules):
             koji_server.return_value = koji_server_instance
             policy = OnDemandPolicy.create_from_json(serverside_json)
 
-            rv = policy.matches(subject_identifier=nvr)
+            policy_matches = policy.matches(subject=subject)
 
             koji_server_instance.getBuild.assert_called_once()
-            assert rv is two_rules
+            assert policy_matches
 
             results = DummyResultsRetriever(
-                nvr, 'fake.testcase.tier0.validation', 'PASSED', 'koji_build'
+                subject, 'fake.testcase.tier0.validation', 'PASSED'
             )
-            decision = policy.check('fedora-30', nvr, results)
+            decision = policy.check('fedora-30', subject, results)
             if two_rules:
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
@@ -1073,6 +1082,7 @@ def test_on_demand_policy_match(two_rules):
 
 def test_two_rules_no_duplicate(tmpdir):
     nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_test_subject('koji_build', nvr)
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -1108,19 +1118,19 @@ def test_two_rules_no_duplicate(tmpdir):
                 policy = policies[0]
 
                 # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(nvr, 'dist.upgradepath')
-                decision = policy.check('fedora-31', nvr, results)
+                results = DummyResultsRetriever(subject, 'dist.upgradepath')
+                decision = policy.check('fedora-31', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
 
                 # Ensure that absence of a result is failure.
                 results = DummyResultsRetriever()
-                decision = policy.check('fedora-31', nvr, results)
+                decision = policy.check('fedora-31', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultMissing)
 
                 # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(nvr, 'dist.upgradepath', 'FAILED')
-                decision = policy.check('fedora-31', nvr, results)
+                results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
+                decision = policy.check('fedora-31', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)

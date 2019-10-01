@@ -56,24 +56,18 @@ def _guess_koji_build_product_version(
 
 
 def subject_product_version(
-        subject_identifier,
-        subject_type,
+        subject,
         koji_proxy=None,
         koji_task_id=None):
-    if subject_type == 'koji_build':
-        try:
-            _, _, release = subject_identifier.rsplit('-', 2)
-            _, short_prod_version = release.rsplit('.', 1)
-            return _guess_product_version(short_prod_version, koji_build=True)
-        except (KeyError, ValueError):
-            pass
+    if subject.product_version:
+        return subject.product_version
 
-    if subject_type == "compose":
-        return _guess_product_version(subject_identifier)
+    if subject.short_product_version:
+        product_version = _guess_product_version(
+            subject.short_product_version, koji_build=subject.is_koji_build)
+        if product_version:
+            return product_version
 
-    if subject_type in ("redhat-module", "redhat-container-image"):
-        return "rhel-8"
-
-    if koji_proxy:
+    if koji_proxy and subject.is_koji_build:
         return _guess_koji_build_product_version(
-            subject_identifier, koji_proxy, koji_task_id)
+            subject.identifier, koji_proxy, koji_task_id)

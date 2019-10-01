@@ -6,8 +6,8 @@ def _is_waived(answer, waivers):
     Returns true only if there is a matching waiver for given answer.
     """
     return any(
-        waiver['subject_type'] == answer.subject_type and
-        waiver['subject_identifier'] == answer.subject_identifier and
+        waiver['subject_type'] == answer.subject.type and
+        waiver['subject_identifier'] == answer.subject.identifier and
         waiver['testcase'] == answer.test_case_name
         for waiver in waivers)
 

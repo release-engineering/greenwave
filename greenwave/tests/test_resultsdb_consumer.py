@@ -5,20 +5,28 @@ import pytest
 
 from textwrap import dedent
 
-import greenwave.app_factory
 import greenwave.consumers.resultsdb
+from greenwave.app_factory import create_app
 from greenwave.product_versions import subject_product_version
 from greenwave.policies import Policy
+from greenwave.subjects.factory import create_subject
+
+
+def announcement_subject(message):
+    cls = greenwave.consumers.resultsdb.ResultsDBHandler
+
+    app = create_app()
+    with app.app_context():
+        subject = cls.announcement_subject(message)
+        if subject:
+            return subject.to_dict()
 
 
 def test_announcement_keys_decode_with_list():
-    cls = greenwave.consumers.resultsdb.ResultsDBHandler
     message = {'msg': {'data': {
         'original_spec_nvr': ['glibc-1.0-1.fc27'],
     }}}
-    subjects = list(cls.announcement_subjects(message))
-
-    assert subjects == [('koji_build', 'glibc-1.0-1.fc27')]
+    assert announcement_subject(message) == {'type': 'koji_build', 'item': 'glibc-1.0-1.fc27'}
 
 
 def test_no_announcement_subjects_for_empty_nvr():
@@ -28,26 +36,22 @@ def test_no_announcement_subjects_for_empty_nvr():
     empty string. To avoid unpredictable consequences, we should not
     return any announcement subjects for such a message.
     """
-    cls = greenwave.consumers.resultsdb.ResultsDBHandler
     message = {'msg': {'data': {
         'original_spec_nvr': [""],
     }}}
-    subjects = list(cls.announcement_subjects(message))
 
-    assert subjects == []
+    assert announcement_subject(message) is None
 
 
 def test_announcement_subjects_for_brew_build():
     # The 'brew-build' type appears internally within Red Hat. We treat it as an
     # alias of 'koji_build'.
-    cls = greenwave.consumers.resultsdb.ResultsDBHandler
     message = {'msg': {'data': {
         'type': 'brew-build',
         'item': ['glibc-1.0-3.fc27'],
     }}}
-    subjects = list(cls.announcement_subjects(message))
 
-    assert subjects == [('koji_build', 'glibc-1.0-3.fc27')]
+    assert announcement_subject(message) == {'type': 'koji_build', 'item': 'glibc-1.0-3.fc27'}
 
 
 def test_announcement_subjects_for_new_compose_message():
@@ -57,7 +61,6 @@ def test_announcement_subjects_for_new_compose_message():
     productmd.compose.id with value of the compose ID. This is only
     possible with new-style 'resultsdb' fedmsgs, like this one.
     """
-    cls = greenwave.consumers.resultsdb.ResultsDBHandler
     message = {
         'msg': {
             'data': {
@@ -78,9 +81,9 @@ def test_announcement_subjects_for_new_compose_message():
             }
         }
     }
-    subjects = list(cls.announcement_subjects(message))
 
-    assert subjects == [('compose', 'Fedora-Rawhide-20181205.n.0')]
+    assert announcement_subject(message) == \
+        {'productmd.compose.id': 'Fedora-Rawhide-20181205.n.0'}
 
 
 def test_no_announcement_subjects_for_old_compose_message():
@@ -89,7 +92,6 @@ def test_no_announcement_subjects_for_old_compose_message():
     https://pagure.io/greenwave/issue/122 etc. So we should NOT
     produce any subjects for this kind of message.
     """
-    cls = greenwave.consumers.resultsdb.ResultsDBHandler
     message = {
         'msg': {
             'task': {
@@ -106,9 +108,8 @@ def test_no_announcement_subjects_for_old_compose_message():
             }
         }
     }
-    subjects = list(cls.announcement_subjects(message))
 
-    assert subjects == []
+    assert announcement_subject(message) is None
 
 
 parameters = [
@@ -321,12 +322,12 @@ def test_guess_product_version():
     }
     handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
     with handler.flask_app.app_context():
-        product_version = subject_product_version(
-            'release-e2e-test-1.0.1685-1.el5', 'koji_build')
+        subject = create_subject('koji_build', 'release-e2e-test-1.0.1685-1.el5')
+        product_version = subject_product_version(subject)
         assert product_version == 'rhel-5'
 
-        product_version = subject_product_version(
-            'rust-toolset-rhel8-20181010170614.b09eea91', 'redhat-module')
+        subject = create_subject('redhat-module', 'rust-toolset-rhel8-20181010170614.b09eea91')
+        product_version = subject_product_version(subject)
         assert product_version == 'rhel-8'
 
 
@@ -335,8 +336,10 @@ def test_guess_product_version_with_koji():
     koji_proxy.getBuild.return_value = {'task_id': 666}
     koji_proxy.getTaskRequest.return_value = ['git://example.com/project', 'rawhide', {}]
 
-    product_version = subject_product_version(
-        'fake_koji_build', 'container-build', koji_proxy)
+    app = create_app()
+    with app.app_context():
+        subject = create_subject('container-build', 'fake_koji_build')
+    product_version = subject_product_version(subject, koji_proxy)
     koji_proxy.getBuild.assert_called_once_with('fake_koji_build')
     koji_proxy.getTaskRequest.assert_called_once_with(666)
     assert product_version == 'fedora-rawhide'
@@ -346,8 +349,10 @@ def test_guess_product_version_with_koji_without_task_id():
     koji_proxy = mock.MagicMock()
     koji_proxy.getBuild.return_value = {'task_id': None}
 
-    product_version = subject_product_version(
-        'fake_koji_build', 'container-build', koji_proxy)
+    app = create_app()
+    with app.app_context():
+        subject = create_subject('container-build', 'fake_koji_build')
+    product_version = subject_product_version(subject, koji_proxy)
 
     koji_proxy.getBuild.assert_called_once_with('fake_koji_build')
     koji_proxy.getTaskRequest.assert_not_called()
@@ -361,7 +366,10 @@ def test_guess_product_version_with_koji_without_task_id():
     'badnvr-1.2.f30',
 ))
 def test_guess_product_version_failure(nvr):
-    product_version = subject_product_version(nvr, 'koji_build')
+    app = create_app()
+    with app.app_context():
+        subject = create_subject('koji_build', nvr)
+    product_version = subject_product_version(subject)
     assert product_version is None
 
 

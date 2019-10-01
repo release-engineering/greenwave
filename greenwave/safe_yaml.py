@@ -30,6 +30,28 @@ class SafeYAMLAttribute(object):
         raise NotImplementedError()
 
 
+class SafeYAMLDict(SafeYAMLAttribute):
+    """
+    YAML object attribute representing a dict.
+    """
+    def __init__(self, **args):
+        super().__init__(**args)
+
+    def from_yaml(self, loader, node):
+        value = loader.construct_mapping(node)
+        if isinstance(value, dict):
+            return value
+
+        raise SafeYAMLError('Expected a dict value, got: {}'.format(value))
+
+    def to_json(self, value):
+        return value
+
+    @property
+    def default_value(self):
+        return {}
+
+
 class SafeYAMLBool(SafeYAMLAttribute):
     """
     YAML object attribute representing a boolean value.
@@ -58,6 +80,10 @@ class SafeYAMLString(SafeYAMLAttribute):
     """
     YAML object attribute representing a string value.
     """
+    def __init__(self, default=None, **args):
+        super().__init__(**args)
+        self.default = default
+
     def from_yaml(self, loader, node):
         value = loader.construct_scalar(node)
         return str(value)
@@ -67,30 +93,7 @@ class SafeYAMLString(SafeYAMLAttribute):
 
     @property
     def default_value(self):
-        return None
-
-
-class SafeYAMLChoice(SafeYAMLAttribute):
-    """
-    YAML object attribute with only specific values allowed.
-    """
-    def __init__(self, *values, **kwargs):
-        super().__init__(**kwargs)
-        self.values = values
-
-    def from_yaml(self, loader, node):
-        value = loader.construct_scalar(node)
-        if value not in self.values:
-            raise SafeYAMLError(
-                'Value must be one of: {}'.format(', '.join(self.values)))
-        return str(value)
-
-    def to_json(self, value):
-        return value
-
-    @property
-    def default_value(self):
-        return self.values[0]
+        return self.default
 
 
 class SafeYAMLList(SafeYAMLAttribute):

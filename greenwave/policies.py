@@ -11,7 +11,6 @@ from flask import current_app
 from greenwave.utils import remove_duplicates, to_hashable
 from greenwave.safe_yaml import (
     SafeYAMLBool,
-    SafeYAMLChoice,
     SafeYAMLList,
     SafeYAMLObject,
     SafeYAMLString,
@@ -40,17 +39,6 @@ def load_policies(policies_dir):
 
 class DisallowedRuleError(RuntimeError):
     pass
-
-
-def subject_type_identifier_to_item(subject_type, subject_identifier):
-    """
-    Greenwave < 0.8 included an "item" key in the "unsatisfied_requirements".
-    This returns a suitable value for that key, for backwards compatibility.
-    """
-    if subject_type == 'compose':
-        return {'productmd.compose.id': subject_identifier}
-    else:
-        return {'type': subject_type, 'item': subject_identifier}
 
 
 class Answer(object):
@@ -118,9 +106,8 @@ class TestResultMissing(RuleNotSatisfied):
     ResultsDB with a matching item and test case name).
     """
 
-    def __init__(self, subject_type, subject_identifier, test_case_name, scenario):
-        self.subject_type = subject_type
-        self.subject_identifier = subject_identifier
+    def __init__(self, subject, test_case_name, scenario):
+        self.subject = subject
         self.test_case_name = test_case_name
         self.scenario = scenario
 
@@ -128,17 +115,16 @@ class TestResultMissing(RuleNotSatisfied):
         return {
             'type': 'test-result-missing',
             'testcase': self.test_case_name,
-            'subject_type': self.subject_type,
-            'subject_identifier': self.subject_identifier,
+            'subject_type': self.subject.type,
+            'subject_identifier': self.subject.identifier,
             'scenario': self.scenario,
             # For backwards compatibility only:
-            'item': subject_type_identifier_to_item(self.subject_type, self.subject_identifier),
+            'item': self.subject.to_dict()
         }
 
     def to_waived(self):
         return TestResultMissingWaived(
-            self.subject_type,
-            self.subject_identifier,
+            self.subject,
             self.test_case_name,
             self.scenario)
 
@@ -147,9 +133,8 @@ class TestResultMissingWaived(RuleSatisfied):
     """
     Same as TestResultMissing but the result was waived.
     """
-    def __init__(self, subject_type, subject_identifier, test_case_name, scenario):
-        self.subject_type = subject_type
-        self.subject_identifier = subject_identifier
+    def __init__(self, subject, test_case_name, scenario):
+        self.subject = subject
         self.test_case_name = test_case_name
         self.scenario = scenario
 
@@ -157,8 +142,8 @@ class TestResultMissingWaived(RuleSatisfied):
         return {
             'type': 'test-result-missing-waived',
             'testcase': self.test_case_name,
-            'subject_type': self.subject_type,
-            'subject_identifier': self.subject_identifier,
+            'subject_type': self.subject.type,
+            'subject_identifier': self.subject.identifier,
             'scenario': self.scenario,
         }
 
@@ -169,9 +154,8 @@ class TestResultFailed(RuleNotSatisfied):
     not ``PASSED`` or ``INFO``) and no corresponding waiver was found.
     """
 
-    def __init__(self, subject_type, subject_identifier, test_case_name, scenario, result_id):
-        self.subject_type = subject_type
-        self.subject_identifier = subject_identifier
+    def __init__(self, subject, test_case_name, scenario, result_id):
+        self.subject = subject
         self.test_case_name = test_case_name
         self.scenario = scenario
         self.result_id = result_id
@@ -184,7 +168,7 @@ class TestResultFailed(RuleNotSatisfied):
             # These are for backwards compatibility only
             # (the values are already visible in the result data itself, the
             # caller shouldn't need them repeated here):
-            'item': subject_type_identifier_to_item(self.subject_type, self.subject_identifier),
+            'item': self.subject.to_dict(),
             'scenario': self.scenario,
         }
 
@@ -197,9 +181,8 @@ class InvalidGatingYaml(RuleNotSatisfied):
     Remote policy parsing failed.
     """
 
-    def __init__(self, subject_type, subject_identifier, test_case_name, details):
-        self.subject_type = subject_type
-        self.subject_identifier = subject_identifier
+    def __init__(self, subject, test_case_name, details):
+        self.subject = subject
         self.test_case_name = test_case_name
         self.details = details
 
@@ -207,8 +190,8 @@ class InvalidGatingYaml(RuleNotSatisfied):
         return {
             'type': 'invalid-gating-yaml',
             'testcase': self.test_case_name,
-            'subject_type': self.subject_type,
-            'subject_identifier': self.subject_identifier,
+            'subject_type': self.subject.type,
+            'subject_identifier': self.subject.identifier,
             'details': self.details
         }
 
@@ -223,16 +206,15 @@ class MissingGatingYaml(RuleNotSatisfied):
 
     test_case_name = 'missing-gating-yaml'
 
-    def __init__(self, subject_type, subject_identifier):
-        self.subject_type = subject_type
-        self.subject_identifier = subject_identifier
+    def __init__(self, subject):
+        self.subject = subject
 
     def to_json(self):
         return {
             'type': 'missing-gating-yaml',
             'testcase': self.test_case_name,
-            'subject_type': self.subject_type,
-            'subject_identifier': self.subject_identifier,
+            'subject_type': self.subject.type,
+            'subject_identifier': self.subject.identifier,
         }
 
     def to_waived(self):
@@ -333,7 +315,7 @@ class Rule(SafeYAMLObject):
             self,
             policy,
             product_version,
-            subject_identifier,
+            subject,
             results_retriever):
         """
         Evaluate this policy rule for the given item.
@@ -341,7 +323,7 @@ class Rule(SafeYAMLObject):
         Args:
             policy (Policy): Parent policy of the rule
             product_version (str): Product version we are making a decision about
-            subject_identifier (str): Item we are making a decision about (for
+            subject (Subject): Item we are making a decision about (for
                 example, Koji build NVR, Bodhi update id, ...)
             results_retriever (ResultsRetriever): Object for retrieving data
                 from ResultsDB.
@@ -402,13 +384,13 @@ class RemoteRule(Rule):
         'required': SafeYAMLBool(optional=True, default=False),
     }
 
-    def _get_sub_policies(self, policy, subject_identifier):
-        if policy.subject_type not in ['koji_build', 'redhat-module', 'redhat-container-image']:
+    def _get_sub_policies(self, policy, subject):
+        if not subject.supports_remote_rule:
             return []
 
         try:
             pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
-                subject_identifier
+                subject.identifier
             )
         except greenwave.resources.NoSourceException as e:
             log.error(e)
@@ -442,26 +424,25 @@ class RemoteRule(Rule):
             self,
             policy,
             product_version,
-            subject_identifier,
+            subject,
             results_retriever):
         try:
-            policies = self._get_sub_policies(policy, subject_identifier)
+            policies = self._get_sub_policies(policy, subject)
         except SafeYAMLError as e:
             return [
-                InvalidGatingYaml(
-                    policy.subject_type, subject_identifier, 'invalid-gating-yaml', str(e))
+                InvalidGatingYaml(subject, 'invalid-gating-yaml', str(e))
             ]
 
         if policies is None:
             if self.required:
-                return [MissingGatingYaml(policy.subject_type, subject_identifier)]
+                return [MissingGatingYaml(subject)]
             return []
 
         answers = []
         for remote_policy in policies:
             if remote_policy.matches_product_version(product_version):
                 response = remote_policy.check(
-                    product_version, subject_identifier, results_retriever)
+                    product_version, subject, results_retriever)
 
                 if isinstance(response, list):
                     answers.extend(response)
@@ -472,22 +453,21 @@ class RemoteRule(Rule):
 
     def matches(self, policy, **attributes):
         #pylint: disable=broad-except
-        subject_identifier = attributes.get('subject_identifier')
-        if not subject_identifier:
+        subject = attributes.get('subject')
+        if not subject:
             return True
 
         sub_policies = []
         try:
-            sub_policies = self._get_sub_policies(policy, subject_identifier)
+            sub_policies = self._get_sub_policies(policy, subject)
         except SafeYAMLError:
-            logging.exception(
-                'Failed to parse policies for %r', subject_identifier)
+            logging.exception('Failed to parse policies for %r', subject)
         except Exception:
-            logging.exception(
-                'Failed to retrieve policies for %r', subject_identifier)
+            logging.exception('Failed to retrieve policies for %r', subject)
 
         if sub_policies is None:
-            return False
+            # RemoteRule matches if remote policy file is missing.
+            return True
 
         return any(sub_policy.matches(**attributes) for sub_policy in sub_policies)
 
@@ -514,10 +494,9 @@ class PassingTestCaseRule(Rule):
             self,
             policy,
             product_version,
-            subject_identifier,
+            subject,
             results_retriever):
-        matching_results = results_retriever.retrieve(
-            policy.subject_type, subject_identifier, self.test_case_name)
+        matching_results = results_retriever.retrieve(subject, self.test_case_name)
 
         if self.scenario is not None:
             matching_results = [
@@ -526,43 +505,15 @@ class PassingTestCaseRule(Rule):
 
         # Investigate the absence of result first.
         if not matching_results:
-            return TestResultMissing(
-                policy.subject_type, subject_identifier, self.test_case_name, self.scenario)
-
-        # For compose make decisions based on all architectures and variants.
-        if policy.subject_type == 'compose':
-            visited_arch_variants = set()
-            answers = []
-            for result in matching_results:
-                result_data = result['data']
-
-                # Items under test result "data" are lists which are unhashable
-                # types in Python. This converts anything that is stored there
-                # to a string so we don't have to care about the stored value.
-                arch_variant = (
-                    str(result_data.get('system_architecture')),
-                    str(result_data.get('system_variant')))
-
-                if arch_variant not in visited_arch_variants:
-                    visited_arch_variants.add(arch_variant)
-                    answer = self._answer_for_result(
-                        result,
-                        policy.subject_type,
-                        subject_identifier)
-                    answers.append(answer)
-
-            return answers
+            return TestResultMissing(subject, self.test_case_name, self.scenario)
 
         # If we find multiple matching results, we always use the first one which
         # will be the latest chronologically, because ResultsDB always returns
         # results ordered by `submit_time` descending.
-        answers = []
-        for result in matching_results:
-            answers.append(self._answer_for_result(
-                result,
-                policy.subject_type,
-                subject_identifier))
-        return answers
+        return [
+            self._answer_for_result(result, subject)
+            for result in subject.get_latest_results(matching_results)
+        ]
 
     def matches(self, policy, **attributes):
         testcase = attributes.get('testcase')
@@ -575,8 +526,7 @@ class PassingTestCaseRule(Rule):
             'scenario': self.scenario,
         }
 
-    def _answer_for_result(
-            self, result, subject_type, subject_identifier):
+    def _answer_for_result(self, result, subject):
         if result['outcome'] in ('PASSED', 'INFO'):
             log.debug('Test result passed for the result_id %s and testcase %s,'
                       ' because the outcome is %s', result['id'], self.test_case_name,
@@ -584,17 +534,14 @@ class PassingTestCaseRule(Rule):
             return TestResultPassed(self.test_case_name, result['id'])
 
         if result['outcome'] in ('QUEUED', 'RUNNING'):
-            log.debug('Test result MISSING for the subject_type %s, subject_identifier %s and '
-                      'testcase %s, because the outcome is %s', subject_type, subject_identifier,
+            log.debug('Test result MISSING for the %s and '
+                      'testcase %s, because the outcome is %s', subject,
                       self.test_case_name, result['outcome'])
-            return TestResultMissing(subject_type, subject_identifier, self.test_case_name,
-                                     self.scenario)
-        log.debug('Test result failed for the subject_type %s, subject_identifier %s and '
+            return TestResultMissing(subject, self.test_case_name, self.scenario)
+        log.debug('Test result failed for the %s and '
                   'testcase %s, because the outcome is %s and it didn\'t match any of the '
-                  'previous cases', subject_type, subject_identifier,
-                  self.test_case_name, result['outcome'])
-        return TestResultFailed(subject_type, subject_identifier, self.test_case_name,
-                                self.scenario, result['id'])
+                  'previous cases', subject, self.test_case_name, result['outcome'])
+        return TestResultFailed(subject, self.test_case_name, self.scenario, result['id'])
 
 
 class ObsoleteRule(Rule):
@@ -613,7 +560,7 @@ class ObsoleteRule(Rule):
             self,
             policy,
             product_version,
-            subject_identifier,
+            subject,
             results_retriever):
         raise ValueError('This rule is obsolete and can\'t be checked')
 
@@ -634,7 +581,6 @@ class Policy(SafeYAMLObject):
         'id': SafeYAMLString(),
         'product_versions': SafeYAMLList(str),
         'decision_context': SafeYAMLString(),
-        # TODO: Handle brew-build value better.
         'subject_type': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
@@ -662,8 +608,8 @@ class Policy(SafeYAMLObject):
         if product_version and not self.matches_product_version(product_version):
             return False
 
-        subject_type = attributes.get('subject_type')
-        if subject_type and subject_type != self.subject_type:
+        subject = attributes.get('subject')
+        if subject and subject.type != self.subject_type:
             return False
 
         return not self.rules or any(rule.matches(self, **attributes) for rule in self.rules)
@@ -672,16 +618,16 @@ class Policy(SafeYAMLObject):
     def check(
             self,
             product_version,
-            subject_identifier,
+            subject,
             results_retriever):
         # If an item is about a package and it is in the blacklist, return RuleSatisfied()
-        if self.subject_type == 'koji_build':
-            name = subject_identifier.rsplit('-', 2)[0]
+        name = subject.package_name
+        if name:
             if name in self.blacklist:
-                return [BlacklistedInPolicy(subject_identifier) for rule in self.rules]
+                return [BlacklistedInPolicy(subject.identifier) for rule in self.rules]
             for exclude in self.excluded_packages:
                 if fnmatch(name, exclude):
-                    return [ExcludedInPolicy(subject_identifier) for rule in self.rules]
+                    return [ExcludedInPolicy(subject.identifier) for rule in self.rules]
             if self.packages and not any(fnmatch(name, package) for package in self.packages):
                 # If the `packages` whitelist is set and this package isn't in the
                 # `packages` whitelist, then the policy doesn't apply to it
@@ -691,7 +637,7 @@ class Policy(SafeYAMLObject):
             response = rule.check(
                 self,
                 product_version,
-                subject_identifier,
+                subject,
                 results_retriever)
             if isinstance(response, list):
                 answers.extend(response)
@@ -756,8 +702,7 @@ class RemotePolicy(Policy):
     safe_yaml_attributes = {
         'id': SafeYAMLString(optional=True),
         'product_versions': SafeYAMLList(str),
-        'subject_type': SafeYAMLChoice(
-            'koji_build', 'redhat-module', 'redhat-container-image', optional=True),
+        'subject_type': SafeYAMLString(optional=True, default='koji_build'),
         'decision_context': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),

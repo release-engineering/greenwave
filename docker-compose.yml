@@ -11,6 +11,7 @@ services:
       - ./docker/home:/home/dev:Z
       - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
       - ./conf/policies/:/etc/greenwave/policies/:ro,z
+      - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
     ports:
       - 8080:8080
     depends_on:

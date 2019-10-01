@@ -15,6 +15,11 @@ from greenwave.resources import ResultsRetriever, WaiversRetriever
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
 from greenwave.waivers import waive_answers
+from greenwave.subjects.factory import (
+    create_subject,
+    create_subject_from_data,
+    UnknownSubjectDataError,
+)
 from greenwave.monitor import (
     registry,
     decision_exception_counter,
@@ -26,23 +31,14 @@ api = (Blueprint('api_v1', __name__))
 log = logging.getLogger(__name__)
 
 
-def _decision_subject(subject):
-    subject_type = subject.get('type')
-    subject_identifier = subject.get('item')
+def _decision_subject(data):
+    try:
+        subject = create_subject_from_data(data)
+    except UnknownSubjectDataError:
+        log.info('Could not detect subject_identifier.')
+        raise BadRequest('Could not detect subject_identifier.')
 
-    if 'productmd.compose.id' in subject:
-        return ('compose', subject['productmd.compose.id'])
-
-    if 'original_spec_nvr' in subject:
-        return ('koji_build', subject['original_spec_nvr'])
-
-    if subject_identifier:
-        if subject_type == 'brew-build':
-            return ('koji_build', subject_identifier)
-        return (subject_type, subject_identifier)
-
-    log.info('Couldn\'t detect subject_identifier.')
-    raise BadRequest('Couldn\'t detect subject_identifier.')
+    return subject
 
 
 def _decision_subjects_for_request(data):
@@ -72,18 +68,7 @@ def _decision_subjects_for_request(data):
             log.error('Missing required "subject_identifier" parameter')
             raise BadRequest('Missing required "subject_identifier" parameter')
 
-        yield data['subject_type'], data['subject_identifier']
-
-
-def subject_type_identifier_to_list(subject_type, subject_identifier):
-    """
-    Inverse of the above function.
-    This is for backwards compatibility in emitted messages.
-    """
-    if subject_type == 'compose':
-        return [{'productmd.compose.id': subject_identifier}]
-    else:
-        return [{'type': subject_type, 'item': subject_identifier}]
+        yield create_subject(data['subject_type'], data['subject_identifier'])
 
 
 @api.route('/version', methods=['GET'])
@@ -166,6 +151,18 @@ def get_policies():
     """
     policies = [policy.to_json() for policy in current_app.config['policies']]
     resp = jsonify({'policies': policies})
+    resp = insert_headers(resp)
+    resp.status_code = 200
+    return resp
+
+
+@api.route('/subject_types', methods=['GET'])
+@jsonp
+def get_subject_types():
+    """ Returns all currently loaded subject_types (sorted by "id")."""
+    subject_types = [type_.to_json() for type_ in current_app.config['subject_types']]
+    subject_types.sort(key=lambda x: x['id'])
+    resp = jsonify({'subject_types': subject_types})
     resp = insert_headers(resp)
     resp.status_code = 200
     return resp
@@ -416,9 +413,9 @@ def make_decision():
     on_demand_policies = []
     if rules:
         request_data = {key: data[key] for key in data if key not in ('subject', 'subject_type')}
-        for subject_type, subject_identifier in _decision_subjects_for_request(data):
-            request_data['subject_type'] = subject_type
-            request_data['subject_identifier'] = subject_identifier
+        for subject in _decision_subjects_for_request(data):
+            request_data['subject_type'] = subject.type
+            request_data['subject_identifier'] = subject.identifier
             on_demand_policy = OnDemandPolicy.create_from_json(request_data)
             on_demand_policies.append(on_demand_policy)
 
@@ -454,34 +451,32 @@ def make_decision():
     waiver_filters = []
 
     policies = on_demand_policies or current_app.config['policies']
-    for subject_type, subject_identifier in _decision_subjects_for_request(data):
+    for subject in _decision_subjects_for_request(data):
         subject_policies = [
             policy for policy in policies
             if policy.matches(
                 decision_context=decision_context,
                 product_version=product_version,
-                subject_type=subject_type)
+                subject=subject)
         ]
 
         if not subject_policies:
-            # Ignore non-existent policy for Bodhi updates.
-            if subject_type == 'bodhi_update':
+            if subject.ignore_missing_policy:
                 continue
 
             log.error(
                 'Cannot find any applicable policies for %s subjects at gating point %s in %s',
-                subject_type, decision_context, product_version)
+                subject.type, decision_context, product_version)
             raise NotFound(
                 'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
-                    subject_type, decision_context, product_version))
+                    subject.type, decision_context, product_version))
 
         if verbose:
             # Retrieve test results and waivers for all items when verbose output is requested.
-            verbose_results.extend(
-                results_retriever.retrieve(subject_type, subject_identifier))
+            verbose_results.extend(results_retriever.retrieve(subject))
             waiver_filters.append(dict(
-                subject_type=subject_type,
-                subject_identifier=subject_identifier,
+                subject_type=subject.type,
+                subject_identifier=subject.identifier,
                 product_version=product_version,
             ))
 
@@ -489,7 +484,7 @@ def make_decision():
             answers.extend(
                 policy.check(
                     product_version,
-                    subject_identifier,
+                    subject,
                     results_retriever))
 
         applicable_policies.extend(subject_policies)
@@ -498,8 +493,8 @@ def make_decision():
         for answer in answers:
             if not answer.is_satisfied:
                 waiver_filters.append(dict(
-                    subject_type=answer.subject_type,
-                    subject_identifier=answer.subject_identifier,
+                    subject_type=answer.subject.type,
+                    subject_identifier=answer.subject.identifier,
                     product_version=product_version,
                     testcase=answer.test_case_name,
                 ))

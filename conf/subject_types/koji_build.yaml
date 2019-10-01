@@ -1,0 +1,15 @@
+--- !SubjectType
+id: koji_build
+aliases:
+  - brew-build
+is_koji_build: true
+is_nvr: true
+supports_remote_rule: true
+item_key: "original_spec_nvr"
+result_queries:
+  # {"type": "koji_build,brew-build", "item": ITEM}
+  - item_key: "item"
+    keys:
+      type: "koji_build,brew-build"
+  # {"original_spec_nvr": ITEM}
+  - item_key: "original_spec_nvr"

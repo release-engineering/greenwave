@@ -2,6 +2,11 @@
 import os
 
 
+def _local_conf_dir(subdir):
+    basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(basedir, 'conf', subdir)
+
+
 class Config(object):
     """
     A GreenWave Flask configuration.
@@ -26,6 +31,7 @@ class Config(object):
     REQUESTS_VERIFY = True
 
     POLICIES_DIR = '/etc/greenwave/policies'
+    SUBJECT_TYPES_DIR = '/etc/greenwave/subject_types'
 
     MESSAGING = 'fedmsg'
 
@@ -46,10 +52,8 @@ class DevelopmentConfig(Config):
     #WAIVERDB_API_URL = 'http://waiverdb-dev.fedorainfracloud.org/api/v1.0'
     WAIVERDB_API_URL = 'http://localhost:5004/api/v1.0'
     GREENWAVE_API_URL = 'http://localhost:5005/api/v1.0'
-    POLICIES_DIR = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'conf',
-        'policies'
-    )
+    POLICIES_DIR = _local_conf_dir('policies')
+    SUBJECT_TYPES_DIR = _local_conf_dir('subject_types')
 
 
 class TestingConfig(Config):
@@ -57,7 +61,5 @@ class TestingConfig(Config):
     WAIVERDB_API_URL = 'http://localhost:5004/api/v1.0'
     GREENWAVE_API_URL = 'http://localhost:5005/api/v1.0'
     KOJI_BASE_URL = 'http://localhost:5006/kojihub'
-    POLICIES_DIR = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'conf',
-        'policies'
-    )
+    POLICIES_DIR = _local_conf_dir('policies')
+    SUBJECT_TYPES_DIR = _local_conf_dir('subject_types')

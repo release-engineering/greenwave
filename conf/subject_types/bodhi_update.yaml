@@ -1,0 +1,3 @@
+--- !SubjectType
+id: bodhi_update
+ignore_missing_policy: true

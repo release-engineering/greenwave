@@ -1,0 +1,4 @@
+--- !SubjectType
+id: redhat-container-image
+product_version: rhel-8
+supports_remote_rule: true

@@ -5,14 +5,19 @@ from greenwave.policies import (
     TestResultMissing,
     TestResultFailed,
 )
+from greenwave.subjects.subject import Subject
+from greenwave.subjects.subject_type import GenericSubjectType
 from greenwave.waivers import waive_answers
+
+
+def test_subject():
+    return Subject(GenericSubjectType('koji_build'), 'nethack-1.2.3-1.rawhide')
 
 
 def test_waive_failed_result():
     answers = [
         TestResultFailed(
-            subject_type='koji-build',
-            subject_identifier='nethack-1.2.3-1.rawhide',
+            subject=test_subject(),
             test_case_name='test1',
             scenario='scenario1',
             result_id=99,
@@ -24,7 +29,7 @@ def test_waive_failed_result():
 
     waivers = [
         dict(
-            subject_type='koji-build',
+            subject_type='koji_build',
             subject_identifier='nethack-1.2.3-1.rawhide',
             product_version='rawhide',
             testcase='test1',
@@ -43,8 +48,7 @@ def test_waive_failed_result():
 def test_waive_missing_result():
     answers = [
         TestResultMissing(
-            subject_type='koji-build',
-            subject_identifier='nethack-1.2.3-1.rawhide',
+            subject=test_subject(),
             test_case_name='test1',
             scenario='scenario1',
         )
@@ -55,7 +59,7 @@ def test_waive_missing_result():
 
     waivers = [
         dict(
-            subject_type='koji-build',
+            subject_type='koji_build',
             subject_identifier='nethack-1.2.3-1.rawhide',
             product_version='rawhide',
             testcase='test1',
@@ -65,7 +69,7 @@ def test_waive_missing_result():
     expected_json = dict(
         type='test-result-missing-waived',
         testcase='test1',
-        subject_type='koji-build',
+        subject_type='koji_build',
         subject_identifier='nethack-1.2.3-1.rawhide',
         scenario='scenario1',
     )
@@ -76,8 +80,7 @@ def test_waive_missing_result():
 def test_waive_invalid_gatin_yaml():
     answers = [
         InvalidGatingYaml(
-            subject_type='koji-build',
-            subject_identifier='nethack-1.2.3-1.rawhide',
+            subject=test_subject(),
             test_case_name='invalid-gating-yaml',
             details='',
         )
@@ -88,7 +91,7 @@ def test_waive_invalid_gatin_yaml():
 
     waivers = [
         dict(
-            subject_type='koji-build',
+            subject_type='koji_build',
             subject_identifier='nethack-1.2.3-1.rawhide',
             product_version='rawhide',
             testcase='invalid-gating-yaml',

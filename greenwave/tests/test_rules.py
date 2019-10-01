@@ -6,6 +6,7 @@ from textwrap import dedent
 from greenwave.app_factory import create_app
 from greenwave.policies import Policy, RemoteRule
 from greenwave.safe_yaml import SafeYAMLError
+from greenwave.subjects.factory import create_subject
 
 
 def test_match_passing_test_case_rule():
@@ -54,6 +55,7 @@ def test_match_remote_rule(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remot
 
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
+        subject = create_subject('koji_build', nvr)
         policies = Policy.safe_load_all(policy_yaml)
         assert len(policies) == 1
 
@@ -62,9 +64,9 @@ def test_match_remote_rule(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remot
 
         rule = policy.rules[0]
         assert rule.matches(policy)
-        assert rule.matches(policy, subject_identifier=nvr)
-        assert rule.matches(policy, subject_identifier=nvr, testcase='some_test_case')
-        assert not rule.matches(policy, subject_identifier=nvr, testcase='other_test_case')
+        assert rule.matches(policy, subject=subject)
+        assert rule.matches(policy, subject=subject, testcase='some_test_case')
+        assert not rule.matches(policy, subject=subject, testcase='other_test_case')
 
         # Simulate invalid gating.yaml file.
         def raiseYamlError(*args):
@@ -73,9 +75,9 @@ def test_match_remote_rule(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remot
         mock_retrieve_yaml_remote_rule.side_effect = raiseYamlError
 
         assert rule.matches(policy)
-        assert not rule.matches(policy, subject_identifier=nvr)
-        assert not rule.matches(policy, subject_identifier=nvr, testcase='some_test_case')
-        assert not rule.matches(policy, subject_identifier=nvr, testcase='other_test_case')
+        assert not rule.matches(policy, subject=subject)
+        assert not rule.matches(policy, subject=subject, testcase='some_test_case')
+        assert not rule.matches(policy, subject=subject, testcase='other_test_case')
 
 
 @pytest.mark.parametrize(('required_flag', 'required_value'), (

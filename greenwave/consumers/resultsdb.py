@@ -13,6 +13,10 @@ import logging
 
 from greenwave.consumers.consumer import Consumer
 from greenwave.product_versions import subject_product_version
+from greenwave.subjects.factory import (
+    create_subject_from_data,
+    UnknownSubjectDataError,
+)
 
 import xmlrpc.client
 
@@ -64,9 +68,9 @@ class ResultsDBHandler(Consumer):
             self.koji_proxy = None
 
     @staticmethod
-    def announcement_subjects(message):
+    def announcement_subject(message):
         """
-        Yields pairs of (subject type, subject identifier) for announcement
+        Returns pairs of (subject type, subject identifier) for announcement
         consideration from the message.
 
         Args:
@@ -78,7 +82,16 @@ class ResultsDBHandler(Consumer):
         except KeyError:
             data = message['msg']['task']  # Old format
 
-        _type = _unpack_value(data.get('type'))
+        unpacked = {
+            k: _unpack_value(v)
+            for k, v in data.items()
+        }
+
+        try:
+            subject = create_subject_from_data(unpacked)
+        except UnknownSubjectDataError:
+            return None
+
         # note: it is *intentional* that we do not handle old format
         # compose-type messages, because it is impossible to reliably
         # produce a decision from these. compose decisions can only be
@@ -88,21 +101,10 @@ class ResultsDBHandler(Consumer):
         # https://pagure.io/taskotron/resultsdb/issue/92
         # https://pagure.io/taskotron/resultsdb/pull-request/101
         # https://pagure.io/greenwave/pull-request/262#comment-70350
-        if 'productmd.compose.id' in data:
-            yield ('compose', _unpack_value(data['productmd.compose.id']))
-        elif _type == 'compose':
-            pass
-        elif 'original_spec_nvr' in data:
-            nvr = _unpack_value(data['original_spec_nvr'])
-            # when the pipeline ignores a package, which happens
-            # *a lot*, we get a message with an 'original_spec_nvr'
-            # key with an empty value; let's not try and handle this
-            if nvr:
-                yield ('koji_build', nvr)
-        elif _type == 'brew-build':
-            yield ('koji_build', _unpack_value(data['item']))
-        elif 'item' in data and _type:
-            yield (_type, _unpack_value(data['item']))
+        if subject.type == 'compose' and 'productmd.compose.id' not in data:
+            return None
+
+        return subject
 
     def _consume_message(self, message):
         msg = message['msg']
@@ -119,21 +121,22 @@ class ResultsDBHandler(Consumer):
 
         brew_task_id = _get_brew_task_id(msg)
 
-        for subject_type, subject_identifier in self.announcement_subjects(message):
-            log.debug('Considering subject %s: %r', subject_type, subject_identifier)
+        subject = self.announcement_subject(message)
+        if subject is None:
+            return
 
-            product_version = subject_product_version(
-                subject_identifier,
-                subject_type,
-                self.koji_proxy,
-                brew_task_id,
-            )
+        log.debug('Considering subject: %r', subject)
 
-            self._publish_decision_change(
-                submit_time=submit_time,
-                subject_type=subject_type,
-                subject_identifier=subject_identifier,
-                testcase=testcase,
-                product_version=product_version,
-                publish_testcase=False,
-            )
+        product_version = subject_product_version(
+            subject,
+            self.koji_proxy,
+            brew_task_id,
+        )
+
+        self._publish_decision_change(
+            submit_time=submit_time,
+            subject=subject,
+            testcase=testcase,
+            product_version=product_version,
+            publish_testcase=False,
+        )

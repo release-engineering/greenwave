@@ -6,6 +6,7 @@ from greenwave.api_v1 import api
 from greenwave.monitor import monitor_api
 from greenwave.utils import json_error, load_config, sha1_mangle_key
 from greenwave.policies import load_policies, RemoteRule
+from greenwave.subjects.subject_type import load_subject_types
 
 from dogpile.cache import make_region
 from requests import ConnectionError, Timeout
@@ -42,6 +43,10 @@ def create_app(config_obj=None):
     policies_dir = app.config['POLICIES_DIR']
     log.debug("config: Loading policies from %r", policies_dir)
     app.config['policies'] = load_policies(policies_dir)
+
+    subject_types_dir = app.config['SUBJECT_TYPES_DIR']
+    log.debug("config: Loading subject types from %r", subject_types_dir)
+    app.config['subject_types'] = load_subject_types(subject_types_dir)
 
     if not _can_use_remote_rule(app.config) and _has_remote_rule(app.config['policies']):
         raise RuntimeError(

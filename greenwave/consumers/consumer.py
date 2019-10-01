@@ -6,7 +6,6 @@ import requests
 import fedmsg.consumers
 
 import greenwave.app_factory
-from greenwave.api_v1 import subject_type_identifier_to_list
 from greenwave.monitor import (
     publish_decision_exceptions_result_counter,
     messaging_tx_to_send_counter, messaging_tx_stopped_counter,
@@ -157,15 +156,13 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
     def _publish_decision_change(
             self,
             submit_time,
-            subject_type,
-            subject_identifier,
+            subject,
             testcase,
             product_version,
             publish_testcase):
 
         policy_attributes = dict(
-            subject_type=subject_type,
-            subject_identifier=subject_identifier,
+            subject=subject,
             testcase=testcase,
         )
 
@@ -185,8 +182,8 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
                 submit_time,
                 decision_context=decision_context,
                 product_version=product_version,
-                subject_type=subject_type,
-                subject_identifier=subject_identifier,
+                subject_type=subject.type,
+                subject_identifier=subject.identifier,
             )
             if decision is None:
                 continue
@@ -197,11 +194,10 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
                 continue
 
             decision.update({
-                'subject_type': subject_type,
-                'subject_identifier': subject_identifier,
+                'subject_type': subject.type,
+                'subject_identifier': subject.identifier,
                 # subject is for backwards compatibility only:
-                'subject': subject_type_identifier_to_list(subject_type,
-                                                           subject_identifier),
+                'subject': [subject.to_dict()],
                 'decision_context': decision_context,
                 'product_version': product_version,
                 'previous': old_decision,
