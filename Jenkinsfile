@@ -52,7 +52,7 @@ node('master'){
 }
 
 timestamps {
-node('fedora-29') {
+node('fedora-30') {
     checkout scm
     scmVars.GIT_AUTHOR_EMAIL = sh (
         script: 'git --no-pager show -s --format=\'%ae\'',
@@ -167,7 +167,7 @@ node('docker') {
     }
 }
 
-node('fedora-29') {
+node('fedora-30') {
     checkout scm
 
     /* Install packages needed by the functional tests. */
