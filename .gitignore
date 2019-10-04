@@ -31,6 +31,7 @@ greenwave-test-cache.dbm*
 .venv/
 
 # Other
+.idea
 .vagrant/
 .vscode/
 docker/home/
