@@ -1,16 +1,43 @@
 import requests
 
+from json import dumps
 from requests.adapters import HTTPAdapter
-# pylint: disable=import-error
-from requests.packages.urllib3.util.retry import Retry
+from requests.exceptions import ConnectionError, ConnectTimeout, RetryError
+from urllib3.util.retry import Retry
+from urllib3.exceptions import ProxyError, SSLError
 
 from greenwave import __version__
+
+
+class ErrorResponse(requests.Response):
+    def __init__(self, status_code, error_message, url):
+        super().__init__()
+        self.status_code = status_code
+        self._error_message = error_message
+        self.url = url
+        self.reason = error_message.encode()
+
+    @property
+    def content(self):
+        return dumps({'message' : self._error_message}).encode()
+
+
+class RequestsSession(requests.Session):
+    def request(self, *args, **kwargs):
+        req_url = kwargs.get('url', args[1])
+        try:
+            return super().request(*args, **kwargs)
+        except (ConnectionError, ProxyError, SSLError) as e:
+            ret_val = ErrorResponse(502, str(e), req_url)
+        except (ConnectTimeout, RetryError) as e:
+            ret_val = ErrorResponse(504, str(e), req_url)
+        return ret_val
 
 
 def get_requests_session():
     """ Get http(s) session for request processing.  """
 
-    session = requests.Session()
+    session = RequestsSession()
     retry = Retry(
         total=3,
         read=3,

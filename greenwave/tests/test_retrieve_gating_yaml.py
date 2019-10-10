@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import socket
+from requests.exceptions import ConnectionError, HTTPError
 
 import pytest
 import mock
@@ -94,6 +95,27 @@ def test_retrieve_yaml_remote_rule_no_namespace():
                 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml',
                 headers={'Content-Type': 'application/json'}, timeout=60)
             assert session.request.mock_calls == [expected_call]
+
+
+def test_retrieve_yaml_remote_rule_connection_error():
+    app = greenwave.app_factory.create_app()
+    with app.app_context():
+        with mock.patch('requests.Session.request') as mocked_request:
+            # Return 404, because we are only interested in the URL in the request
+            # and whether it is correct even with empty namespace.
+            response = mock.MagicMock()
+            response.status_code = 200
+            mocked_request.side_effect = [
+                response, ConnectionError('Something went terribly wrong...')
+            ]
+
+            with pytest.raises(HTTPError) as excinfo:
+                retrieve_yaml_remote_rule("deadbeaf", "pkg", "")
+
+            assert str(excinfo.value) == (
+                '502 Server Error: Something went terribly wrong... for url: '
+                'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml'
+            )
 
 
 @mock.patch('greenwave.resources.xmlrpc.client.ServerProxy')
