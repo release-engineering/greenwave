@@ -388,6 +388,9 @@ def make_decision():
         {"type":"RemoteRule"}]. Do not use this parameter along with `decision_context`.
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
+    :statuscode 404: No Koji build found
+    :statuscode 502: Error while querying Koji to retrieve the SCM URL
+    :statuscode 504: Timeout while querying an upstream
     """  # noqa: E501
     data = request.get_json()
     if data:

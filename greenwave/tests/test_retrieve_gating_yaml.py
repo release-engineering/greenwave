@@ -5,7 +5,7 @@ from requests.exceptions import ConnectionError, HTTPError
 
 import pytest
 import mock
-from werkzeug.exceptions import BadGateway
+from werkzeug.exceptions import BadGateway, NotFound
 
 import greenwave.app_factory
 from greenwave.resources import (
@@ -42,7 +42,7 @@ def test_retrieve_scm_from_nonexistent_build():
     nvr = 'foo-1.2.3-1.fc29'
     build = {}
     expected_error = 'Failed to find Koji build for "{}" at "{}"'.format(nvr, KOJI_URL)
-    with pytest.raises(BadGateway, match=expected_error):
+    with pytest.raises(NotFound, match=expected_error):
         retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
 
 

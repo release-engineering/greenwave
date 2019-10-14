@@ -14,7 +14,7 @@ import socket
 from urllib.parse import urlparse
 import xmlrpc.client
 from flask import current_app
-from werkzeug.exceptions import BadGateway
+from werkzeug.exceptions import BadGateway, NotFound
 
 from greenwave.cache import cached
 from greenwave.request_session import get_requests_session
@@ -137,8 +137,7 @@ def retrieve_scm_from_koji(nvr):
 
 def retrieve_scm_from_koji_build(nvr, build, koji_url):
     if not build:
-        raise BadGateway(
-            'Failed to find Koji build for "{}" at "{}"'.format(nvr, koji_url))
+        raise NotFound('Failed to find Koji build for "{}" at "{}"'.format(nvr, koji_url))
 
     source = build.get('source')
     if not source:
