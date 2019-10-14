@@ -27,10 +27,10 @@ class RequestsSession(requests.Session):
         req_url = kwargs.get('url', args[1])
         try:
             return super().request(*args, **kwargs)
-        except (ConnectionError, ProxyError, SSLError) as e:
-            ret_val = ErrorResponse(502, str(e), req_url)
         except (ConnectTimeout, RetryError) as e:
             ret_val = ErrorResponse(504, str(e), req_url)
+        except (ConnectionError, ProxyError, SSLError) as e:
+            ret_val = ErrorResponse(502, str(e), req_url)
         return ret_val
 
 
