@@ -19,7 +19,7 @@ class ErrorResponse(requests.Response):
 
     @property
     def content(self):
-        return dumps({'message' : self._error_message}).encode()
+        return dumps({'message': self._error_message}).encode()
 
 
 class RequestsSession(requests.Session):

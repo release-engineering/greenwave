@@ -5,7 +5,6 @@ import logging
 import os
 import hashlib
 import datetime
-import urllib3
 
 from flask import jsonify, current_app, request
 from flask.config import Config
