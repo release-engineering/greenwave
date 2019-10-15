@@ -23,7 +23,7 @@ class ErrorResponse(requests.Response):
 
 
 class RequestsSession(requests.Session):
-    def request(self, *args, **kwargs):
+    def request(self, *args, **kwargs):  # pylint:disable=arguments-differ
         req_url = kwargs.get('url', args[1])
         try:
             return super().request(*args, **kwargs)
