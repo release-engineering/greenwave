@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+Greenwave 1.4.0
+===============
+
+Released 15 October 2019
+
+* Changing the upstream exception handling. Connection timeout now causes 504
+  response, other connection error cause 502, missing build in Koji causes 404.
+
 Greenwave 1.3.2
 ===============
 
