@@ -4,6 +4,8 @@ Docker-compose for Greenwave
 Quickstart
 ----------
 
+**Quick Tip:** Use `make` to run frequent commands mentioned below.
+
 Start local development containers of ResultsDB and WaiverDB using
 ``docker-compose``. If you want the containers to run in the foreground, omit
 the ``-d`` flag. If you want to create the containers again (after some code
