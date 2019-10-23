@@ -132,3 +132,12 @@ decision_context: compose_test_scenario
 subject_type: compose
 rules:
   - !PassingTestCaseRule {test_case_name: testcase_name}
+
+--- !Policy
+id: "compose-test-scenario-group"
+product_versions:
+  - fedora-30
+decision_context: compose_test_scenario_group
+subject_type: group
+rules:
+  - !PassingTestCaseRule {test_case_name: testcase_name}

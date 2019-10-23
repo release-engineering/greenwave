@@ -3,7 +3,9 @@
 import json
 import pytest
 import re
+import os
 
+from hashlib import sha256
 from textwrap import dedent
 
 from greenwave import __version__
@@ -38,7 +40,7 @@ def test_inspect_policies(requests_session, greenwave_server):
     assert r.status_code == 200
     body = r.json()
     policies = body['policies']
-    assert len(policies) == 15
+    assert len(policies) == 16
     assert any(p['id'] == 'taskotron_release_critical_tasks' for p in policies)
     assert any(p['decision_context'] == 'bodhi_update_push_stable' for p in policies)
     assert any(p['product_versions'] == ['fedora-26'] for p in policies)
@@ -538,6 +540,33 @@ def test_make_a_decision_on_no_results(requests_session, greenwave_server, testd
         } for name in TASKTRON_RELEASE_CRITICAL_TASKS
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+
+
+def test_subject_type_group(requests_session, greenwave_server, testdatabuilder):
+    results_item = 'sha256:' + sha256(os.urandom(50)).hexdigest()
+
+    testdatabuilder.create_result(
+        item=results_item, testcase_name='testcase_name', outcome='PASSED', _type='group'
+    )
+    data = {
+        'decision_context': 'compose_test_scenario_group',
+        'product_version': 'fedora-30',
+        'subject_type': 'group',
+        'subject_identifier': results_item,
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
+                              headers={'Content-Type': 'application/json'},
+                              data=json.dumps(data))
+
+    assert r.status_code == 200
+
+    res_data = r.json()
+    assert res_data['satisfied_requirements'][0]['testcase'] == 'testcase_name'
+    assert res_data['satisfied_requirements'][0]['type'] == 'test-result-passed'
+    assert res_data['policies_satisfied'] is True
+
+    expected_summary = 'All required tests passed'
+    assert res_data['summary'] == expected_summary
 
 
 def test_empty_policy_is_always_satisfied(
