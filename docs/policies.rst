@@ -72,10 +72,6 @@ The document is a map (dictionary) with the following keys:
    The subject type can be any string. A list of commonly used subject types
    can be found in the :ref:`subject-types` section.
 
-   In the ``gating.yaml`` files (see :ref:`remote-rule`) the allowed values
-   are ``koji_build`` and ``redhat-module`` - if not specified
-   the default value will be ``koji_build``.
-
 ``product_versions``
    A policy applies to one or more "product versions". When you ask Greenwave
    for a decision, you must tell it which product version you are working
@@ -157,9 +153,6 @@ But these are common examples of types (just for reference):
    identified by the compose id in their metadata, which is typically also
    reflected in their directory name, for example
    ``Fedora-Rawhide-20170508.n.0``.
-
-The ``RemoteRule`` feature is enabled only for ``subject_type`` equal to ``koji_build``
-and ``redhat-module``.
 
 .. _rule-types:
 

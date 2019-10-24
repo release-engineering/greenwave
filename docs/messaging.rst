@@ -86,8 +86,8 @@ Greenwave tries to guess the product version from the subject identifier or get
 the value from Koji.
 
 Sometimes, the product version cannot be guessed, e.g. for container image
-builds or subject types other than "koji_build", "brew-build", "compose" or
-"redhat-module".
+builds or subject types other than "koji_build", "brew-build", "compose",
+"redhat-module" or "redhat-container-image".
 
 If the product version cannot be guessed, policies with any product version are
 considered (subject type and test case name is still used for further
