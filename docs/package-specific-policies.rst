@@ -43,8 +43,8 @@ policy defined in the Greenwave conf that contains the ``RemoteRule``
 that will enable this check.
 
 The ``subject_type`` should always be defined and the permitted values are
-``koji_build`` and ``redhat-module``. If no ``subject_type`` will be
-specified the default value is ``koji_build``.
+``koji_build``, ``redhat-module`` and ``redhat-container-image``.
+If no ``subject_type`` will be specified the default value is ``koji_build``.
 
 Refer to :doc:`policies` for details about each of the keys in the YAML file.
 
