@@ -71,7 +71,7 @@ def subject_product_version(
     if subject_type == "compose":
         return _guess_product_version(subject_identifier)
 
-    if subject_type == "redhat-module":
+    if subject_type in ("redhat-module", "redhat-container-image"):
         return "rhel-8"
 
     if koji_proxy:

@@ -394,6 +394,68 @@ def test_remote_rule_policy_redhat_module(tmpdir, namespace):
                 assert isinstance(decision[0], TestResultFailed)
 
 
+def test_remote_rule_policy_redhat_container_image(tmpdir):
+    """ Testing the RemoteRule with the koji interaction.
+    In this case we are just mocking koji """
+
+    nvr = '389-ds-1.4-820181127205924.9edba152'
+
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - rhel-8
+        decision_context: osci_compose_gate
+        subject_type: redhat-container-image
+        rules:
+          - !RemoteRule {}
+        """)
+
+    remote_fragment = dedent("""
+        --- !Policy
+        product_versions:
+          - rhel-8
+        decision_context: osci_compose_gate
+        subject_type: redhat-container-image
+        rules:
+          - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-container-image.tier0.functional}
+
+        """)
+
+    p = tmpdir.join('gating.yaml')
+    p.write(serverside_fragment)
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = ('containers', '389-ds', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = remote_fragment
+                policies = load_policies(tmpdir.strpath)
+                policy = policies[0]
+
+                # Ensure that presence of a result is success.
+                results = DummyResultsRetriever(
+                    nvr, 'baseos-ci.redhat-container-image.tier0.functional',
+                    subject_type='redhat-container-image')
+                decision = policy.check('rhel-8', nvr, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], RuleSatisfied)
+
+                # Ensure that absence of a result is failure.
+                results = DummyResultsRetriever(subject_type='redhat-container-image')
+                decision = policy.check('rhel-8', nvr, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultMissing)
+
+                # And that a result with a failure, is a failure.
+                results = DummyResultsRetriever(
+                    nvr, 'baseos-ci.redhat-container-image.tier0.functional', 'FAILED',
+                    subject_type='redhat-container-image')
+                decision = policy.check('rhel-8', nvr, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultFailed)
+
+
 def test_remote_rule_policy_optional_id(tmpdir):
     nvr = 'nethack-1.2.3-1.el9000'
 
@@ -882,7 +944,8 @@ def test_policy_with_subject_type_component_version(tmpdir):
     assert isinstance(decision[0], RuleSatisfied)
 
 
-def test_policy_with_subject_type_redhat_module(tmpdir):
+@pytest.mark.parametrize('subject_type', ["redhat-module", "redhat-container-image"])
+def test_policy_with_subject_type_redhat_module(tmpdir, subject_type):
     nsvc = 'httpd:2.4:20181018085700:9edba152'
     p = tmpdir.join('fedora.yaml')
     p.write(dedent("""
@@ -891,15 +954,15 @@ def test_policy_with_subject_type_redhat_module(tmpdir):
         product_versions:
         - fedora-29
         decision_context: decision_context_test_redhat_module
-        subject_type: redhat-module
+        subject_type: %s
         blacklist: []
         rules:
           - !PassingTestCaseRule {test_case_name: test_for_redhat_module_type}
-        """))
+        """ % subject_type))
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
     results = DummyResultsRetriever(nsvc, 'test_for_redhat_module_type', 'PASSED',
-                                    'redhat-module')
+                                    subject_type)
     decision = policy.check('fedora-29', nsvc, results)
     assert len(decision) == 1
     assert isinstance(decision[0], RuleSatisfied)

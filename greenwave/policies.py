@@ -392,7 +392,7 @@ class RemoteRule(Rule):
     }
 
     def _get_sub_policies(self, policy, subject_identifier):
-        if policy.subject_type not in ['koji_build', 'redhat-module']:
+        if policy.subject_type not in ['koji_build', 'redhat-module', 'redhat-container-image']:
             return []
 
         pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
@@ -736,7 +736,8 @@ class RemotePolicy(Policy):
     safe_yaml_attributes = {
         'id': SafeYAMLString(optional=True),
         'product_versions': SafeYAMLList(str),
-        'subject_type': SafeYAMLChoice('koji_build', 'redhat-module', optional=True),
+        'subject_type': SafeYAMLChoice(
+            'koji_build', 'redhat-module', 'redhat-container-image', optional=True),
         'decision_context': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
