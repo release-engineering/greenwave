@@ -257,9 +257,9 @@ class TestDataBuilder(object):
     def _create_result(self, data):
         response = self.requests_session.post(
             self.resultsdb_url + 'api/v2.0/results',
-            headers={'Content-Type': 'application/json'},
             timeout=TEST_HTTP_TIMEOUT,
-            data=json.dumps(data))
+            json=data
+        )
         response.raise_for_status()
         return response.json()
 
@@ -322,9 +322,9 @@ class TestDataBuilder(object):
         response = self.requests_session.post(
             self.waiverdb_url + 'api/v1.0/waivers/',
             auth=('dummy', 'dummy'),
-            headers={'Content-Type': 'application/json'},
             timeout=TEST_HTTP_TIMEOUT,
-            data=json.dumps(data))
+            json=data
+        )
         response.raise_for_status()
         return response.json()
 

@@ -229,9 +229,7 @@ def test_consume_compose_id_result(
         'subject': [{'productmd.compose.id': compose_id}],
         'when': right_before_this_time(result['submit_time'])
     }
-    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
-                              headers={'Content-Type': 'application/json'},
-                              data=json.dumps(data))
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r.status_code == 200
     old_decision = r.json()
     msg = {
@@ -303,9 +301,7 @@ def test_consume_legacy_result(
         'subject': [{'item': nvr, 'type': 'koji_build'}],
         'when': right_before_this_time(result['submit_time']),
     }
-    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
-                              headers={'Content-Type': 'application/json'},
-                              data=json.dumps(data))
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r.status_code == 200
     old_decision = r.json()
     # should have two messages published as we have two decision contexts applicable to
@@ -364,9 +360,7 @@ def test_consume_legacy_result(
         'subject': [{'item': nvr, 'type': 'koji_build'}],
         'when': right_before_this_time(result['submit_time']),
     }
-    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
-                              headers={'Content-Type': 'application/json'},
-                              data=json.dumps(data))
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r.status_code == 200
     old_decision = r.json()
     second_msg = {
@@ -561,9 +555,7 @@ def test_consume_new_result_container_image(
         'subject': [{'item': nvr, 'type': 'container-image'}],
         'when': right_before_this_time(result['submit_time']),
     }
-    r = requests_session.post(greenwave_server + 'api/v1.0/decision',
-                              headers={'Content-Type': 'application/json'},
-                              data=json.dumps(data))
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r.status_code == 200
     old_decision = r.json()
 
