@@ -1022,3 +1022,50 @@ def test_remote_rule_policy_on_demand_policy(namespace):
                 decision = policy.check('fedora-26', nvr, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
+
+
+@pytest.mark.parametrize('two_rules', (True, False))
+def test_on_demand_policy_match(two_rules):
+    """ Testing the RemoteRule with the koji interaction when on_demand policy is given.
+    In this case we are just mocking koji """
+
+    nvr = 'httpd-2.4.el9000'
+
+    serverside_json = {
+        'product_version': 'fedora-30',
+        'id': 'taskotron_release_critical_tasks_with_remoterule',
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
+        'rules': [
+            {
+                'type': 'RemoteRule'
+            }
+        ],
+    }
+
+    if two_rules:
+        serverside_json['rules'].append({
+            "type": "PassingTestCaseRule",
+            "test_case_name": "fake.testcase.tier0.validation"
+        })
+
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('xmlrpc.client.ServerProxy') as koji_server:
+            koji_server_instance = mock.MagicMock()
+            koji_server_instance.getBuild.return_value = {'source': None}
+            koji_server.return_value = koji_server_instance
+            policy = OnDemandPolicy.create_from_json(serverside_json)
+
+            rv = policy.matches(subject_identifier=nvr)
+
+            koji_server_instance.getBuild.assert_called_once()
+            assert rv is two_rules
+
+            results = DummyResultsRetriever(
+                nvr, 'fake.testcase.tier0.validation', 'PASSED', 'koji_build'
+            )
+            decision = policy.check('fedora-30', nvr, results)
+            if two_rules:
+                assert len(decision) == 1
+                assert isinstance(decision[0], RuleSatisfied)

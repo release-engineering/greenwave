@@ -9,7 +9,9 @@ from werkzeug.exceptions import BadGateway, NotFound
 
 import greenwave.app_factory
 from greenwave.resources import (
-    retrieve_scm_from_koji_build, retrieve_yaml_remote_rule, retrieve_scm_from_koji)
+    retrieve_scm_from_koji_build, retrieve_yaml_remote_rule, retrieve_scm_from_koji,
+    NoSourceException
+)
 
 KOJI_URL = 'https://koji.fedoraproject.org/kojihub'
 
@@ -52,7 +54,7 @@ def test_retrieve_scm_from_build_with_missing_source():
         'nvr': nvr
     }
     expected_error = 'expected SCM URL in "source" attribute'
-    with pytest.raises(BadGateway, match=expected_error):
+    with pytest.raises(NoSourceException, match=expected_error):
         retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
 
 

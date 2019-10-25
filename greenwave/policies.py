@@ -395,8 +395,14 @@ class RemoteRule(Rule):
         if policy.subject_type not in ['koji_build', 'redhat-module', 'redhat-container-image']:
             return []
 
-        pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
-            subject_identifier)
+        try:
+            pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
+                subject_identifier
+            )
+        except greenwave.resources.NoSourceException as e:
+            log.error(e)
+            return None
+
         # if the element is actually a container and not a pkg there will be a "-container"
         # string at the end of the "pkg_name" and it will not match with the one in the
         # gating.yaml URL

@@ -123,6 +123,10 @@ class WaiversRetriever(BaseRetriever):
             **request_args)
 
 
+class NoSourceException(RuntimeError):
+    pass
+
+
 @cached
 def retrieve_scm_from_koji(nvr):
     """ Retrieve cached rev and namespace from koji using the nvr """
@@ -141,7 +145,7 @@ def retrieve_scm_from_koji_build(nvr, build, koji_url):
 
     source = build.get('source')
     if not source:
-        raise BadGateway(
+        raise NoSourceException(
             'Failed to retrieve SCM URL from Koji build "{}" at "{}" '
             '(expected SCM URL in "source" attribute)'
             .format(nvr, koji_url))
