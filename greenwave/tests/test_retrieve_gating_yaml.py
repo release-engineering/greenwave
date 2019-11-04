@@ -20,7 +20,27 @@ def test_retrieve_scm_from_rpm_build():
     nvr = 'nethack-3.6.1-3.fc29'
     build = {
         'nvr': nvr,
-        'source': 'git+https://src.fedoraproject.org/rpms/nethack.git#0c1a84e0e8a152897003bd7e27b3f407ff6ba040' # noqa
+        'extra': {
+            'source': {
+                'original_url': 'git+https://src.fedoraproject.org/rpms/nethack.git#'
+                                '0c1a84e0e8a152897003bd7e27b3f407ff6ba040'
+            }
+        },
+        # also check, that there's no fallback to source
+        'source': 'git+https://src.fedoraproject.org/rpms/nethack.git#master'
+    }
+    namespace, pkg_name, rev = retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
+    assert namespace == 'rpms'
+    assert rev == '0c1a84e0e8a152897003bd7e27b3f407ff6ba040'
+    assert pkg_name == 'nethack'
+
+
+def test_retrieve_scm_from_rpm_build_fallback_to_source():
+    nvr = 'nethack-3.6.1-3.fc29'
+    build = {
+        'nvr': nvr,
+        'source': 'git+https://src.fedoraproject.org/rpms/nethack.git#'
+                  '0c1a84e0e8a152897003bd7e27b3f407ff6ba040'
     }
     namespace, pkg_name, rev = retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
     assert namespace == 'rpms'
@@ -32,7 +52,9 @@ def test_retrieve_scm_from_container_build():
     nvr = 'golang-github-openshift-prometheus-alert-buffer-container-v3.10.0-0.34.0.0'
     build = {
         'nvr': nvr,
-        'source': 'git://pkgs.devel.redhat.com/containers/golang-github-openshift-prometheus-alert-buffer#46af2f8efbfb0a4e7e7d5676f4efb997f72d4b8c' # noqa
+        'source': 'git://pkgs.devel.redhat.com/containers/'
+                  'golang-github-openshift-prometheus-alert-buffer#'
+                  '46af2f8efbfb0a4e7e7d5676f4efb997f72d4b8c'
     }
     namespace, pkg_name, rev = retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
     assert namespace == 'containers'
@@ -62,7 +84,11 @@ def test_retrieve_scm_from_build_without_namespace():
     nvr = 'foo-1.2.3-1.fc29'
     build = {
         'nvr': nvr,
-        'source': 'git+https://src.fedoraproject.org/foo.git#deadbeef',
+        'extra': {
+            'source': {
+                'original_url': 'git+https://src.fedoraproject.org/foo.git#deadbeef'
+            }
+        }
     }
     namespace, pkg_name, rev = retrieve_scm_from_koji_build(nvr, build, KOJI_URL)
     assert namespace == ''
@@ -74,7 +100,11 @@ def test_retrieve_scm_from_build_with_missing_rev():
     nvr = 'foo-1.2.3-1.fc29'
     build = {
         'nvr': nvr,
-        'source': 'git+https://src.fedoraproject.org/rpms/foo.git',
+        'extra': {
+            'source': {
+                'original_url': 'git+https://src.fedoraproject.org/rpms/foo.git'
+            }
+        }
     }
     expected_error = 'missing URL fragment with SCM revision information'
     with pytest.raises(BadGateway, match=expected_error):
@@ -103,8 +133,6 @@ def test_retrieve_yaml_remote_rule_connection_error():
     app = greenwave.app_factory.create_app()
     with app.app_context():
         with mock.patch('requests.Session.request') as mocked_request:
-            # Return 404, because we are only interested in the URL in the request
-            # and whether it is correct even with empty namespace.
             response = mock.MagicMock()
             response.status_code = 200
             mocked_request.side_effect = [

@@ -143,7 +143,15 @@ def retrieve_scm_from_koji_build(nvr, build, koji_url):
     if not build:
         raise NotFound('Failed to find Koji build for "{}" at "{}"'.format(nvr, koji_url))
 
-    source = build.get('source')
+    source = None
+    try:
+        source = build['extra']['source']['original_url']
+    except (TypeError, KeyError, AttributeError):
+        pass
+    finally:
+        if not source:
+            source = build.get('source')
+
     if not source:
         raise NoSourceException(
             'Failed to retrieve SCM URL from Koji build "{}" at "{}" '

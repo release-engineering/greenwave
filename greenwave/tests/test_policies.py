@@ -1053,7 +1053,7 @@ def test_on_demand_policy_match(two_rules):
     with app.app_context():
         with mock.patch('xmlrpc.client.ServerProxy') as koji_server:
             koji_server_instance = mock.MagicMock()
-            koji_server_instance.getBuild.return_value = {'source': None}
+            koji_server_instance.getBuild.return_value = {'extra': {'source': None}}
             koji_server.return_value = koji_server_instance
             policy = OnDemandPolicy.create_from_json(serverside_json)
 
