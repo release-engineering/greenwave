@@ -4,7 +4,7 @@ services:
     build: .
     user: ${DEV_USER_ID:-1000}
     working_dir: /code
-    env_file: docker/dev.env
+    env_file: ["docker/dev.env"]
     command: ["bash", "-c", "./docker/dev-command.sh"]
     volumes:
       - ./:/code:ro,z
@@ -22,7 +22,7 @@ services:
   resultsdb-db:
     image: postgres:9.5.2
     restart: always
-    env_file: docker/resultsdb-db.env
+    env_file: ["docker/resultsdb-db.env"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -47,14 +47,14 @@ services:
   waiverdb-db:
     image: postgres:9.5.2
     restart: always
-    env_file: docker/waiverdb-db.env
+    env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
     build:
       context: ../waiverdb
       dockerfile: openshift/containers/waiverdb/Dockerfile
     working_dir: /code
-    env_file: docker/waiverdb.env
+    env_file: ["docker/waiverdb.env"]
     command: ["bash", "-c", "/start.sh"]
     volumes:
       - ../waiverdb:/code:ro,Z

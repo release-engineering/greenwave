@@ -1,4 +1,7 @@
-DATABASE_URI = 'postgresql+psycopg2://waiverdb:waiverdb@waiverdb-db/waiverdb'
+import os
+
+DATABASE_URI = 'postgresql+psycopg2://waiverdb:waiverdb@waiverdb-db:5433/waiverdb'
+
 HOST = '0.0.0.0'
 PORT = 5004
 #AUTH_METHOD = 'OIDC'

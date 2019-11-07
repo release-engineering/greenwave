@@ -1,5 +1,21 @@
-COMPOSE := docker-compose
+# Use podman-compose by default if available.
+ifeq (, $(shell which podman-compose))
+    COMPOSE := docker-compose
+    PODMAN := docker
+else
+    COMPOSE := podman-compose
+    PODMAN := podman
+endif
+
 BROWSER := xdg-open
+SERVICE := dev
+TEST_REQUIREMENTS := dev-requirements.txt
+
+PYTHON := python3
+PIP := $(PYTHON) -m pip
+PYTEST := $(PYTHON) -m pytest --color=yes
+FLAKE8 := $(PYTHON) -m flake8
+PYLINT := $(PYTHON) -m pylint greenwave/
 
 all: help
 
@@ -27,6 +43,20 @@ help:
 	@echo '  make test - alias for "make pytest flake8 pylint"'
 	@echo
 	@echo '  make coverage [ARGS=".."] - generates and shows test code coverage'
+	@echo
+	@echo 'Variables:'
+	@echo
+	@echo '  COMPOSE=docker-compose|podman-compose'
+	@echo '    - docker-compose or podman-compose command'
+	@echo '      (default is "podman-compose" if available)'
+	@echo
+	@echo '  PODMAN=docker|podman'
+	@echo '    - docker or podman command'
+	@echo '      (default is "podman" if "podman-compose" is available)'
+	@echo
+	@echo '  SERVICE={dev|waiverdb|resultsdb|waiverdb-db|resultsdb-db|memcached}'
+	@echo '    - service for which to run `make exec` and similar (default is "dev")'
+	@echo '      Example: make exec SERVICE=waiverdb CMD=flake8'
 
 up:
 	$(COMPOSE) up -d
@@ -40,26 +70,27 @@ build:
 recreate:
 	$(COMPOSE) up -d --force-recreate
 
-# Executes CMD in dev container.
-# Usage: make exec CMD="python3 -m pytest -x"
-exec: up
-	$(COMPOSE) exec dev bash -c '$(CMD)'
+exec:
+	$(PODMAN) exec greenwave_$(SERVICE)_1 bash -c '$(CMD)'
 
-sudo: up
-	$(COMPOSE) exec -u root dev bash -c '$(CMD)'
+sudo:
+	$(PODMAN) exec -u root greenwave_$(SERVICE)_1 bash -c '$(CMD)'
 
-test: pytest flake8 pylint
+test: test_requirements pytest flake8 pylint
+
+test_requirements:
+	$(MAKE) exec CMD="$(PIP) install --user -r $(TEST_REQUIREMENTS)"
 
 pytest:
 	$(MAKE) exec \
-	    CMD="pip3 install --user -r dev-requirements.txt && COVERAGE_FILE=/home/dev/.coverage python3 -m pytest $(ARGS)"
+	    CMD="COVERAGE_FILE=/home/dev/.coverage-$(SERVICE) $(PYTEST) $(ARGS)"
 
 flake8:
-	python -m flake8
+	$(FLAKE8)
 
 pylint:
-	python -m pylint greenwave/
+	$(PYLINT) greenwave/
 
 coverage:
-	$(MAKE) pytest ARGS="--cov-config .coveragerc --cov=greenwave --cov-report html:/home/dev/htmlcov $(ARGS)"
-	$(BROWSER) docker/home/htmlcov/index.html
+	$(MAKE) pytest ARGS="--cov-config .coveragerc --cov=greenwave --cov-report html:/home/dev/htmlcov-$(SERVICE) $(ARGS)"
+	$(BROWSER) docker/home/htmlcov-$(SERVICE)/index.html
