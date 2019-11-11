@@ -2,6 +2,18 @@
 Release Notes
 =============
 
+Greenwave 1.4.1
+===============
+
+Released 11 November 2019
+
+* Greenwave now using ``extra->source->original_url`` field instead of just ``source``
+  field to retreive SCM information from Koji build.
+  If there is no ``source`` nor ``extra->source->original_url`` field, other rules
+  are still being checked.
+* Added support for the ``redhat-container-image`` subject type. This type is now
+  also allowed for using in the ``RemoteRule``
+
 Greenwave 1.4.0
 ===============
 
