@@ -141,3 +141,22 @@ def right_before_this_time(timestamp):
     return datetime.datetime.strftime(
         datetime.datetime.strptime(timestamp, from_date_format) -
         datetime.timedelta(microseconds=1), date_format)
+
+
+def remove_duplicates(func):
+    def wrapper(*args, **kwargs):
+        rv = func(*args, **kwargs)
+        if isinstance(rv, list) and len(rv):
+            rv = list(set(rv))
+        return rv
+    return wrapper
+
+
+def to_hashable(val):
+    if isinstance(val, list) or isinstance(val, tuple):
+        return tuple([to_hashable(v) for v in val])
+    if isinstance(val, dict):
+        return tuple([(k, to_hashable(val[k])) for k in sorted(val.keys())])
+    if isinstance(val, set):
+        return tuple(sorted(val))
+    return val

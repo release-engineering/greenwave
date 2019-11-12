@@ -8,7 +8,7 @@ import re
 import greenwave.resources
 from werkzeug.exceptions import BadRequest
 from flask import current_app
-
+from greenwave.utils import remove_duplicates, to_hashable
 from greenwave.safe_yaml import (
     SafeYAMLBool,
     SafeYAMLChoice,
@@ -68,6 +68,17 @@ class Answer(object):
         Returns a machine-readable description of the problem for API responses.
         """
         raise NotImplementedError()
+
+    def __hash__(self):
+        return hash(to_hashable(self.to_json()))
+
+    def __eq__(self, other):
+        try:
+            json1 = self.to_json()
+            json2 = other.to_json()
+        except NotImplementedError:
+            return id(self) == id(other)
+        return json1 == json2
 
 
 class RuleSatisfied(Answer):
@@ -426,6 +437,7 @@ class RemoteRule(Rule):
             if sub_policy.decision_context == policy.decision_context
         ]
 
+    @remove_duplicates
     def check(
             self,
             policy,
@@ -497,6 +509,7 @@ class PassingTestCaseRule(Rule):
         'scenario': SafeYAMLString(optional=True),
     }
 
+    @remove_duplicates
     def check(
             self,
             policy,
@@ -655,6 +668,7 @@ class Policy(SafeYAMLObject):
 
         return not self.rules or any(rule.matches(self, **attributes) for rule in self.rules)
 
+    @remove_duplicates
     def check(
             self,
             product_version,

@@ -1069,3 +1069,58 @@ def test_on_demand_policy_match(two_rules):
             if two_rules:
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
+
+
+def test_two_rules_no_duplicate(tmpdir):
+    nvr = 'nethack-1.2.3-1.el9000'
+
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-31
+        decision_context: bodhi_update_push_stable_with_remoterule
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+          - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """)
+
+    remote_fragment = dedent("""
+        --- !Policy
+        id: "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-31
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+          - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """)
+
+    p = tmpdir.join('gating.yaml')
+    p.write(serverside_fragment)
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = ('rmps', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = remote_fragment
+                policies = load_policies(tmpdir.strpath)
+                policy = policies[0]
+
+                # Ensure that presence of a result is success.
+                results = DummyResultsRetriever(nvr, 'dist.upgradepath')
+                decision = policy.check('fedora-31', nvr, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], RuleSatisfied)
+
+                # Ensure that absence of a result is failure.
+                results = DummyResultsRetriever()
+                decision = policy.check('fedora-31', nvr, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultMissing)
+
+                # And that a result with a failure, is a failure.
+                results = DummyResultsRetriever(nvr, 'dist.upgradepath', 'FAILED')
+                decision = policy.check('fedora-31', nvr, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultFailed)
