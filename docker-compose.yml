@@ -33,8 +33,11 @@ services:
     build:
       context: ../resultsdb
       dockerfile: openshift/Dockerfile
+    working_dir: /code
     command: ["bash", "-c", "/start.sh"]
     volumes:
+      - ../resultsdb:/code:ro,Z
+      - ./docker/home:/home/dev:Z
       - ./docker/resultsdb-command.sh:/start.sh:ro,z
       - ./docker/resultsdb-settings.py:/etc/resultsdb/settings.py:ro,z
       - ./docker/resultsdb.conf:/etc/httpd/conf.d/resultsdb.conf:ro,z
@@ -58,6 +61,7 @@ services:
     command: ["bash", "-c", "/start.sh"]
     volumes:
       - ../waiverdb:/code:ro,Z
+      - ./docker/home:/home/dev:Z
       - ./docker/waiverdb-command.sh:/start.sh:ro,z
       - ./docker/waiverdb-settings.py:/etc/waiverdb/settings.py:ro,z
       - ./docker/client_secrets.json:/etc/secret/client_secrets.json:ro,z
