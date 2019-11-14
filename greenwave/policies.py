@@ -151,7 +151,7 @@ class TestResultMissingWaived(RuleSatisfied):
 class TestResultFailed(RuleNotSatisfied):
     """
     A required test case did not pass (that is, its outcome in ResultsDB was
-    not ``PASSED`` or ``INFO``) and no corresponding waiver was found.
+    not ``PASSED`` or ``INFO``).
     """
 
     def __init__(self, subject, test_case_name, scenario, result_id):
@@ -165,6 +165,43 @@ class TestResultFailed(RuleNotSatisfied):
             'type': 'test-result-failed',
             'testcase': self.test_case_name,
             'result_id': self.result_id,
+            # These are for backwards compatibility only
+            # (the values are already visible in the result data itself, the
+            # caller shouldn't need them repeated here):
+            'item': self.subject.to_dict(),
+            'scenario': self.scenario,
+        }
+
+    def to_waived(self):
+        return TestResultPassed(self.test_case_name, self.result_id)
+
+
+class TestResultErrored(RuleNotSatisfied):
+    """
+    A required test case failed to finish, i.e. the system failed during the
+    testing process and could not finish the testing.  (outcome in ResultsDB
+    was ``ERROR``).
+    """
+
+    def __init__(
+            self,
+            subject,
+            test_case_name,
+            scenario,
+            result_id,
+            error_reason):
+        self.subject = subject
+        self.test_case_name = test_case_name
+        self.scenario = scenario
+        self.result_id = result_id
+        self.error_reason = error_reason
+
+    def to_json(self):
+        return {
+            'type': 'test-result-errored',
+            'testcase': self.test_case_name,
+            'result_id': self.result_id,
+            'error_reason': self.error_reason,
             # These are for backwards compatibility only
             # (the values are already visible in the result data itself, the
             # caller shouldn't need them repeated here):
@@ -266,19 +303,7 @@ class ExcludedInPolicy(RuleSatisfied):
         }
 
 
-def summarize_answers(answers):
-    """
-    Produces a one-sentence human-readable summary of the result of evaluating a policy.
-
-    Args:
-        answers (list): List of :py:class:`Answers <Answer>` from evaluating a policy.
-
-    Returns:
-        str: Human-readable summary.
-    """
-    if not answers:
-        return 'no tests are required'
-
+def _summarize_answers_without_errored(answers):
     failure_count = len([answer for answer in answers if isinstance(answer, RuleNotSatisfied)])
     missing_count = len([answer for answer in answers if isinstance(answer, TestResultMissing)])
 
@@ -301,6 +326,28 @@ def summarize_answers(answers):
 
     assert False, 'Unexpected unsatisfied result'
     return 'inexplicable result'
+
+
+def summarize_answers(answers):
+    """
+    Produces a one-sentence human-readable summary of the result of evaluating a policy.
+
+    Args:
+        answers (list): List of :py:class:`Answers <Answer>` from evaluating a policy.
+
+    Returns:
+        str: Human-readable summary.
+    """
+    if not answers:
+        return 'no tests are required'
+
+    summary = _summarize_answers_without_errored(answers)
+
+    errored_count = len([answer for answer in answers if isinstance(answer, TestResultErrored)])
+    if errored_count:
+        summary += f' ({errored_count} {"error" if errored_count == 1 else "errors"})'
+
+    return summary
 
 
 class Rule(SafeYAMLObject):
@@ -538,6 +585,16 @@ class PassingTestCaseRule(Rule):
                       'testcase %s, because the outcome is %s', subject,
                       self.test_case_name, result['outcome'])
             return TestResultMissing(subject, self.test_case_name, self.scenario)
+
+        if result['outcome'] == 'ERROR':
+            error_reason = result.get('error_reason')
+            log.debug('Test result ERROR for the %s and '
+                      'testcase %s, error reason: %s', subject,
+                      self.test_case_name, error_reason)
+            return TestResultErrored(
+                subject, self.test_case_name, self.scenario, result['id'],
+                error_reason)
+
         log.debug('Test result failed for the %s and '
                   'testcase %s, because the outcome is %s and it didn\'t match any of the '
                   'previous cases', subject, self.test_case_name, result['outcome'])

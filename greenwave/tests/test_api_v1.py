@@ -89,6 +89,15 @@ def test_make_decision_retrieves_waivers_omitted_on_passed(mock_results, mock_wa
     mock_waivers.assert_not_called()
 
 
+def test_make_decision_retrieves_waivers_on_errored(mock_results, mock_waivers):
+    mock_results.return_value = [make_result(outcome='ERROR')]
+    mock_waivers.return_value = []
+    response = make_decision()
+    assert 200 == response.status_code
+    assert '1 of 1 required tests failed (1 error)' == response.json['summary']
+    mock_waivers.assert_called_once()
+
+
 def test_make_decision_retrieves_waivers_once_on_verbose_and_missing(mock_results, mock_waivers):
     mock_results.return_value = []
     mock_waivers.return_value = []

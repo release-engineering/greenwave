@@ -2,6 +2,7 @@
 from greenwave.policies import (
     summarize_answers,
     RuleSatisfied,
+    TestResultErrored,
     TestResultFailed,
     TestResultMissing,
     TestResultMissingWaived,
@@ -14,6 +15,8 @@ from greenwave.subjects.subject_type import GenericSubjectType
 
 testSubject = Subject(GenericSubjectType('koji_build'), 'nethack-1.2.3-1.el9000')
 testResultPassed = RuleSatisfied()
+testResultErrored = TestResultErrored(
+    testSubject, 'test', None, 1, 'some error')
 testResultFailed = TestResultFailed(
     testSubject, 'test', None, 1)
 testResultMissing = TestResultMissing(
@@ -57,6 +60,13 @@ def test_summary_missing_waived():
     assert summarize_answers(answers) == 'All required tests passed'
 
 
+def test_summary_errored():
+    answers = [
+        testResultErrored,
+    ]
+    assert summarize_answers(answers) == '1 of 1 required tests failed (1 error)'
+
+
 def test_summary_one_passed_one_failed():
     answers = [
         testResultPassed,
@@ -96,6 +106,17 @@ def test_summary_one_passed_one_failed_one_missing():
         testResultMissing,
     ]
     assert summarize_answers(answers) == '1 of 3 required tests failed, 1 result missing'
+
+
+def test_summary_one_passed_one_failed_one_missing_two_errored():
+    answers = [
+        testResultErrored,
+        testResultPassed,
+        testResultFailed,
+        testResultMissing,
+        testResultErrored,
+    ]
+    assert summarize_answers(answers) == '3 of 5 required tests failed, 1 result missing (2 errors)'
 
 
 def test_summary_invalid_gating_yaml():
