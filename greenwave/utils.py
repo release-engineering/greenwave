@@ -147,7 +147,7 @@ def remove_duplicates(func):
     def wrapper(*args, **kwargs):
         rv = func(*args, **kwargs)
         if isinstance(rv, list) and len(rv):
-            rv = list(set(rv))
+            rv = list(dict.fromkeys(rv))
         return rv
     return wrapper
 
