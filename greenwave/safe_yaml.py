@@ -100,7 +100,10 @@ class SafeYAMLList(SafeYAMLAttribute):
     """
     YAML object attribute represeting a list of values.
     """
-    def __init__(self, item_type, **kwargs):
+    def __init__(self, item_type, default=None, **kwargs):
+        if default is None:
+            default = []
+        self.default = default
         super().__init__(**kwargs)
         self.item_type = item_type
 
@@ -114,7 +117,7 @@ class SafeYAMLList(SafeYAMLAttribute):
 
     @property
     def default_value(self):
-        return []
+        return self.default
 
     def to_json(self, value):
         return [self._item_to_json(item) for item in value]

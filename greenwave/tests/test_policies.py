@@ -493,12 +493,10 @@ def test_remote_rule_policy_optional_id(tmpdir):
                 policy = policies[0]
 
                 results = DummyResultsRetriever()
-                expected_details = "Policy 'untitled': Attribute 'product_versions' is required"
                 decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
-                assert isinstance(decision[0], InvalidGatingYaml)
+                assert isinstance(decision[0], TestResultMissing)
                 assert decision[0].is_satisfied is False
-                assert decision[0].details == expected_details
 
 
 def test_remote_rule_malformed_yaml(tmpdir):
@@ -997,8 +995,6 @@ def test_remote_rule_policy_on_demand_policy(namespace):
     remote_fragment = dedent("""
         --- !Policy
         id: "some-policy-from-a-random-packager"
-        product_versions:
-          - fedora-26
         decision_context: bodhi_update_push_stable_with_remoterule
         rules:
         - !PassingTestCaseRule {test_case_name: dist.upgradepath}

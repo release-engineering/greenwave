@@ -458,7 +458,7 @@ class RemoteRule(Rule):
         if isinstance(policy, OnDemandPolicy):
             return [
                 sub_policy for sub_policy in policies
-                if set(sub_policy.product_versions) == set(policy.product_versions)
+                if any(sub_policy.matches_product_version(pv) for pv in policy.product_versions)
             ]
 
         return [
@@ -758,7 +758,7 @@ class RemotePolicy(Policy):
 
     safe_yaml_attributes = {
         'id': SafeYAMLString(optional=True),
-        'product_versions': SafeYAMLList(str),
+        'product_versions': SafeYAMLList(str, default=['*'], optional=True),
         'subject_type': SafeYAMLString(optional=True, default='koji_build'),
         'decision_context': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
