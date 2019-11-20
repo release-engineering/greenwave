@@ -15,19 +15,6 @@ from greenwave.safe_yaml import (
 )
 
 
-class GenericSubjectType:
-    def __init__(self, id_):
-        self.id = id_
-        self.aliases = []
-        self.is_koji_build = True
-        self.is_nvr = False
-        self.supports_remote_rule = False
-        self.product_version = None
-        self.item_dict = {}
-        self.result_queries = []
-        self.latest_result_unique_keys = []
-
-
 class SubjectType(SafeYAMLObject):
     root_yaml_tag = '!SubjectType'
 
@@ -74,6 +61,18 @@ class SubjectType(SafeYAMLObject):
     @property
     def safe_yaml_label(self):
         return 'SubjectType {!r}'.format(self.id)
+
+
+class GenericSubjectType:
+    def __init__(self, id_):
+        self._set_default_attributes()
+        self.id = id_
+        self.is_koji_build = True
+        self.is_nvr = False
+
+    def _set_default_attributes(self):
+        for name, attr in SubjectType.safe_yaml_attributes.items():
+            self.__setattr__(name, attr.default_value)
 
 
 def load_subject_types(subject_types_dir):
