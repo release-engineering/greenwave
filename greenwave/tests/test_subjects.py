@@ -1,3 +1,5 @@
+# pylint: disable=unused-argument
+
 import pytest
 
 from greenwave.subjects.factory import (
