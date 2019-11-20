@@ -6,6 +6,8 @@ from requests.exceptions import ConnectionError, ConnectTimeout, RetryError
 from urllib3.util.retry import Retry
 from urllib3.exceptions import ProxyError, SSLError
 
+from flask import current_app, has_app_context
+
 from greenwave import __version__
 
 
@@ -25,6 +27,12 @@ class ErrorResponse(requests.Response):
 class RequestsSession(requests.Session):
     def request(self, *args, **kwargs):  # pylint:disable=arguments-differ
         req_url = kwargs.get('url', args[1])
+
+        kwargs.setdefault('headers', {'Content-Type': 'application/json'})
+        if has_app_context():
+            kwargs.setdefault('timeout', current_app.config['REQUESTS_TIMEOUT'])
+            kwargs.setdefault('verify', current_app.config['REQUESTS_VERIFY'])
+
         try:
             return super().request(*args, **kwargs)
         except (ConnectTimeout, RetryError) as e:

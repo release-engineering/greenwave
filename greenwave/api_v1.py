@@ -436,10 +436,7 @@ def make_decision():
     answers = []
     verbose_results = []
     applicable_policies = []
-    retriever_args = dict(
-        when=when,
-        timeout=current_app.config['REQUESTS_TIMEOUT'],
-        verify=current_app.config['REQUESTS_VERIFY'])
+    retriever_args = {'when': when}
     results_retriever = ResultsRetriever(
         ignore_ids=ignore_results,
         url=current_app.config['RESULTSDB_API_URL'],
