@@ -31,7 +31,7 @@ class Config(object):
     REQUESTS_VERIFY = True
 
     POLICIES_DIR = '/etc/greenwave/policies'
-    SUBJECT_TYPES_DIR = '/etc/greenwave/subject_types'
+    SUBJECT_TYPES_DIR = _local_conf_dir('subject_types')
 
     MESSAGING = 'fedmsg'
 
@@ -53,7 +53,6 @@ class DevelopmentConfig(Config):
     WAIVERDB_API_URL = 'http://localhost:5004/api/v1.0'
     GREENWAVE_API_URL = 'http://localhost:5005/api/v1.0'
     POLICIES_DIR = _local_conf_dir('policies')
-    SUBJECT_TYPES_DIR = _local_conf_dir('subject_types')
 
 
 class TestingConfig(Config):
@@ -62,4 +61,3 @@ class TestingConfig(Config):
     GREENWAVE_API_URL = 'http://localhost:5005/api/v1.0'
     KOJI_BASE_URL = 'http://localhost:5006/kojihub'
     POLICIES_DIR = _local_conf_dir('policies')
-    SUBJECT_TYPES_DIR = _local_conf_dir('subject_types')

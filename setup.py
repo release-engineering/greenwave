@@ -101,6 +101,6 @@ setup(
     """,
     data_files=[
         ('/etc/fedmsg.d/', ['fedmsg.d/resultsdb.py', 'fedmsg.d/waiverdb.py']),
-        ('/etc/greenwave/subject_types/', glob.glob('conf/subject_types/*')),
+        ('conf/subject_types/', glob.glob('conf/subject_types/*')),
     ]
 )
