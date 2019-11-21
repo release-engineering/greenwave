@@ -1508,3 +1508,18 @@ def test_make_a_decision_on_demand_policy(
 
     assert len(res_data['satisfied_requirements']) == len(results)
     assert len(res_data['unsatisfied_requirements']) == 0
+
+
+@pytest.mark.smoke
+def test_installed_subject_types(requests_session, greenwave_server):
+    response = requests_session.get(greenwave_server + 'api/v1.0/subject_types')
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data['subject_types'])
+    assert [x['id'] for x in data['subject_types']] == [
+        'bodhi_update',
+        'compose',
+        'koji_build',
+        'redhat-container-image',
+        'redhat-module',
+    ]

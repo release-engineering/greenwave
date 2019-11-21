@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-2.0+
 
+import glob
 import os
 import re
 from setuptools import setup, find_packages
@@ -98,6 +99,8 @@ setup(
     resultsdb = greenwave.consumers.resultsdb:ResultsDBHandler
     waiverdb = greenwave.consumers.waiverdb:WaiverDBHandler
     """,
-    data_files=[('/etc/fedmsg.d/', ['fedmsg.d/resultsdb.py',
-                                    'fedmsg.d/waiverdb.py'])]
+    data_files=[
+        ('/etc/fedmsg.d/', ['fedmsg.d/resultsdb.py', 'fedmsg.d/waiverdb.py']),
+        ('/etc/greenwave/subject_types/', glob.glob('conf/subject_types/*')),
+    ]
 )
