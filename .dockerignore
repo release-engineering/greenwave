@@ -4,6 +4,7 @@
 .tox/
 .vscode/
 build/
+docker/home/
 dist/
 htmlcov/
 *.egg-info/
