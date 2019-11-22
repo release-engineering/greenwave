@@ -8,7 +8,6 @@ waiverdb, etc..).
 
 import logging
 import re
-import json
 import socket
 
 from urllib.parse import urlparse
@@ -25,10 +24,8 @@ requests_session = get_requests_session()
 
 
 class BaseRetriever:
-    def __init__(self, ignore_ids, when, timeout, verify, url):
+    def __init__(self, ignore_ids, when, url):
         self.ignore_ids = ignore_ids
-        self.timeout = timeout
-        self.verify = verify
         self.url = url
 
         if when:
@@ -41,7 +38,7 @@ class BaseRetriever:
         return [item for item in items if item['id'] not in self.ignore_ids]
 
     def _retrieve_data(self, params):
-        response = self._make_request(params, verify=self.verify, timeout=self.timeout)
+        response = self._make_request(params)
         response.raise_for_status()
         return response.json()['data']
 
@@ -105,8 +102,7 @@ class WaiversRetriever(BaseRetriever):
     def _make_request(self, params, **request_args):
         return requests_session.post(
             self.url + '/waivers/+filtered',
-            headers={'Content-Type': 'application/json'},
-            data=json.dumps({'filters': params}),
+            json={'filters': params},
             **request_args)
 
 
@@ -176,9 +172,7 @@ def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace):
         "rev": rev
     }
     url = current_app.config['DIST_GIT_URL_TEMPLATE'].format(**data)
-    response = requests_session.request('HEAD', url,
-                                        headers={'Content-Type': 'application/json'},
-                                        timeout=60)
+    response = requests_session.request('HEAD', url)
     if response.status_code == 404:
         return None
 
@@ -186,19 +180,13 @@ def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace):
         raise BadGateway('Error occurred looking for gating.yaml file in the dist-git repo.')
 
     # gating.yaml found...
-    response = requests_session.request('GET', url,
-                                        headers={'Content-Type': 'application/json'},
-                                        timeout=60)
+    response = requests_session.request('GET', url)
     response.raise_for_status()
     return response.content
 
 
 # NOTE - not cached.
 def retrieve_decision(greenwave_url, data):
-    timeout = current_app.config['REQUESTS_TIMEOUT']
-    verify = current_app.config['REQUESTS_VERIFY']
-    headers = {'Content-Type': 'application/json'}
-    response = requests_session.post(greenwave_url, headers=headers, data=json.dumps(data),
-                                     timeout=timeout, verify=verify)
+    response = requests_session.post(greenwave_url, json=data)
     response.raise_for_status()
     return response.json()

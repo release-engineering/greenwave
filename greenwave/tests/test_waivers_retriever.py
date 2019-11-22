@@ -7,8 +7,6 @@ from greenwave.resources import WaiversRetriever
 _DUMMY_RETRIEVER_ARGUMENTS = dict(
     ignore_ids=[],
     when=None,
-    timeout=None,
-    verify=None,
     url=None,
 )
 

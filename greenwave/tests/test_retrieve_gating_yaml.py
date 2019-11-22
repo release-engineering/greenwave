@@ -123,9 +123,7 @@ def test_retrieve_yaml_remote_rule_no_namespace():
             retrieve_yaml_remote_rule("deadbeaf", "pkg", "")
 
             expected_call = mock.call(
-                'HEAD',
-                'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml',
-                headers={'Content-Type': 'application/json'}, timeout=60)
+                'HEAD', 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml')
             assert session.request.mock_calls == [expected_call]
 
 

@@ -37,8 +37,6 @@ class DummyResultsRetriever(ResultsRetriever):
         super(DummyResultsRetriever, self).__init__(
             ignore_ids=[],
             when='',
-            timeout=0,
-            verify=False,
             url='')
         self.subject = subject
         self.testcase = testcase
