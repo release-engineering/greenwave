@@ -2,6 +2,17 @@
 Release Notes
 =============
 
+Greenwave 1.4.2
+===============
+
+Released 3 December 2019
+
+* Greenwave now handles infrastructure errors during tests:
+  Summary now contains error count and error_reason.
+* If the same test is configured both in the global policy and in
+  the ``gating.yaml`` file, it is being returned only once.
+* ``product_versions`` field is no longer mandatory in the ``gating.yaml`` file.
+
 Greenwave 1.4.1
 ===============
 
