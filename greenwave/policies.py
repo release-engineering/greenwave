@@ -667,11 +667,14 @@ class Policy(SafeYAMLObject):
         if product_version and not self.matches_product_version(product_version):
             return False
 
-        subject = attributes.get('subject')
-        if subject and subject.type != self.subject_type:
+        if not self.matches_subject_type(**attributes):
             return False
 
         return not self.rules or any(rule.matches(self, **attributes) for rule in self.rules)
+
+    def matches_subject_type(self, **attributes):
+        subject = attributes.get('subject')
+        return not subject or subject.type == self.subject_type
 
     @remove_duplicates
     def check(
@@ -713,46 +716,25 @@ class Policy(SafeYAMLObject):
 
 
 class OnDemandPolicy(Policy):
-    root_yaml_tag = '!Policy'
-    safe_yaml_attributes = {}
-
-    def __init__(self):
-        self.id = None
-        self.product_versions = None
-        self.subject_type = None
-        self.rules = None
-        self.blacklist = None
-        self.excluded_packages = None
-        self.packages = None
-        self.relevance_key = None
+    root_yaml_tag = None
 
     @classmethod
-    def create_from_json(cls, data_dict):
-        policy = cls()
-        policy.id = data_dict.get('id')
-        policy.product_versions = [data_dict['product_version']]
-        policy.subject_type = data_dict['subject_type']
-        policy.rules = Rule.process_on_demand_rules(data_dict['rules'])
-        policy.blacklist = data_dict.get('blacklist', [])
-        policy.excluded_packages = data_dict.get('excluded_packages', [])
-        policy.packages = data_dict.get('packages', [])
-        policy.relevance_key = data_dict.get('relevance_key')
+    def create_from_json(cls, data):
+        try:
+            data2 = {
+                'id': 'on-demand-policy',
+                'product_versions': [data['product_version']],
+                'decision_context': 'on-demand-policy',
+                'subject_type': 'unused',
+            }
+            data2.update(data)
+            result = cls.from_value(data2)
+            return result
+        except SafeYAMLError as e:
+            raise BadRequest('Failed to parse on demand policy: {}'.format(e))
 
-        # Validate the data before processing.
-        policy.__validate_attributes()  # pylint: disable=protected-access
-        return policy
-
-    def __validate_attributes(self):
-        """ Validates types of the attributes. """
-        list_attributes = ['product_versions', 'rules', 'excluded_packages', 'packages']
-        for attribute in self.__dict__.keys():
-            if attribute in list_attributes and not isinstance(
-                    getattr(self, attribute, None), list):
-                raise TypeError('{} should be a list.'.format(attribute))
-            elif attribute not in list_attributes:
-                if getattr(self, attribute, None) and not isinstance(
-                        getattr(self, attribute, None), str):
-                    raise TypeError('{} should be a string.'.format(attribute))
+    def matches_subject_type(self, **attributes):
+        return True
 
 
 class RemotePolicy(Policy):

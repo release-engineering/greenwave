@@ -1387,7 +1387,10 @@ def test_cannot_make_decision_without_required_rule_type(
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r.status_code == 400
-    assert ('Key \'type\' is required for every rule') == r.json()['message']
+    assert (
+        "Failed to parse on demand policy: Attribute 'rules': "
+        "Key 'type' is required for each list item"
+    ) == r.json()['message']
 
 
 @pytest.mark.smoke
@@ -1409,7 +1412,10 @@ def test_cannot_make_decision_without_required_rule_testcase_name(
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r.status_code == 400
-    assert ('Key \'test_case_name\' is required if not a RemoteRule') == r.json()['message']
+    assert (
+        "Failed to parse on demand policy: Attribute 'rules': "
+        "Attribute 'test_case_name' is required"
+    ) == r.json()['message']
 
 
 def test_make_a_decision_with_verbose_flag_on_demand_policy(

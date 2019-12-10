@@ -1075,8 +1075,7 @@ def test_on_demand_policy_match(two_rules):
                 assert isinstance(decision[0], RuleSatisfied)
 
 
-@pytest.mark.parametrize('namespace', ["rpms", ""])
-def test_remote_rule_policy_on_demand_policy_required(namespace):
+def test_remote_rule_policy_on_demand_policy_required():
     """ Testing the RemoteRule with the koji interaction when on_demand policy is given.
     In this case we are just mocking koji """
 
@@ -1086,8 +1085,7 @@ def test_remote_rule_policy_on_demand_policy_required(namespace):
     serverside_json = {
         'product_version': 'fedora-26',
         'id': 'taskotron_release_critical_tasks_with_remoterule',
-        'subject_type': 'koji_build',
-        'subject_identifier': nvr,
+        'subject': [{'item': nvr, 'type': 'koji_build'}],
         'rules': [
             {
                 'type': 'RemoteRule',
@@ -1099,7 +1097,7 @@ def test_remote_rule_policy_on_demand_policy_required(namespace):
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
         with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = None
 
