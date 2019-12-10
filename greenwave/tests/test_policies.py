@@ -12,6 +12,7 @@ from greenwave.policies import (
     summarize_answers,
     Policy,
     RemotePolicy,
+    RemoteRule,
     RuleSatisfied,
     TestResultMissing,
     TestResultFailed,
@@ -1072,6 +1073,47 @@ def test_on_demand_policy_match(two_rules):
             if two_rules:
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
+
+
+@pytest.mark.parametrize('namespace', ["rpms", ""])
+def test_remote_rule_policy_on_demand_policy_required(namespace):
+    """ Testing the RemoteRule with the koji interaction when on_demand policy is given.
+    In this case we are just mocking koji """
+
+    nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_test_subject('koji_build', nvr)
+
+    serverside_json = {
+        'product_version': 'fedora-26',
+        'id': 'taskotron_release_critical_tasks_with_remoterule',
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
+        'rules': [
+            {
+                'type': 'RemoteRule',
+                'required': True
+            },
+        ],
+    }
+
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = None
+
+                policy = OnDemandPolicy.create_from_json(serverside_json)
+                assert len(policy.rules) == 1
+                assert isinstance(policy.rules[0], RemoteRule)
+                assert policy.rules[0].required
+
+                results = DummyResultsRetriever()
+                decision = policy.check('fedora-26', subject, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], MissingGatingYaml)
+                assert not decision[0].is_satisfied
+                assert decision[0].subject.identifier == subject.identifier
 
 
 def test_two_rules_no_duplicate(tmpdir):

@@ -413,7 +413,9 @@ class Rule(SafeYAMLObject):
         processed_rules = []
         for rule in rules:
             if rule['type'] == 'RemoteRule':
-                processed_rules.append(RemoteRule())
+                temp_rule = RemoteRule()
+                temp_rule.required = rule.get('required', False)
+                processed_rules.append(temp_rule)
             elif rule['type'] == 'PassingTestCaseRule':
                 temp_rule = PassingTestCaseRule()
                 temp_rule.test_case_name = rule['test_case_name']
