@@ -132,15 +132,15 @@ def get_policies():
                    "rules": [
                        {
                            "test_case_name": "dist.abicheck",
-                           "rule": "PassingTestCaseRule"
+                           "type": "PassingTestCaseRule"
                        },
                        {
                            "test_case_name": "dist.rpmdeplint",
-                           "rule": "PassingTestCaseRule"
+                           "type": "PassingTestCaseRule"
                        },
                        {
                            "test_case_name": "dist.upgradepath",
-                           "rule": "PassingTestCaseRule"
+                           "type": "PassingTestCaseRule"
                        }
                    ]
                }
