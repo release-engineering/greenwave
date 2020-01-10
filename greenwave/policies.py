@@ -213,7 +213,7 @@ class TestResultErrored(RuleNotSatisfied):
         return TestResultPassed(self.test_case_name, self.result_id)
 
 
-class InvalidGatingYaml(RuleNotSatisfied):
+class InvalidRemoteRuleYaml(RuleNotSatisfied):
     """
     Remote policy parsing failed.
     """
@@ -236,7 +236,7 @@ class InvalidGatingYaml(RuleNotSatisfied):
         return None
 
 
-class MissingGatingYaml(RuleNotSatisfied):
+class MissingRemoteRuleYaml(RuleNotSatisfied):
     """
     Remote policy not found in remote repository.
     """
@@ -433,6 +433,14 @@ class RemoteRule(Rule):
         'required': SafeYAMLBool(optional=True, default=False),
     }
 
+    def _get_config_urls(self, rr_config, subject):
+        if subject in rr_config:
+            return rr_config[subject]
+        if '*' in rr_config:
+            return rr_config['*']
+        raise RuntimeError(f'Cannot use a remote rule for {subject} subject '
+                           f'as it has not been configured')
+
     def _get_sub_policies(self, policy, subject):
         if not subject.supports_remote_rule:
             return []
@@ -447,10 +455,18 @@ class RemoteRule(Rule):
 
         # if the element is actually a container and not a pkg there will be a "-container"
         # string at the end of the "pkg_name" and it will not match with the one in the
-        # gating.yaml URL
+        # remote rule file URL
         if pkg_namespace == 'containers':
             pkg_name = re.sub('-container$', '', pkg_name)
-        response = greenwave.resources.retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace)
+        rr_policies_conf = current_app.config.get('REMOTE_RULE_POLICIES')
+        if not rr_policies_conf or '*' not in rr_policies_conf:
+            rr_policies_conf['*'] = {
+                'HTTP_URL_TEMPLATE': current_app.config['DIST_GIT_URL_TEMPLATE']
+            }
+        cur_subject_config = self._get_config_urls(rr_policies_conf, policy.subject_type)
+        response = greenwave.resources.retrieve_yaml_remote_rule(
+            rev, pkg_name, pkg_namespace, cur_subject_config
+        )
 
         if response is None:
             # greenwave extension file not found
@@ -479,12 +495,12 @@ class RemoteRule(Rule):
             policies = self._get_sub_policies(policy, subject)
         except SafeYAMLError as e:
             return [
-                InvalidGatingYaml(subject, 'invalid-gating-yaml', str(e))
+                InvalidRemoteRuleYaml(subject, 'invalid-gating-yaml', str(e))
             ]
 
         if policies is None:
             if self.required:
-                return [MissingGatingYaml(subject)]
+                return [MissingRemoteRuleYaml(subject)]
             return []
 
         answers = []

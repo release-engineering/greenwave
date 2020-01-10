@@ -6,7 +6,7 @@ from greenwave.policies import (
     TestResultFailed,
     TestResultMissing,
     TestResultMissingWaived,
-    InvalidGatingYaml,
+    InvalidRemoteRuleYaml,
 )
 
 from greenwave.subjects.subject import Subject
@@ -23,7 +23,7 @@ testResultMissing = TestResultMissing(
     testSubject, 'test', None)
 testResultMissingWaived = TestResultMissingWaived(
     testSubject, 'test', None)
-testInvalidGatingYaml = InvalidGatingYaml(
+testInvalidGatingYaml = InvalidRemoteRuleYaml(
     testSubject, 'test', 'Missing !Policy tag')
 
 

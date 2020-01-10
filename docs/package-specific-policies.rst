@@ -52,7 +52,7 @@ Refer to :doc:`policies` for details about each of the keys in the YAML file.
 
 .. _tolerate-invalid-gating-yaml:
 
-Tolerate an invalid gating.yaml file
+Tolerate an invalid remote rule file
 ------------------------------------
 
 A gating.yaml file is considered invalid if it has an invalid syntax (yaml
@@ -67,18 +67,17 @@ To skip this problem, it is possible to submit a waiver with the tool
 ``testcase`` equal to ``invalid-gating-yaml``. It is not necessary to have
 a result in Resultsdb for this testcase.
 
-The side effect is that all the policies defined in the gating.yaml
+The side effect is that all the policies defined in the remote rule
 file will be completely ignored by Greenwave.
 
 
 .. _missing-gating-yaml:
 
-Missing gating.yaml file
+Missing remote rule file
 ------------------------
 
-Missing gating.yaml file (i.e. not present in dist-git repo of the tested
-package in the required revision) is just skipped and not treated as
-unsatisfied requirement by default. To change this, ``required`` boolean
+Missing remote rule file (i.e. not present in the configured repo) is just skipped
+and not treated as unsatisfied requirement by default. To change this, ``required`` boolean
 attribute of ``RemoteRule`` must be set to ``true``.
 
 .. code-block:: yaml
@@ -91,8 +90,7 @@ attribute of ``RemoteRule`` must be set to ``true``.
    rules:
      - !RemoteRule {required: true}
 
-For such policy, if gating.yaml is missing, could result in the following
-decision.
+For such policy, missing remote rule file could result in the following decision.
 
 .. code-block:: json
 
@@ -118,7 +116,7 @@ Tutorial - How to configure the RemoteRule
 If you want to add some additional policies, you can follow this
 tutorial.
 
-We need to write the gating.yaml file. The one for this example will
+We need to write a remote rule file. The one for this example will
 be this one:
 
 ::
@@ -131,7 +129,7 @@ be this one:
         rules:
           - !PassingTestCaseRule {test_case_name: dist.depcheck}
 
-*NB*. It is not possible to insert a RemoteRule inside a gating.yaml file.
+*NB*. It is not possible to insert a RemoteRule inside a remote rule file.
 This will provoke an error.
 
 You need now to push the new file (or the changes) in your dist-git
@@ -145,8 +143,8 @@ source code of your project):
 Now you can find in the link of the build in Koji the nvr of the build.
 Example: ``python-ansi2html-1.1.1-114.fc28``
 
-In case of a misconfigured gating.yaml you would need to repeate the
-build. To avoid this it is possible to validate the gating.yaml file
+In case of a misconfigured remote rule you would need to repeate the
+build. To avoid this it is possible to validate the remote rule file
 before starting the build.
 To do that you can use this command (in this example we are using the
 Fedora Greenwave instance in production):
@@ -195,28 +193,26 @@ Once you create a result in ResultsDB for that testcase (with
 decision will change and all the requirements will be satisfied (if
 everything was configured in the correct way).
 
-If your gating.yaml file will be misconfigured, Greenwave will reply
-that the gating.yaml file is wrong. If you just want to skip this check
+If your remote rule file is misconfigured, Greenwave will reply
+that the remote rule file is wrong. If you just want to skip this check
 without build again, just look at the previous section in this page.
 
 
 .. _fetching-gating-yaml:
 
-How is gating.yaml file retrieved?
-----------------------------------
+How is the remote rule file being retrieved?
+--------------------------------------------
 
-The "gating.yaml" file is downloaded from a dist-git repository based on the
-source URL of a specific build in Koji.
-
-The file is fetched from specific git commit (the revision is part of the
-build's source URL).
+The remote rule file (usually called ``gating.yaml``) is downloaded
+from a repository based on the source URL of a specific build in Koji.
+Different URLs can be set for different subject types.
 
 More specifically, Greenwave first gets the build data ``koji call getBuild
 $NVR``. Then it parses URL in "source" field to get namespace ("rpms" or
 "containers" etc.), the git commit and package name (or rather the git
 repository name).
 
-The "gating.yaml" URL is constructed based on ``DIST_GIT_URL_TEMPLATE``
+For HTTP method, the remote rule URL is constructed based on ``HTTP_URL_TEMPLATE``
 specified in Greenwave configuration. The URL template is something like::
 
-    {DIST_GIT_BASE_URL}/{pkg_namespace}/{pkg_name}/raw/{rev}/f/gating.yaml
+    http://example.com/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml

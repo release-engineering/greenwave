@@ -23,8 +23,23 @@ class Config(object):
     WAIVERDB_API_URL = 'https://waiverdb.fedoraproject.org/api/v1.0'
 
     # Remote rule configuration
-    DIST_GIT_BASE_URL = 'https://src.fedoraproject.org/'
-    DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}{pkg_namespace}/{pkg_name}/raw/{rev}/f/gating.yaml'
+    # NOTE: DIST_GIT_URL_TEMPLATE is obsolete and used here only for
+    # backward compatibility. They maybe removed in future versions. Use REMOTE_RULE_POLICIES['*']
+    # instead
+    DIST_GIT_URL_TEMPLATE = \
+        'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
+    REMOTE_RULE_POLICIES = {
+        'brew-build-group': {
+            'GIT_URL': 'git@gitlab.cee.redhat.com:devops/greenwave-policies/side-tags.git',
+            'GIT_PATH_TEMPLATE': '{pkg_namespace}/{pkg_name}.yaml'
+        },
+        '*': {
+            'HTTP_URL_TEMPLATE':
+                'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
+        }
+    }
+    REMOTE_RULE_GIT_TIMEOUT = 30
+    REMOTE_RULE_GIT_MAX_RETRY = 3
     KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
     # Options for outbound HTTP requests made by python-requests
     REQUESTS_TIMEOUT = (6.1, 15)

@@ -249,19 +249,39 @@ Here's an example of a RemoteRule:
 
 
 Once the code is pushed, Greenwave will start to check if there is a
-gating.yaml file in your dist-git repo. If you didn't configure any
-gating.yaml file nothing will change.
+remote rule file in your repo. If you didn't configure any remote rule file
+nothing will change.
 
-Greenwave will check if a gating.yaml exists, if it does, it pulls it
+Greenwave will check if a remote rule file exists, if it does, it pulls it
 down, loads it, and uses it to additionally evaluate the subject of the
 decision.
 
-Greenwave requires these configuration parameters ``KOJI_BASE_URL``,
-``DIST_GIT_BASE_URL`` and ``DIST_GIT_URL_TEMPLATE``. Here's the default
-for the Fedora instance:
+Greenwave requires these configuration parameters ``KOJI_BASE_URL`` and
+``REMOTE_RULE_POLICIES``.
+
+``REMOTE_RULE_POLICIES`` is a map, where the key is the subject type. There could be
+a default pattern "*" used when no subject type matched. Old parameter ``DIST_GIT_URL_TEMPLATE``
+is used if there is no default subject type, but please note that it is obsolete
+and should not be used in new configurations. Each subject should contain a map of parameters
+depending on a retrieval mechanism.
+
+Greenwave has two mechanisms to retrieve the remote rule file: ``git archive`` is
+using for side tags rules and using a git front-end. ``GIT_URL`` and ``GIT_PATH_TEMPLATE``
+should be set for ``git archive`` mechanism, ``HTTP_URL_TEMPLATE``
+should be set if you are going to use a git front-end.
+
+Below is an example configuration where ``git archive`` is being used for "brew-build-group"
+subject type and HTTP is being used for other:
 
 .. code-block:: console
 
-   DIST_GIT_BASE_URL = 'https://src.fedoraproject.org/'
-   DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}{pkg_namespace}/{pkg_name}/raw/{rev}/f/gating.yaml'
-   KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
+    REMOTE_RULE_POLICIES = {
+        'brew-build-group': {
+            'GIT_URL': 'git@gitlab.cee.redhat.com:devops/greenwave-policies/side-tags.git',
+            'GIT_PATH_TEMPLATE': '{pkg_namespace}/{pkg_name}.yaml'
+        },
+        '*': {
+            'HTTP_URL_TEMPLATE': 'https://src.fedoraproject.org/{pkg_namespace}/{pkg_name}/raw/{rev}/f/gating.yaml'
+        }
+    }
+    KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'

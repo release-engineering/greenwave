@@ -29,7 +29,8 @@ def test_remote_rules_misconfigured(mock_load_policies):
     mock_load_policies.return_value = policies
 
     config = TestingConfig()
-    config.DIST_GIT_BASE_URL = ''
+    config.DIST_GIT_URL_TEMPLATE = ''
+    config.REMOTE_RULE_POLICIES = {}
 
     expected_error = 'If you want to apply a RemoteRule'
 
@@ -37,23 +38,40 @@ def test_remote_rules_misconfigured(mock_load_policies):
         create_app(config)
 
 
+def test_can_use_remote_rule_http_fallback():
+    """ Test that _can_use_remote_rule verifies the configuration properly if HTTP is used. """
+    config = {
+        'KOJI_BASE_URL': 'https://koji.domain.local/kojihub',
+        'DIST_GIT_URL_TEMPLATE':
+            'https://dist-git.domain.local/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
+    }
+    assert _can_use_remote_rule(config) is True
+
+
 def test_can_use_remote_rule_http():
     """ Test that _can_use_remote_rule verifies the configuration properly if HTTP is used. """
     config = {
-        'DIST_GIT_BASE_URL': 'https://dist-git.domain.local',
         'KOJI_BASE_URL': 'https://koji.domain.local/kojihub',
-        'DIST_GIT_URL_TEMPLATE': ('{DIST_GIT_BASE_URL}{pkg_namespace}/{pkg_name}/raw/{rev}/f/'
-                                  'gating.yaml')
+        'REMOTE_RULE_POLICIES': {
+            '*': {
+                'HTTP_URL_TEMPLATE': 'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/'
+                                     'raw/{rev}/f/gating.yaml'
+            }
+        }
     }
     assert _can_use_remote_rule(config) is True
 
 
 @pytest.mark.parametrize('config', (
     {
-        'DIST_GIT_BASE_URL': 'https://dist-git.domain.local',
+        'REMOTE_RULE_POLICIES': {
+            'brew-build-group': {
+                'GIT_URL': 'git@gitlab.cee.redhat.com:devops/greenwave-policies/side-tags.git',
+                'GIT_PATH_TEMPLATE': '{pkg_namespace}/{pkg_name}.yaml'
+            }
+        },
     },
     {
-        'DIST_GIT_BASE_URL': 'https://dist-git.domain.local',
         'KOJI_BASE_URL': 'https://koji.domain.local/kojihub'
     }
 ))

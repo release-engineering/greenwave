@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import subprocess
+import io
 import socket
 from requests.exceptions import ConnectionError, HTTPError
 
@@ -120,7 +122,9 @@ def test_retrieve_yaml_remote_rule_no_namespace():
             response = mock.MagicMock()
             response.status_code = 404
             session.request.return_value = response
-            retrieve_yaml_remote_rule("deadbeaf", "pkg", "")
+            retrieve_yaml_remote_rule(
+                "deadbeaf", "pkg", "", app.config['REMOTE_RULE_POLICIES']['*']
+            )
 
             expected_call = mock.call(
                 'HEAD', 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml')
@@ -138,12 +142,77 @@ def test_retrieve_yaml_remote_rule_connection_error():
             ]
 
             with pytest.raises(HTTPError) as excinfo:
-                retrieve_yaml_remote_rule("deadbeaf", "pkg", "")
+                retrieve_yaml_remote_rule(
+                    "deadbeaf", "pkg", "", app.config['REMOTE_RULE_POLICIES']['*']
+                )
 
             assert str(excinfo.value) == (
                 '502 Server Error: Something went terribly wrong... for url: '
                 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml'
             )
+
+
+@mock.patch('tarfile.open')
+@mock.patch('subprocess.Popen')
+def test_retrieve_yaml_remote_rule_git_archive(mock_subp, mock_tar):
+    # Make the git archive call return bytes
+    mock_subp.return_value.communicate.return_value = (b'tar file', '')
+    mock_subp.return_value.returncode = 0
+    # Make the tar archive, based on the return value of git archive, return a file-like
+    # object representing the gating.yaml file
+    mock_tar.return_value.extractfile.return_value = io.BytesIO(b'some gating yaml file')
+
+    app = greenwave.app_factory.create_app()
+    rr_config = {
+        'GIT_URL': 'git://dist-git.domain.local/abc/abc.git',
+        'GIT_PATH_TEMPLATE': '{pkg_namespace}/{pkg_name}.yaml'
+    }
+    with app.app_context():
+        gating_yaml = retrieve_yaml_remote_rule('abcdef', 'python-requests', 'rpms', rr_config)
+
+    assert gating_yaml == 'some gating yaml file'
+    expected_cmd = [
+        'git', 'archive', '--remote=git://dist-git.domain.local/abc/abc.git',
+        'master', 'rpms/python-requests.yaml']
+    mock_subp.assert_called_once_with(expected_cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    tar_file = mock_tar.call_args[1]['fileobj'].read()
+    assert tar_file == b'tar file'
+    mock_tar.return_value.extractfile.assert_called_once_with('rpms/python-requests.yaml')
+
+
+@mock.patch('subprocess.Popen')
+def test_retrieve_yaml_remote_rule_git_archive_no_file(mock_subp):
+    # Make the git archive command return an error saying the file isn't in the repo
+    mock_subp.return_value.communicate.return_value = \
+        (None, b'remote: fatal: path not found: xxx.yaml')
+    mock_subp.return_value.returncode = 1
+
+    app = greenwave.app_factory.create_app()
+    rr_config = {
+        'GIT_URL': 'git://dist-git.domain.local/abc/abc.git',
+        'GIT_PATH_TEMPLATE': '{pkg_namespace}/{pkg_name}.yaml'
+    }
+    with app.app_context():
+        gating_yaml = retrieve_yaml_remote_rule('master', 'python-requests', 'rpms', rr_config)
+
+    assert gating_yaml is None
+
+
+@mock.patch('subprocess.Popen')
+def test_retrieve_yaml_remote_rule_git_archive_error(mock_subp):
+    # Make the git archive command return an error
+    mock_subp.return_value.communicate.return_value = (None, b'remote: fatal: some error')
+    mock_subp.return_value.returncode = 1
+
+    app = greenwave.app_factory.create_app()
+    rr_config = {
+        'GIT_URL': 'git://dist-git.domain.local/abc/abc.git',
+        'GIT_PATH_TEMPLATE': '{pkg_namespace}/{pkg_name}.yaml'
+    }
+    expected_error = 'Error occurred while retrieving a remote rule file from the repo.'
+    with pytest.raises(BadGateway, match=expected_error):
+        with app.app_context():
+            retrieve_yaml_remote_rule('master', 'python-requests', 'rpms', rr_config)
 
 
 @mock.patch('greenwave.resources.xmlrpc.client.ServerProxy')

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 from greenwave.policies import (
-    InvalidGatingYaml,
+    InvalidRemoteRuleYaml,
     TestResultMissing,
     TestResultFailed,
 )
@@ -79,7 +79,7 @@ def test_waive_missing_result():
 
 def test_waive_invalid_gatin_yaml():
     answers = [
-        InvalidGatingYaml(
+        InvalidRemoteRuleYaml(
             subject=test_subject(),
             test_case_name='invalid-gating-yaml',
             details='',

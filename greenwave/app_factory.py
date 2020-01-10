@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import logging
+
 from flask import Flask
 from greenwave.api_v1 import api
 from greenwave.monitor import monitor_api
@@ -16,12 +17,20 @@ log = logging.getLogger(__name__)
 
 
 def _can_use_remote_rule(config):
-    # Ensure that the required config settings are set
-    return (bool(
-        config.get('DIST_GIT_BASE_URL') and
-        config.get('DIST_GIT_URL_TEMPLATE') and
-        config.get('KOJI_BASE_URL'))
-    )
+    if not config.get('KOJI_BASE_URL'):
+        return False
+
+    if config.get('DIST_GIT_URL_TEMPLATE'):
+        return True
+
+    if config.get('REMOTE_RULE_POLICIES'):
+        return all(
+            (conf_item.get('GIT_URL') and conf_item.get('GIT_PATH_TEMPLATE')) or
+            conf_item.get('HTTP_URL_TEMPLATE')
+            for conf_item in config.get('REMOTE_RULE_POLICIES').values()
+        )
+
+    return False
 
 
 def _has_remote_rule(policies):
@@ -50,10 +59,10 @@ def create_app(config_obj=None):
 
     if not _can_use_remote_rule(app.config) and _has_remote_rule(app.config['policies']):
         raise RuntimeError(
-            "If you want to apply a RemoteRule"
-            " you need to configure 'DIST_GIT_BASE_URL', "
-            "'DIST_GIT_URL_TEMPLATE' and KOJI_BASE_URL in "
-            "your configuration."
+            'If you want to apply a RemoteRule, you must have "KOJI_BASE_URL" and '
+            '"DIST_GIT_URL_TEMPLATE" or "REMOTE_RULE_POLICIES" or both set in your configuration. '
+            'Each field in "REMOTE_RULE_POLICIES" map have to contain either '
+            '"GIT_URL"/"GIT_PATH_TEMPLATE" or "HTTP_URL_TEMPLATE".'
         )
 
     # register error handlers
@@ -82,4 +91,4 @@ def healthcheck():
 
     Returns a 200 response if the application is alive and able to serve requests.
     """
-    return ('Health check OK', 200, [('Content-Type', 'text/plain')])
+    return 'Health check OK', 200, [('Content-Type', 'text/plain')]

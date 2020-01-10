@@ -17,8 +17,8 @@ from greenwave.policies import (
     TestResultMissing,
     TestResultFailed,
     TestResultPassed,
-    InvalidGatingYaml,
-    MissingGatingYaml,
+    InvalidRemoteRuleYaml,
+    MissingRemoteRuleYaml,
     OnDemandPolicy
 )
 from greenwave.resources import ResultsRetriever
@@ -550,7 +550,7 @@ def test_remote_rule_malformed_yaml(tmpdir):
                     results = DummyResultsRetriever()
                     decision = policy.check('fedora-26', subject, results)
                     assert len(decision) == 1
-                    assert isinstance(decision[0], InvalidGatingYaml)
+                    assert isinstance(decision[0], InvalidRemoteRuleYaml)
                     assert decision[0].is_satisfied is False
 
 
@@ -640,7 +640,7 @@ def test_remote_rule_required():
                 results = DummyResultsRetriever()
                 decision = policy.check('fedora-rawhide', subject, results)
                 assert len(decision) == 1
-                assert isinstance(decision[0], MissingGatingYaml)
+                assert isinstance(decision[0], MissingRemoteRuleYaml)
                 assert not decision[0].is_satisfied
                 assert decision[0].subject.identifier == subject.identifier
 
@@ -1109,7 +1109,7 @@ def test_remote_rule_policy_on_demand_policy_required():
                 results = DummyResultsRetriever()
                 decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
-                assert isinstance(decision[0], MissingGatingYaml)
+                assert isinstance(decision[0], MissingRemoteRuleYaml)
                 assert not decision[0].is_satisfied
                 assert decision[0].subject.identifier == subject.identifier
 

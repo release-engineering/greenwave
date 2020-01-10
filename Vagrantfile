@@ -5,6 +5,7 @@ $script = <<-'SCRIPT'
     set -e
 
     dnf -y install \
+        git-core \
         postgresql-server \
         postgresql-contrib \
         python3-gunicorn \
