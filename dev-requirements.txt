@@ -2,8 +2,6 @@
 flake8
 pytest
 pytest-cov
-waiverdb
-resultsdb_api
 gunicorn
 sqlalchemy
 mock
