@@ -1,4 +1,4 @@
-FROM fedora:29
+FROM fedora:31
 LABEL \
     name="Greenwave application" \
     vendor="Greenwave developers" \
@@ -16,6 +16,7 @@ RUN dnf -y install \
     python3-flask \
     python3-gunicorn \
     python3-memcached \
+    python3-pip \
     python3-prometheus_client \
     python3-PyYAML \
     python3-requests \
