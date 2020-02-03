@@ -2,6 +2,21 @@
 Release Notes
 =============
 
+Greenwave 1.5.0
+===============
+
+Released 2 February 2020
+
+* Remote rule changes:
+    - Remote rules can now use GIT archive mechanism again
+    - Remote rules can use different servers depending on the subject type
+    - Base URL is now part of the URL template for HTTP mechanism.
+      So ``DIST_GIT_BASE_URL`` should now be directly included to ``DIST_GIT_URL_TEMPLATE``
+      in configuration. If there is a `{pkg_namespace}` placeholder in URL template,
+      slash symbol (/) will be added automatically to its name when it is not empty,
+      so there should be no additional slash in URL template.
+* The Greenwave container image now uses Fedora 31 base image.
+
 Greenwave 1.4.2
 ===============
 
