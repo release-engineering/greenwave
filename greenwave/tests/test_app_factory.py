@@ -38,6 +38,36 @@ def test_remote_rules_misconfigured(mock_load_policies):
         create_app(config)
 
 
+@mock.patch('greenwave.policies.load_policies')
+def test_remote_rules_base_url(mock_load_policies):
+    """
+    The application shouldn't start if RemoteRule is in policy configuration
+    but if cannot be used because dist-git or koji URL is not configured.
+    """
+
+    policies = Policy.safe_load_all(dedent("""
+        --- !Policy
+        id: test_policy
+        product_versions: [fedora-rawhide]
+        decision_context: another_test_context
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+    """))
+    mock_load_policies.return_value = policies
+
+    config = TestingConfig()
+    config.DIST_GIT_BASE_URL = 'http://localhost.localdomain/'
+    config.DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}{other_params}/blablabla/gating.yaml'
+    config.REMOTE_RULE_POLICIES = {}
+
+    app = create_app(config)
+
+    assert app.config['DIST_GIT_URL_TEMPLATE'] == (
+        'http://localhost.localdomain/{other_params}/blablabla/gating.yaml'
+    )
+
+
 def test_can_use_remote_rule_http_fallback():
     """ Test that _can_use_remote_rule verifies the configuration properly if HTTP is used. """
     config = {

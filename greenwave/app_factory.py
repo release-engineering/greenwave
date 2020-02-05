@@ -57,6 +57,11 @@ def create_app(config_obj=None):
     log.debug("config: Loading subject types from %r", subject_types_dir)
     app.config['subject_types'] = load_subject_types(subject_types_dir)
 
+    if app.config.get('DIST_GIT_URL_TEMPLATE') and app.config.get('DIST_GIT_BASE_URL'):
+        app.config['DIST_GIT_URL_TEMPLATE'] = app.config['DIST_GIT_URL_TEMPLATE'].replace(
+            '{DIST_GIT_BASE_URL}', app.config['DIST_GIT_BASE_URL']
+        )
+
     if not _can_use_remote_rule(app.config) and _has_remote_rule(app.config['policies']):
         raise RuntimeError(
             'If you want to apply a RemoteRule, you must have "KOJI_BASE_URL" and '
