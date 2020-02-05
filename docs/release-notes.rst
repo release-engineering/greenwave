@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+Greenwave 1.5.1
+===============
+
+Released 5 February 2020
+
+* Configuration of ``DIST_GIT_URL_TEMPLATE`` is now backward compatible with the one
+  for versions below 1.5.0
+
 Greenwave 1.5.0
 ===============
 
