@@ -24,7 +24,7 @@ def _get_latest_results(results, unique_keys):
             yield result
 
 
-def _to_dict(format_dict, type_, item):
+def _to_dict(format_dict, item):
     result = {}
 
     item_key = format_dict.get('item_key')
@@ -100,7 +100,7 @@ class Subject:
 
     def to_dict(self):
         if self._type.item_dict:
-            return _to_dict(self._type.item_dict, self.type, self.item)
+            return _to_dict(self._type.item_dict, self.item)
 
         return {"type": self.type, "item": self.item}
 
@@ -113,7 +113,7 @@ class Subject:
         """
         if self._type.result_queries:
             for query_dict in self._type.result_queries:
-                yield _to_dict(query_dict, self.type, self.item)
+                yield _to_dict(query_dict, self.item)
         else:
             yield self.to_dict()
 
