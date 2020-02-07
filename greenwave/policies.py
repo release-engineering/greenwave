@@ -458,7 +458,7 @@ class RemoteRule(Rule):
         # remote rule file URL
         if pkg_namespace == 'containers':
             pkg_name = re.sub('-container$', '', pkg_name)
-        rr_policies_conf = current_app.config.get('REMOTE_RULE_POLICIES')
+        rr_policies_conf = current_app.config.get('REMOTE_RULE_POLICIES', {})
         if not rr_policies_conf or '*' not in rr_policies_conf:
             rr_policies_conf['*'] = {
                 'HTTP_URL_TEMPLATE': current_app.config['DIST_GIT_URL_TEMPLATE']
