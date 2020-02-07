@@ -339,6 +339,52 @@ def test_remote_rule_policy(tmpdir, namespace):
                 assert isinstance(decision[0], TestResultFailed)
 
 
+def test_remote_rule_policy_with_no_remote_rule_policies_param_defined(tmpdir):
+    """ Testing the RemoteRule with the koji interaction.
+    But this time let's assume that REMOTE_RULE_POLICIES is not defined. """
+
+    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+        """)
+
+    remote_fragment = dedent("""
+        --- !Policy
+        id: "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+        - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """)
+
+    p = tmpdir.join('gating.yaml')
+    p.write(serverside_fragment)
+    app = create_app('greenwave.config.FedoraTestingConfig')
+
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = remote_fragment
+                policies = load_policies(tmpdir.strpath)
+                policy = policies[0]
+
+                # Ensure that presence of a result is success.
+                results = DummyResultsRetriever(subject, 'dist.upgradepath')
+                decision = policy.check('fedora-26', subject, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], RuleSatisfied)
+
+
 @pytest.mark.parametrize('namespace', ["modules", ""])
 def test_remote_rule_policy_redhat_module(tmpdir, namespace):
     """ Testing the RemoteRule with the koji interaction.
