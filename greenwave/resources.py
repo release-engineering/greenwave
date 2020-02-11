@@ -66,7 +66,7 @@ class ResultsRetriever(BaseRetriever):
             return []
 
         params = {
-            '_distinct_on': 'scenario,system_architecture'
+            '_distinct_on': 'scenario,system_architecture,system_variant'
         }
         if self.since:
             params.update({'since': self.since})

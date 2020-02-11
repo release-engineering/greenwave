@@ -1043,21 +1043,29 @@ def test_validate_gating_yaml_missing_decision_context(requests_session, greenwa
     assert result.status_code == 200
 
 
+@pytest.mark.parametrize(('variant1', 'variant2'), (
+    (
+        dict(variant='BaseOS', architecture='ppc64'),
+        dict(variant='BaseOS', architecture='x86_64'),
+    ),
+    (
+        dict(variant='BaseOS', architecture='ppc64'),
+        dict(variant='Cloud_Base', architecture='ppc64'),
+    ),
+))
 def test_make_a_decision_about_compose_all_variants_architectures(
-        requests_session, greenwave_server, testdatabuilder):
+        variant1, variant2, requests_session, greenwave_server, testdatabuilder):
     compose_id = testdatabuilder.unique_compose_id()
 
     failed_results = testdatabuilder.create_rtt_compose_result(
         compose_id=compose_id,
-        variant='BaseOS',
-        architecture='ppc64',
-        outcome='FAILED')
+        outcome='FAILED',
+        **variant1)
 
     testdatabuilder.create_rtt_compose_result(
         compose_id=compose_id,
-        variant='BaseOS',
-        architecture='x86_64',
-        outcome='PASSED')
+        outcome='PASSED',
+        **variant2)
 
     data = {
         'decision_context': 'rtt_compose_gate',

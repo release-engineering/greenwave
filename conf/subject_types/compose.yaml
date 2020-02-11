@@ -5,5 +5,5 @@ item_dict:
   # {"productmd.compose.id": ITEM}
   item_key: "productmd.compose.id"
 latest_result_unique_keys:
-  - arch_variant
+  - system_variant
   - system_architecture
