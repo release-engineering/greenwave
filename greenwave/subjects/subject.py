@@ -129,5 +129,10 @@ class Subject:
 
     def __str__(self):
         return "subject_type {!r}, subject_identifier {!r}".format(
-            self.type_, self.item
+            self.type, self.item
+        )
+
+    def __repr__(self):
+        return "Subject({!r}, {!r})".format(
+            self._type, self.item
         )

@@ -62,6 +62,9 @@ class SubjectType(SafeYAMLObject):
     def safe_yaml_label(self):
         return 'SubjectType {!r}'.format(self.id)
 
+    def __repr__(self):
+        return '<SubjectType {!r}>'.format(self.id)
+
 
 class GenericSubjectType:
     def __init__(self, id_):
