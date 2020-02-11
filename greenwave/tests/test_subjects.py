@@ -92,3 +92,13 @@ def test_subject_get_latest_results(app):
         'system_architecture': ['x86_64'],
     }
     assert subject.get_latest_results(results)[1]['outcome'] == 'PASSED'
+
+
+def test_subject_to_str(app):
+    subject = create_subject('koji_build', 'some_nvr')
+    assert str(subject) == "subject_type 'koji_build', subject_identifier 'some_nvr'"
+
+
+def test_subject_to_repr(app):
+    subject = create_subject('koji_build', 'some_nvr')
+    assert repr(subject) == "Subject(<SubjectType 'koji_build'>, 'some_nvr')"
