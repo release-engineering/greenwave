@@ -261,27 +261,21 @@ Greenwave requires these configuration parameters ``KOJI_BASE_URL`` and
 
 ``REMOTE_RULE_POLICIES`` is a map, where the key is the subject type. There could be
 a default pattern "*" used when no subject type matched. Old parameter ``DIST_GIT_URL_TEMPLATE``
-is used if there is no default subject type, but please note that it is obsolete
-and should not be used in new configurations. Each subject should contain a map of parameters
-depending on a retrieval mechanism.
+if used will override the default subject type, but please note that it is obsolete
+and should not be used in new configurations. Each subject should contain an URL template.
 
-Greenwave has two mechanisms to retrieve the remote rule file: ``git archive`` is
-using for side tags rules and using a git front-end. ``GIT_URL`` and ``GIT_PATH_TEMPLATE``
-should be set for ``git archive`` mechanism, ``HTTP_URL_TEMPLATE``
-should be set if you are going to use a git front-end.
-
-Below is an example configuration where ``git archive`` is being used for "brew-build-group"
-subject type and HTTP is being used for other:
+Below is an example configuration of remote rule URLs:
 
 .. code-block:: console
 
     REMOTE_RULE_POLICIES = {
-        'brew-build-group': {
-            'GIT_URL': 'git@gitlab.cee.redhat.com:devops/greenwave-policies/side-tags.git',
-            'GIT_PATH_TEMPLATE': '{pkg_namespace}/{pkg_name}.yaml'
-        },
-        '*': {
-            'HTTP_URL_TEMPLATE': 'https://src.fedoraproject.org/{pkg_namespace}/{pkg_name}/raw/{rev}/f/gating.yaml'
-        }
+        'brew-build-group': (
+            'https://git.example.com/devops/greenwave-policies/side-tags/raw/
+            'master/{pkg_namespace}{pkg_name}.yaml'
+        ),
+        '*': (
+            'https://src.fedoraproject.org/{pkg_namespace}'
+            '{pkg_name}/raw/{rev}/f/gating.yaml'
+        )
     }
     KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'

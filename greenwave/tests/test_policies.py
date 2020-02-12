@@ -25,6 +25,7 @@ from greenwave.resources import ResultsRetriever
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.subjects.factory import create_subject
 from greenwave.waivers import waive_answers
+from greenwave.config import TestingConfig, Config
 
 
 def create_test_subject(type_id, item):
@@ -337,6 +338,146 @@ def test_remote_rule_policy(tmpdir, namespace):
                 decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
+                f.assert_called_with(
+                    'c3c47a08a66451cb9686c49f040776ed35a0d1bb',
+                    'nethack',
+                    namespace,
+                    'https://src.fedoraproject.org/{pkg_namespace}'
+                    '{pkg_name}/raw/{rev}/f/gating.yaml'
+                )
+
+
+@pytest.mark.parametrize('namespace', ["rpms", ""])
+def test_remote_rule_policy_old_config(tmpdir, namespace):
+    """ Testing the RemoteRule with the koji interaction.
+    In this case we are just mocking koji """
+
+    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+        """)
+
+    remote_fragment = dedent("""
+        --- !Policy
+        id: "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+        - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """)
+
+    p = tmpdir.join('gating.yaml')
+    p.write(serverside_fragment)
+
+    config_remote_rules_backup = Config.REMOTE_RULE_POLICIES
+
+    try:
+        delattr(Config, 'REMOTE_RULE_POLICIES')
+
+        config = TestingConfig()
+        config.DIST_GIT_BASE_URL = 'http://localhost.localdomain/'
+        config.DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}{other_params}/blablabla/gating.yaml'
+
+        app = create_app(config)
+
+        with app.app_context():
+            with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+                scm.return_value = (
+                    namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb'
+                )
+                with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                    f.return_value = remote_fragment
+                    policies = load_policies(tmpdir.strpath)
+                    policy = policies[0]
+
+                    # Ensure that presence of a result is success.
+                    results = DummyResultsRetriever(subject, 'dist.upgradepath')
+                    decision = policy.check('fedora-26', subject, results)
+                    assert len(decision) == 1
+                    assert isinstance(decision[0], RuleSatisfied)
+
+                    f.assert_called_once_with(
+                        'c3c47a08a66451cb9686c49f040776ed35a0d1bb',
+                        'nethack',
+                        namespace,
+                        'http://localhost.localdomain/{other_params}/blablabla/gating.yaml'
+                    )
+    finally:
+        Config.REMOTE_RULE_POLICIES = config_remote_rules_backup
+
+
+@pytest.mark.parametrize('namespace', ["rpms", ""])
+def test_remote_rule_policy_brew_build_group(tmpdir, namespace):
+    """ Testing the RemoteRule with the koji interaction.
+    In this case we are just mocking koji """
+
+    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        subject_type: brew-build-group
+        rules:
+          - !RemoteRule {}
+        """)
+
+    remote_fragment = dedent("""
+        --- !Policy
+        id: "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+        - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """)
+
+    p = tmpdir.join('gating.yaml')
+    p.write(serverside_fragment)
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = remote_fragment
+                policies = load_policies(tmpdir.strpath)
+                policy = policies[0]
+
+                # Ensure that presence of a result is success.
+                results = DummyResultsRetriever(subject, 'dist.upgradepath')
+                decision = policy.check('fedora-26', subject, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], RuleSatisfied)
+
+                # Ensure that absence of a result is failure.
+                results = DummyResultsRetriever()
+                decision = policy.check('fedora-26', subject, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultMissing)
+
+                # And that a result with a failure, is a failure.
+                results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
+                decision = policy.check('fedora-26', subject, results)
+                assert len(decision) == 1
+                assert isinstance(decision[0], TestResultFailed)
+                f.assert_called_with(
+                    'c3c47a08a66451cb9686c49f040776ed35a0d1bb',
+                    'nethack',
+                    namespace,
+                    'https://git.example.com/devops/greenwave-policies/side-tags/raw/'
+                    'master/{pkg_namespace}{pkg_name}.yaml'
+                )
 
 
 def test_remote_rule_policy_with_no_remote_rule_policies_param_defined(tmpdir):
@@ -383,6 +524,13 @@ def test_remote_rule_policy_with_no_remote_rule_policies_param_defined(tmpdir):
                 decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
+                f.assert_called_with(
+                    'c3c47a08a66451cb9686c49f040776ed35a0d1bb',
+                    'nethack',
+                    'rpms',
+                    'https://src.fedoraproject.org/{pkg_namespace}'
+                    '{pkg_name}/raw/{rev}/f/gating.yaml'
+                )
 
 
 @pytest.mark.parametrize('namespace', ["modules", ""])

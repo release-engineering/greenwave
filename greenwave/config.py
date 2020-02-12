@@ -28,6 +28,13 @@ class Config(object):
     # instead
     DIST_GIT_URL_TEMPLATE = \
         'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
+    REMOTE_RULE_POLICIES = {
+        'brew-build-group': (
+            'https://git.example.com/devops/greenwave-policies/side-tags/raw/master/{pkg_namespace}'
+            '{pkg_name}.yaml'
+        ),
+        '*': 'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
+    }
     REMOTE_RULE_GIT_TIMEOUT = 30
     REMOTE_RULE_GIT_MAX_RETRY = 3
     KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
@@ -59,14 +66,11 @@ class DevelopmentConfig(Config):
     GREENWAVE_API_URL = 'http://localhost:5005/api/v1.0'
     POLICIES_DIR = _local_conf_dir('policies')
     REMOTE_RULE_POLICIES = {
-        'brew-build-group': {
-            'GIT_URL': 'git@gitlab.cee.redhat.com:devops/greenwave-policies/side-tags.git',
-            'GIT_PATH_TEMPLATE': '{pkg_namespace}/{pkg_name}.yaml'
-        },
-        '*': {
-            'HTTP_URL_TEMPLATE':
-                'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
-        }
+        'brew-build-group': (
+            'https://git.example.com/devops/greenwave-policies/side-tags/raw/master/{pkg_namespace}'
+            '{pkg_name}.yaml'
+        ),
+        '*': 'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
     }
 
 
@@ -76,16 +80,6 @@ class TestingConfig(Config):
     GREENWAVE_API_URL = 'http://localhost:5005/api/v1.0'
     KOJI_BASE_URL = 'http://localhost:5006/kojihub'
     POLICIES_DIR = _local_conf_dir('policies')
-    REMOTE_RULE_POLICIES = {
-        'brew-build-group': {
-            'GIT_URL': 'git@gitlab.cee.redhat.com:devops/greenwave-policies/side-tags.git',
-            'GIT_PATH_TEMPLATE': '{pkg_namespace}/{pkg_name}.yaml'
-        },
-        '*': {
-            'HTTP_URL_TEMPLATE':
-                'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
-        }
-    }
 
 
 class FedoraTestingConfig(Config):

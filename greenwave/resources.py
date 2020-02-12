@@ -8,9 +8,6 @@ waiverdb, etc..).
 
 import logging
 import re
-from io import BytesIO
-import tarfile
-import subprocess
 import socket
 
 from urllib.parse import urlparse
@@ -167,22 +164,7 @@ def retrieve_scm_from_koji_build(nvr, build, koji_url):
 
 
 @cached
-def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace, rr_config):
-    """ Retrieve a remote rule file content from the given repo"""
-    if rr_config.get('GIT_URL') and rr_config.get('GIT_PATH_TEMPLATE'):
-        return _retrieve_yaml_remote_rule_git_archive(
-            pkg_name, pkg_namespace, rr_config['GIT_URL'], rr_config['GIT_PATH_TEMPLATE']
-        )
-    else:
-        return _retrieve_yaml_remote_rule_web(
-            rev, pkg_name, pkg_namespace, rr_config['HTTP_URL_TEMPLATE']
-        )
-
-
-_retrieve_remote_rule_error = 'Error occurred while retrieving a remote rule file from the repo.'
-
-
-def _retrieve_yaml_remote_rule_web(rev, pkg_name, pkg_namespace, url_template):
+def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace, url_template):
     """ Retrieve a remote rule file content from the git web UI. """
     data = {
         "pkg_namespace": pkg_namespace + ('/' if pkg_namespace else ''),
@@ -195,47 +177,12 @@ def _retrieve_yaml_remote_rule_web(rev, pkg_name, pkg_namespace, url_template):
         return None
 
     if response.status_code != 200:
-        raise BadGateway(_retrieve_remote_rule_error)
+        raise BadGateway('Error occurred while retrieving a remote rule file from the repo.')
 
     # remote rule file found...
     response = requests_session.request('GET', url)
     response.raise_for_status()
     return response.content
-
-
-def _retrieve_yaml_remote_rule_git_archive(pkg_name, pkg_namespace, git_url, path_template):
-    """ Retrieve  a remote rule file content from a git repo using git archive. """
-    git_path = path_template.format(pkg_name=pkg_name, pkg_namespace=pkg_namespace)
-    cmd = ['git', 'archive', f'--remote={git_url}', 'master', git_path]
-    # Retry thrice if TimeoutExpired exception is raised
-    MAX_RETRY = current_app.config.get('REMOTE_RULE_GIT_MAX_RETRY', 3)
-    git_archive = None
-    for _ in range(MAX_RETRY):
-        try:
-            git_archive = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            output, error_output = git_archive.communicate(
-                timeout=current_app.config.get('REMOTE_RULE_GIT_TIMEOUT', 30)
-            )
-            break
-        except subprocess.TimeoutExpired:
-            if git_archive:
-                git_archive.kill()
-            continue
-
-    if git_archive.returncode != 0:
-        error_output = error_output.decode('utf-8')
-        if 'path not found' in error_output:
-            return None
-
-        cmd_str = ' '.join(cmd)
-        log.error('The following exception occurred while running "%s": %s', cmd_str, error_output)
-        raise BadGateway(_retrieve_remote_rule_error)
-
-    # Convert the output to a file-like object with BytesIO, then tar can read it
-    # in memory rather than writing it to a file first
-    remote_rule_archive = tarfile.open(fileobj=BytesIO(output))
-    remote_rule_content = remote_rule_archive.extractfile(git_path).read().decode('utf-8')
-    return remote_rule_content
 
 
 # NOTE - not cached.

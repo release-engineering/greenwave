@@ -433,14 +433,6 @@ class RemoteRule(Rule):
         'required': SafeYAMLBool(optional=True, default=False),
     }
 
-    def _get_config_urls(self, rr_config, subject):
-        if subject in rr_config:
-            return rr_config[subject]
-        if '*' in rr_config:
-            return rr_config['*']
-        raise RuntimeError(f'Cannot use a remote rule for {subject} subject '
-                           f'as it has not been configured')
-
     def _get_sub_policies(self, policy, subject):
         if not subject.supports_remote_rule:
             return []
@@ -459,13 +451,16 @@ class RemoteRule(Rule):
         if pkg_namespace == 'containers':
             pkg_name = re.sub('-container$', '', pkg_name)
         rr_policies_conf = current_app.config.get('REMOTE_RULE_POLICIES', {})
-        if not rr_policies_conf or '*' not in rr_policies_conf:
-            rr_policies_conf['*'] = {
-                'HTTP_URL_TEMPLATE': current_app.config['DIST_GIT_URL_TEMPLATE']
-            }
-        cur_subject_config = self._get_config_urls(rr_policies_conf, policy.subject_type)
+        cur_subject_url = rr_policies_conf.get(
+            policy.subject_type, current_app.config.get(
+                'DIST_GIT_URL_TEMPLATE', rr_policies_conf.get('*')
+            )
+        )
+        if not cur_subject_url:
+            raise RuntimeError(f'Cannot use a remote rule for {subject} subject '
+                               f'as it has not been configured')
         response = greenwave.resources.retrieve_yaml_remote_rule(
-            rev, pkg_name, pkg_namespace, cur_subject_config
+            rev, pkg_name, pkg_namespace, cur_subject_url
         )
 
         if response is None:
