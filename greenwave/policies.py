@@ -577,7 +577,7 @@ class PassingTestCaseRule(Rule):
         # results ordered by `submit_time` descending.
         return [
             self._answer_for_result(result, subject)
-            for result in subject.get_latest_results(matching_results)
+            for result in matching_results
         ]
 
     def matches(self, policy, **attributes):

@@ -48,11 +48,6 @@ class SubjectType(SafeYAMLObject):
         # List of serialization dicts for ResultsDB requests.
         # If not defined, defaults to single request with item_dict value.
         'result_queries': SafeYAMLList(item_type=dict, optional=True),
-
-        # List of keys in ResultsDB data for checking obsolete items.
-        # E.g. [a, b] means that only the first item with unique values of keys
-        # 'a', 'b' in 'data' of each result is valid.
-        'latest_result_unique_keys': SafeYAMLList(item_type=str, optional=True),
     }
 
     def matches(self, id_):

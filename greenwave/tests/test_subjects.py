@@ -52,48 +52,6 @@ def test_subject_ignore_missing_policy(app):
     assert subject.ignore_missing_policy
 
 
-def test_subject_get_latest_results(app):
-    compose_id = 'some_compose'
-    variant_arch_outcome = (
-        ('BaseOS', 'ppc64', 'PASSED'),
-        ('BaseOS', 'ppc64', 'FAILED'),
-        ('BaseOS', 'x86_64', 'PASSED'),
-        ('BaseOS', 'ppc64', 'FAILED'),
-        ('BaseOS', 'x86_64', 'FAILED'),
-    )
-
-    results = [
-        {
-            'testcase': {'name': 'rtt.acceptance.validation'},
-            'outcome': outcome,
-            'data': {
-                'productmd.compose.id': [compose_id],
-                'system_variant': [variant],
-                'system_architecture': [arch],
-            }
-        }
-        for variant, arch, outcome in variant_arch_outcome
-    ]
-
-    subject = create_subject('compose', compose_id)
-
-    assert len(subject.get_latest_results(results)) == 2
-
-    assert subject.get_latest_results(results)[0]['data'] == {
-        'productmd.compose.id': [compose_id],
-        'system_variant': ['BaseOS'],
-        'system_architecture': ['ppc64'],
-    }
-    assert subject.get_latest_results(results)[0]['outcome'] == 'PASSED'
-
-    assert subject.get_latest_results(results)[1]['data'] == {
-        'productmd.compose.id': [compose_id],
-        'system_variant': ['BaseOS'],
-        'system_architecture': ['x86_64'],
-    }
-    assert subject.get_latest_results(results)[1]['outcome'] == 'PASSED'
-
-
 def test_subject_to_str(app):
     subject = create_subject('koji_build', 'some_nvr')
     assert str(subject) == "subject_type 'koji_build', subject_identifier 'some_nvr'"

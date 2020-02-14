@@ -1086,6 +1086,35 @@ def test_make_a_decision_about_compose_all_variants_architectures(
     }]
 
 
+def test_make_a_decision_about_compose_latest_variants_architectures(
+        requests_session, greenwave_server, testdatabuilder):
+    compose_id = testdatabuilder.unique_compose_id()
+
+    testdatabuilder.create_rtt_compose_result(
+        compose_id=compose_id,
+        outcome='FAILED',
+        variant='BaseOS',
+        architecture='ppc64')
+
+    testdatabuilder.create_rtt_compose_result(
+        compose_id=compose_id,
+        outcome='PASSED',
+        variant='BaseOS',
+        architecture='ppc64')
+
+    data = {
+        'decision_context': 'rtt_compose_gate',
+        'product_version': 'rhel-something',
+        'subject_type': 'compose',
+        'subject_identifier': compose_id,
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied']
+    assert len(res_data['satisfied_requirements']) == 1
+
+
 def test_make_a_decision_about_compose_new_variants_architectures(
         requests_session, greenwave_server, testdatabuilder):
     compose_id = testdatabuilder.unique_compose_id()

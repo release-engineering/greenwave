@@ -1,29 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 
-def _get_latest_results(results, unique_keys):
-    """
-    Yields only the latest results for unique architecture and variant pairs.
-
-    The input results are sorted from latest to oldest.
-    """
-    visited_arch_variants = set()
-    for result in results:
-        result_data = result["data"]
-
-        # Items under test result "data" are lists which are unhashable
-        # types in Python. This converts anything that is stored there
-        # to a string so we don't have to care about the stored value.
-        arch_variant = tuple(
-            str(result_data.get(key))
-            for key in unique_keys
-        )
-
-        if arch_variant not in visited_arch_variants:
-            visited_arch_variants.add(arch_variant)
-            yield result
-
-
 def _to_dict(format_dict, item):
     result = {}
 
@@ -116,16 +93,6 @@ class Subject:
                 yield _to_dict(query_dict, self.item)
         else:
             yield self.to_dict()
-
-    def get_latest_results(self, results):
-        """
-        Filters out results to get only the latest relevant ones.
-
-        The input results are sorted from latest to oldest.
-        """
-        if self._type.latest_result_unique_keys:
-            return list(_get_latest_results(results, self._type.latest_result_unique_keys))
-        return results
 
     def __str__(self):
         return "subject_type {!r}, subject_identifier {!r}".format(
