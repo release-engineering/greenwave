@@ -163,8 +163,15 @@ PassingTestCaseRule
 -------------------
 
    For this rule to be satisfied, there must be a result in ResultsDB for the
-   given ``test_case_name`` with an outcome of ``PASS``, *or* there must be a
-   corresponding waiver in WaiverDB for the given test case.
+   given ``test_case_name`` with an outcome of ``PASSED`` or ``INFO``, *or*
+   there must be a corresponding waiver in WaiverDB for the given test case.
+
+   The rule requires all matching latest test results with distinct triplets
+   ``system_architecture``, ``system_variant`` and ``scenario`` (which are
+   defined in result data) to pass or be waived.
+
+   Optional ``scenario`` property can be specified to consider only results
+   with a given scenario name.
 
 .. _remote-rule:
 
