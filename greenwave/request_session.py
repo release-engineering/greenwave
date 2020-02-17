@@ -52,6 +52,7 @@ def get_requests_session():
         connect=3,
         backoff_factor=1,
         status_forcelist=(500, 502, 503, 504),
+        method_whitelist=Retry.DEFAULT_METHOD_WHITELIST.union(('POST',)),
     )
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('http://', adapter)
