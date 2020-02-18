@@ -2,6 +2,18 @@
 Release Notes
 =============
 
+Greenwave 1.5.2
+===============
+
+Released 18 February 2020
+
+* Fixed some issues regarding backward compatibility of the remote rule configurations
+  (if ``REMOTE_RULE_POLICIES`` wasn't set).
+* GIT archive is no longer supported for remote rules.
+* Message consumers will retry decision requests on failure.
+* Fixed getting all compose test results with distinct ``system_variant``.
+* Fixed initializing consumer when using fedora-messaging (broken in v1.4.2).
+
 Greenwave 1.5.1
 ===============
 
