@@ -196,79 +196,78 @@ def make_decision():
 
        {
            "decision_context": "bodhi_update_push_stable",
-           "product_version": "fedora-26",
+           "product_version": "fedora-32",
            "subject_type": "koji_build",
-           "subject_identifier": "cross-gcc-7.0.1-0.3.fc26",
+           "subject_identifier": "bodhi-5.1.1-1.fc32",
            "verbose": true
        }
-
 
     **Sample response**:
 
     .. sourcecode:: none
 
-       HTTP/1.0 200
-       Content-Length: 228
+       HTTP/1.1 200 OK
        Content-Type: application/json
-       Date: Thu, 16 Mar 2017 17:42:04 GMT
-       Server: Werkzeug/0.12.1 Python/2.7.13
 
        {
-           "policies_satisfied": false,
-           "summary": "2 of 15 required tests failed",
-           "applicable_policies": ["1"],
-           "unsatisfied_requirements": [
+           "policies_satisfied": true,
+           "summary": "All required tests passed",
+           "applicable_policies": [ "taskotron_release_critical_tasks_for_stable" ],
+           "unsatisfied_requirements": [],
+           "satisfied_requirements": [
                {
-                   'result_id': "123",
-                   'testcase': 'dist.depcheck',
-                   'type': 'test-result-failed'
+                   "result_id": 38088806,
+                   "testcase": "dist.abicheck",
+                   "type": "test-result-passed"
                },
                {
+                   "scenario": null,
+                   "subject_identifier": "bodhi-5.1.1-1.fc32",
                    "subject_type": "koji_build",
-                   "subject_identifier": "cross-gcc-7.0.1-0.3.fc26",
-                   'testcase': 'dist.rpmlint',
-                   'type': 'test-result-missing'
+                   "testcase": "dist.rpmdeplint",
+                   "type": "test-result-missing-waived"
                }
-           ],
-           "satisfied_requirements": [
-               ...
            ],
            "results": [
                {
-                 'data': {
-                   'arch': [ 'i386' ],
-                   'item': [ 'cross-gcc-7.0.1-0.3.fc26' ],
-                   'scenario': [ 'i386' ],
-                   'type': [ 'koji_build' ]
-                 },
-                 'groups': [ '05078932-67a1-11e7-b290-5254008e42f6' ],
-                 'href': 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/results/123',
-                 'id': 123,
-                 'note': null,
-                 'outcome': 'FAILED',
-                 'ref_url': 'https://taskotron.fedoraproject.org/artifacts/all/05078932-67a1-11e7-b290-5254008e42f6/task_output/cross-gcc-7.0.1-0.3.fc26.i386.log',
-                 'submit_time': '2017-07-13T08:15:14.474984',
-                 'testcase': {
-                   'href': 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/testcases/dist.depcheck',
-                   'name': 'dist.depcheck',
-                   'ref_url': 'https://fedoraproject.org/wiki/Taskotron/Tasks/depcheck'
-                 }
+                   "data": {
+                       "arch": [ "armhfp" ],
+                       "item": [ "bodhi-5.1.1-1.fc32" ],
+                       "seconds_taken": [ "1" ],
+                       "type": [ "koji_build" ]
+                   },
+                   "groups": [ "c038df76-47f5-11ea-839f-525400364adf" ],
+                   "href": "https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/results/38088806",
+                   "id": 38088806,
+                   "note": "no binary RPMs",
+                   "outcome": "PASSED",
+                   "ref_url": "https://taskotron.fedoraproject.org/artifacts/all/c038df76-47f5-11ea-839f-525400364adf/tests.yml/bodhi-5.1.1-1.fc32.log",
+                   "submit_time": "2020-02-07T03:14:43.076427",
+                   "testcase": {
+                       "href": "https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/testcases/dist.abicheck",
+                       "name": "dist.abicheck",
+                       "ref_url": "http://faketestcasesRus.com/scratch.abicheck"
+                   }
                }
            ],
            "waivers": [
                {
-                 'username': 'ralph',
-                 'comment': 'This is fine.',
-                 'product_version': 'fedora-27',
-                 'waived': true,
-                 'timestamp': '2018-01-23T18:02:04.630122',
-                 'proxied_by': null,
-                 "subject_type": "koji_build",
-                 "subject_identifier": "cross-gcc-7.0.1-0.3.fc26",
-                 'testcase': 'dist.rpmlint',
-                 'id': 1
+                   "comment": "The tests were never even started.",
+                   "id": 256,
+                   "product_version": "fedora-32",
+                   "proxied_by": "bodhi@service",
+                   "subject": {
+                       "item": "bodhi-5.1.1-1.fc32",
+                       "type": "koji_build"
+                   },
+                   "subject_identifier": "bodhi-5.1.1-1.fc32",
+                   "subject_type": "koji_build",
+                   "testcase": "dist.rpmdeplint",
+                   "timestamp": "2020-02-03T14:16:32.017146",
+                   "username": "alice",
+                   "waived": true
                }
-           ],
+           ]
        }
 
     **Sample request 2**:
