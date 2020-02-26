@@ -43,7 +43,7 @@ class Config(object):
     REQUESTS_VERIFY = True
 
     POLICIES_DIR = '/etc/greenwave/policies'
-    SUBJECT_TYPES_DIR = _local_conf_dir('subject_types')
+    SUBJECT_TYPES_DIR = '/etc/greenwave/subject_types'
 
     MESSAGING = 'fedmsg'
 

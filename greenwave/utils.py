@@ -101,6 +101,9 @@ def load_config(config_obj=None):
     if os.environ.get('GREENWAVE_SUBJECT_TYPES_DIR'):
         config['SUBJECT_TYPES_DIR'] = os.environ['GREENWAVE_SUBJECT_TYPES_DIR']
 
+    if os.environ.get('GREENWAVE_POLICIES_DIR'):
+        config['POLICIES_DIR'] = os.environ['GREENWAVE_POLICIES_DIR']
+
     return config
 
 

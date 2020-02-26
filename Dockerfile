@@ -33,7 +33,6 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
 RUN chmod 777 /etc/pki/tls/certs/ca-bundle.crt
 
 COPY . /tmp/code
-ENV GREENWAVE_SUBJECT_TYPES_DIR /src/conf/subject_types
 RUN cd /tmp/code \
     && pip3 install . --no-deps \
     && mkdir /src/docker \
