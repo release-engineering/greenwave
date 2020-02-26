@@ -160,7 +160,7 @@ To check if the remote policies are loaded correctly, we can call the
 Greenwave decision API. Those are the data for the request, we can save
 them in a ``data.json`` file:
 
-::
+.. code-block:: json
 
         {
             "decision_context": "bodhi_update_push_stable",
@@ -176,6 +176,19 @@ we obtained from the Koji build. ``decision_context``,
 the ``RemoteRule``. You can verify that looking at the
 ``/api/v1.0/policies`` endpoint.
 Example: https://greenwave.fedoraproject.org/api/v1.0/policies
+
+If there is no applicable policy in Greenwave configuration yet, the field
+``decision_context`` can be replaced with ``rules``, e.g.:
+
+.. code-block:: json
+
+        {
+            "rules": [{"type": "RemoteRule", "required": true}]},
+            "product_version": "fedora-28",
+            "subject_type": "koji_build",
+            "subject_identifier": "python-ansi2html-1.1.1-114.fc28",
+            "verbose": true
+        }
 
 To call the API we can now use this command (in this example we are
 using the Fedora Greenwave instance in production):
