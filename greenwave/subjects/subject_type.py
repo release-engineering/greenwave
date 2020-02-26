@@ -72,6 +72,9 @@ class GenericSubjectType:
         for name, attr in SubjectType.safe_yaml_attributes.items():
             self.__setattr__(name, attr.default_value)
 
+    def __repr__(self):
+        return '<GenericSubjectType {!r}>'.format(self.id)
+
 
 def load_subject_types(subject_types_dir):
     """

@@ -60,3 +60,8 @@ def test_subject_to_str(app):
 def test_subject_to_repr(app):
     subject = create_subject('koji_build', 'some_nvr')
     assert repr(subject) == "Subject(<SubjectType 'koji_build'>, 'some_nvr')"
+
+
+def test_subject_to_repr_generic(app):
+    subject = create_subject('some_type', 'some_nvr')
+    assert repr(subject) == "Subject(<GenericSubjectType 'some_type'>, 'some_nvr')"
