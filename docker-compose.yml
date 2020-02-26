@@ -3,11 +3,11 @@ services:
   dev:
     build: .
     user: ${DEV_USER_ID:-1000}
-    working_dir: /code
+    working_dir: /src
     env_file: ["docker/dev.env"]
     command: ["bash", "-c", "./docker/dev-command.sh"]
     volumes:
-      - ./:/code:ro,z
+      - ./:/src:ro,z
       - ./docker/home:/home/dev:rw,z
       - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
       - ./conf/policies/:/etc/greenwave/policies/:ro,z

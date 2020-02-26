@@ -28,13 +28,19 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
         && curl -O --insecure $cacert_url \
         && update-ca-trust extract; \
     fi
+
 # This will allow a non-root user to install a custom root CA at run-time
 RUN chmod 777 /etc/pki/tls/certs/ca-bundle.crt
-COPY . .
+
+COPY . /tmp/code
 ENV GREENWAVE_SUBJECT_TYPES_DIR /src/conf/subject_types
-RUN pip3 install . --no-deps
-# Remove the default fedmsg config files included in the repo
-RUN rm -rf ./fedmsg.d
+RUN cd /tmp/code \
+    && pip3 install . --no-deps \
+    && mkdir /src/docker \
+    && cp -v docker/docker-entrypoint.sh /src/docker \
+    && cp -vr conf /src \
+    && rm -rf /tmp/*
+
 USER 1001
 EXPOSE 8080
 ENTRYPOINT ["/src/docker/docker-entrypoint.sh"]
