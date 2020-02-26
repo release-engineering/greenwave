@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-2.0+
 
-import glob
 import os
 import re
 from setuptools import setup, find_packages
@@ -101,6 +100,5 @@ setup(
     """,
     data_files=[
         ('/etc/fedmsg.d/', ['fedmsg.d/resultsdb.py', 'fedmsg.d/waiverdb.py']),
-        ('conf/subject_types/', glob.glob('conf/subject_types/*')),
     ]
 )

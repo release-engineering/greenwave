@@ -31,6 +31,7 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
 # This will allow a non-root user to install a custom root CA at run-time
 RUN chmod 777 /etc/pki/tls/certs/ca-bundle.crt
 COPY . .
+ENV GREENWAVE_SUBJECT_TYPES_DIR /src/conf/subject_types
 RUN pip3 install . --no-deps
 # Remove the default fedmsg config files included in the repo
 RUN rm -rf ./fedmsg.d

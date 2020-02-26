@@ -98,6 +98,9 @@ def load_config(config_obj=None):
     if os.environ.get('SECRET_KEY'):
         config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
+    if os.environ.get('GREENWAVE_SUBJECT_TYPES_DIR'):
+        config['SUBJECT_TYPES_DIR'] = os.environ['GREENWAVE_SUBJECT_TYPES_DIR']
+
     return config
 
 
