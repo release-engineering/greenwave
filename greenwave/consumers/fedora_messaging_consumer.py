@@ -62,6 +62,8 @@ def fedora_messaging_callback(message):
             messaging_rx_processed_ok_counter.labels(handler="resultsdb").inc()
         except Exception:
             messaging_rx_failed_counter.labels(handler="resultsdb").inc()
+            log.exception("Could not correctly consume the message with "
+                          "ResultsDBHandler")
             raise
 
     elif message.topic.endswith('waiver.new'):
@@ -81,6 +83,8 @@ def fedora_messaging_callback(message):
             messaging_rx_processed_ok_counter.labels(handler="waiverdb").inc()
         except Exception:
             messaging_rx_failed_counter.labels(handler="waiverdb").inc()
+            log.exception("Could not correctly consume the message with "
+                          "WaiverDBHandler")
             raise
     else:
         messaging_rx_ignored_counter.inc()
