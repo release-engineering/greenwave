@@ -183,7 +183,7 @@ If there is no applicable policy in Greenwave configuration yet, the field
 .. code-block:: json
 
         {
-            "rules": [{"type": "RemoteRule", "required": true}]},
+            "rules": [{"type": "RemoteRule", "required": true}],
             "product_version": "fedora-28",
             "subject_type": "koji_build",
             "subject_identifier": "python-ansi2html-1.1.1-114.fc28",
