@@ -30,8 +30,8 @@ class Config(object):
         'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
     REMOTE_RULE_POLICIES = {
         'brew-build-group': (
-            'https://git.example.com/devops/greenwave-policies/side-tags/raw/master/{pkg_namespace}'
-            '{pkg_name}.yaml'
+            'https://git.example.com/devops/greenwave-policies/side-tags/raw/master/'
+            '{subject_id}.yaml'
         ),
         '*': 'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
     }

@@ -339,16 +339,13 @@ def test_remote_rule_policy(tmpdir, namespace):
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
                 f.assert_called_with(
-                    'c3c47a08a66451cb9686c49f040776ed35a0d1bb',
-                    'nethack',
-                    namespace,
-                    'https://src.fedoraproject.org/{pkg_namespace}'
-                    '{pkg_name}/raw/{rev}/f/gating.yaml'
+                    'https://src.fedoraproject.org/{0}'.format(
+                        '' if not namespace else namespace + '/'
+                    ) + 'nethack/raw/c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml'
                 )
 
 
-@pytest.mark.parametrize('namespace', ["rpms", ""])
-def test_remote_rule_policy_old_config(tmpdir, namespace):
+def test_remote_rule_policy_old_config(tmpdir):
     """ Testing the RemoteRule with the koji interaction.
     In this case we are just mocking koji """
 
@@ -385,14 +382,14 @@ def test_remote_rule_policy_old_config(tmpdir, namespace):
 
         config = TestingConfig()
         config.DIST_GIT_BASE_URL = 'http://localhost.localdomain/'
-        config.DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}{other_params}/blablabla/gating.yaml'
+        config.DIST_GIT_URL_TEMPLATE = '{DIST_GIT_BASE_URL}{pkg_name}/{rev}/gating.yaml'
 
         app = create_app(config)
 
         with app.app_context():
             with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
                 scm.return_value = (
-                    namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb'
+                    'rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb'
                 )
                 with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                     f.return_value = remote_fragment
@@ -406,21 +403,22 @@ def test_remote_rule_policy_old_config(tmpdir, namespace):
                     assert isinstance(decision[0], RuleSatisfied)
 
                     f.assert_called_once_with(
-                        'c3c47a08a66451cb9686c49f040776ed35a0d1bb',
-                        'nethack',
-                        namespace,
-                        'http://localhost.localdomain/{other_params}/blablabla/gating.yaml'
+                        'http://localhost.localdomain/nethack/'
+                        'c3c47a08a66451cb9686c49f040776ed35a0d1bb/gating.yaml'
                     )
     finally:
         Config.REMOTE_RULE_POLICIES = config_remote_rules_backup
 
 
-@pytest.mark.parametrize('namespace', ["rpms", ""])
-def test_remote_rule_policy_brew_build_group(tmpdir, namespace):
+def test_remote_rule_policy_brew_build_group(tmpdir):
     """ Testing the RemoteRule with the koji interaction.
     In this case we are just mocking koji """
 
-    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+    subject = create_test_subject(
+        'brew-build-group',
+        'sha256:0f41e56a1c32519e189ddbcb01d2551e861bd74e603d01769ef5f70d4b30a2dd'
+    )
+    namespace = 'rpms'
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -472,12 +470,10 @@ def test_remote_rule_policy_brew_build_group(tmpdir, namespace):
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
                 f.assert_called_with(
-                    'c3c47a08a66451cb9686c49f040776ed35a0d1bb',
-                    'nethack',
-                    namespace,
                     'https://git.example.com/devops/greenwave-policies/side-tags/raw/'
-                    'master/{pkg_namespace}{pkg_name}.yaml'
+                    'master/0f41e56a1c32519e189ddbcb01d2551e861bd74e603d01769ef5f70d4b30a2dd.yaml'
                 )
+            scm.assert_not_called()
 
 
 def test_remote_rule_policy_with_no_remote_rule_policies_param_defined(tmpdir):
@@ -525,11 +521,8 @@ def test_remote_rule_policy_with_no_remote_rule_policies_param_defined(tmpdir):
                 assert len(decision) == 1
                 assert isinstance(decision[0], RuleSatisfied)
                 f.assert_called_with(
-                    'c3c47a08a66451cb9686c49f040776ed35a0d1bb',
-                    'nethack',
-                    'rpms',
-                    'https://src.fedoraproject.org/{pkg_namespace}'
-                    '{pkg_name}/raw/{rev}/f/gating.yaml'
+                    'https://src.fedoraproject.org/rpms/nethack/raw/'
+                    'c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml'
                 )
 
 
