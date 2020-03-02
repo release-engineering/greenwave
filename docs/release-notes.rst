@@ -2,6 +2,20 @@
 Release Notes
 =============
 
+Greenwave 1.5.3
+===============
+
+Released 3 March 2020
+
+* Exceptions and subject types are now properly logged by message consumers.
+* Default configuration path for subject types in the container is now
+  correctly set for message consumers.
+* Paths to policies and subject types in the container can newly be overridden
+  by environment variables ``GREENWAVE_SUBJECT_TYPES_DIR`` and
+  ``GREENWAVE_POLICIES_DIR`` unless these are already specified in the
+  configuration file.
+* The container no longer contains duplicate source files.
+
 Greenwave 1.5.2
 ===============
 
