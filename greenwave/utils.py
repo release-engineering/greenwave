@@ -88,21 +88,24 @@ def load_config(config_obj=None):
     else:
         default_config_file = '/etc/greenwave/settings.py'
 
+    # 1. Load default configuration.
     log.debug("config: Loading config from %r", config_obj)
     config.from_object(config_obj)
 
+    # 2. Override default configuration with environment variables.
+    if os.environ.get('GREENWAVE_SUBJECT_TYPES_DIR'):
+        config['SUBJECT_TYPES_DIR'] = os.environ['GREENWAVE_SUBJECT_TYPES_DIR']
+
+    if os.environ.get('GREENWAVE_POLICIES_DIR'):
+        config['POLICIES_DIR'] = os.environ['GREENWAVE_POLICIES_DIR']
+
+    # 3. Override default configuration and environment variables with custom config file.
     config_file = os.environ.get('GREENWAVE_CONFIG', default_config_file)
     log.debug("config: Extending config with %r", config_file)
     config.from_pyfile(config_file)
 
     if os.environ.get('SECRET_KEY'):
         config['SECRET_KEY'] = os.environ['SECRET_KEY']
-
-    if os.environ.get('GREENWAVE_SUBJECT_TYPES_DIR'):
-        config['SUBJECT_TYPES_DIR'] = os.environ['GREENWAVE_SUBJECT_TYPES_DIR']
-
-    if os.environ.get('GREENWAVE_POLICIES_DIR'):
-        config['POLICIES_DIR'] = os.environ['GREENWAVE_POLICIES_DIR']
 
     return config
 

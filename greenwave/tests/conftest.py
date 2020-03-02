@@ -5,7 +5,7 @@ from greenwave.app_factory import create_app
 
 @pytest.fixture(autouse=True)
 def mock_env_config(monkeypatch):
-    monkeypatch.delenv('GREENWAVE_CONFIG')
+    monkeypatch.delenv('GREENWAVE_CONFIG', raising=False)
 
 
 @pytest.fixture
