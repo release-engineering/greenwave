@@ -140,6 +140,7 @@ node('docker') {
          * the rules in PEP440. But Docker does not let us have + in the tag
          * name, so let's munge it here. */
         appversion = appversion.replace('+', '-')
+        sh 'docker image prune -a -f'
         /* Build and push the same image with the same tag to quay.io, but without the cacert. */
         docker.withRegistry(
                 'https://quay.io/',
