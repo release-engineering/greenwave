@@ -121,7 +121,9 @@ def test_retrieve_yaml_remote_rule_no_namespace():
             response.status_code = 404
             session.request.return_value = response
             retrieve_yaml_remote_rule(
-                "deadbeaf", "pkg", "", app.config['REMOTE_RULE_POLICIES']['*']
+                app.config['REMOTE_RULE_POLICIES']['*'].format(
+                    rev='deadbeaf', pkg_name='pkg', pkg_namespace=''
+                )
             )
 
             expected_call = mock.call(
@@ -141,7 +143,9 @@ def test_retrieve_yaml_remote_rule_connection_error():
 
             with pytest.raises(HTTPError) as excinfo:
                 retrieve_yaml_remote_rule(
-                    "deadbeaf", "pkg", "", app.config['REMOTE_RULE_POLICIES']['*']
+                    app.config['REMOTE_RULE_POLICIES']['*'].format(
+                        rev='deadbeaf', pkg_name='pkg', pkg_namespace=''
+                    )
                 )
 
             assert str(excinfo.value) == (

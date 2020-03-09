@@ -164,14 +164,8 @@ def retrieve_scm_from_koji_build(nvr, build, koji_url):
 
 
 @cached
-def retrieve_yaml_remote_rule(rev, pkg_name, pkg_namespace, url_template):
+def retrieve_yaml_remote_rule(url):
     """ Retrieve a remote rule file content from the git web UI. """
-    data = {
-        "pkg_namespace": pkg_namespace + ('/' if pkg_namespace else ''),
-        "pkg_name": pkg_name,
-        "rev": rev
-    }
-    url = url_template.format(**data)
     response = requests_session.request('HEAD', url)
     if response.status_code == 404:
         return None

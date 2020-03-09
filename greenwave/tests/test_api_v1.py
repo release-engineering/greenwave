@@ -188,6 +188,7 @@ def test_subject_types(client):
     assert len(data['subject_types'])
     assert [x['id'] for x in data['subject_types']] == [
         'bodhi_update',
+        'brew-build-group',
         'compose',
         'koji_build',
         'redhat-container-image',
