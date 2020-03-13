@@ -278,7 +278,7 @@ Below is an example configuration of remote rule URLs:
     REMOTE_RULE_POLICIES = {
         'brew-build-group': (
             'https://git.example.com/devops/greenwave-policies/side-tags/raw/
-            'master/{pkg_namespace}{pkg_name}.yaml'
+            'master/{subject_id}.yaml'
         ),
         '*': (
             'https://src.fedoraproject.org/{pkg_namespace}'
@@ -286,3 +286,8 @@ Below is an example configuration of remote rule URLs:
         )
     }
     KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
+
+In the URL templates the following parameters can be used: ``{pkg_name}``, ``{pkg_namespace}``
+and ``{rev}``. Values for all of these parameters are being retrieved from Koji.
+Parameter ``{subject_id}`` can also be used in URL template. If the subject identifier
+contains a hash starting with the ``sha256:`` prefix, this prefix would be removed.

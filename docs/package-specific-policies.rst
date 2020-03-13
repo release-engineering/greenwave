@@ -225,7 +225,8 @@ $NVR``. Then it parses URL in "source" field to get namespace ("rpms" or
 "containers" etc.), the git commit and package name (or rather the git
 repository name).
 
-For HTTP method, the remote rule URL is constructed based on ``HTTP_URL_TEMPLATE``
+For HTTP method, the remote rule URL is constructed based on the URL template
 specified in Greenwave configuration. The URL template is something like::
 
     http://example.com/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml
+
