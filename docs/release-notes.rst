@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+Greenwave 1.5.4
+===============
+
+Released 17 March 2020
+
+* New field for Remote Rule URL template ``{subject_id}`` can now be used
+  to place a subject identifier to Remote Rule URL.
+
 Greenwave 1.5.3
 ===============
 
