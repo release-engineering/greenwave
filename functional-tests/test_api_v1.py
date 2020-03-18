@@ -1561,6 +1561,7 @@ def test_installed_subject_types(requests_session, greenwave_server):
     assert len(data['subject_types'])
     assert [x['id'] for x in data['subject_types']] == [
         'bodhi_update',
+        'brew-build-group',
         'compose',
         'koji_build',
         'redhat-container-image',
