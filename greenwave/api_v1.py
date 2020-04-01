@@ -377,7 +377,8 @@ def make_decision():
     :jsonparam list ignore_waiver: A list of waiver ids that will be ignored when making
         the decision.
     :jsonparam string when: A date (or datetime) in ISO8601 format. Greenwave will
-        take a decision considering only results and waivers from that point in time.
+        take a decision considering only results and waivers until that point in time.
+        Use this to get previous decision disregarding a new test result or waiver.
     :jsonparam list rules: A list of dictionaries containing the 'type' and 'test_case_name'
         of an individual rule used to specify on-demand policy.
         For example, [{"type":"PassingTestCaseRule", "test_case_name":"dist.abicheck"},
