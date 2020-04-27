@@ -371,7 +371,8 @@ def make_decision():
         For example, [{"type": "koji_build", "item": "xscreensaver-5.37-3.fc27"}].
         Use this for requesting decisions on multiple subjects at once. If used subject_type and
         subject_identifier are ignored.
-    :jsonparam bool verbose: A flag to return additional information.
+    :jsonparam bool verbose: If true, ``results`` and ``waivers`` are included
+        in response.
     :jsonparam list ignore_result: A list of result ids that will be ignored when making
         the decision.
     :jsonparam list ignore_waiver: A list of waiver ids that will be ignored when making
@@ -383,6 +384,18 @@ def make_decision():
         of an individual rule used to specify on-demand policy.
         For example, [{"type":"PassingTestCaseRule", "test_case_name":"dist.abicheck"},
         {"type":"RemoteRule"}]. Do not use this parameter along with `decision_context`.
+
+    :resjson bool policies_satisfied: True only if all requested policies are satisfied
+    :resjson list satisfied_requirements: List of satisfied requirements of
+        requested policies.
+    :resjson list unsatisfied_requirements: Same as ``satisfied_requirements``
+        for unsatisfied requirements.
+    :resjson list results: List of all results for requested subjects. Included
+        in response only if ``verbose`` is true.
+    :resjson list waivers: List of all waivers for requested subjects. Included
+        in response only if ``verbose`` is true.
+    :resjson string summary: A user-friendly summary.
+
     :statuscode 200: A decision was made.
     :statuscode 400: Invalid data was given.
     :statuscode 404: No Koji build found
