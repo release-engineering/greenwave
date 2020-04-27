@@ -77,11 +77,15 @@ def test_consume_new_waiver(
             'summary': '1 of 3 required tests failed',
             'satisfied_requirements': [
                 {
+                    'subject_type': 'koji_build',
+                    'subject_identifier': nvr,
                     'result_id': results[0]['id'],
                     'testcase': passing_tests[0],
                     'type': 'test-result-passed'
                 },
                 {
+                    'subject_type': 'koji_build',
+                    'subject_identifier': nvr,
                     'result_id': results[1]['id'],
                     'testcase': passing_tests[1],
                     'type': 'test-result-passed'
@@ -105,16 +109,22 @@ def test_consume_new_waiver(
         'subject_identifier': nvr,
         'satisfied_requirements': [
             {
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
                 'result_id': result['id'],
                 'testcase': failing_test,
                 'type': 'test-result-passed'
             },
             {
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
                 'result_id': results[0]['id'],
                 'testcase': passing_tests[0],
                 'type': 'test-result-passed'
             },
             {
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
                 'result_id': results[1]['id'],
                 'testcase': passing_tests[1],
                 'type': 'test-result-passed'

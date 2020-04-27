@@ -258,6 +258,8 @@ def test_make_a_decision_with_verbose_flag(requests_session, greenwave_server, t
             'result_id': result['id'],
             'testcase': result['testcase']['name'],
             'type': 'test-result-passed',
+            'subject_type': 'koji_build',
+            'subject_identifier': nvr,
         } for result in results
     ]
     assert res_data['satisfied_requirements'] == expected_satisfied_requirements

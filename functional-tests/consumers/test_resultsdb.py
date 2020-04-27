@@ -55,6 +55,8 @@ def test_consume_new_result(
         'product_version': 'fedora-26',
         'satisfied_requirements': [
             {
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
                 'result_id': result['id'],
                 'testcase': 'dist.rpmdeplint',
                 'type': 'test-result-passed',
@@ -126,6 +128,8 @@ def test_consume_new_result(
         'product_version': 'fedora-26',
         'satisfied_requirements': [
             {
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
                 'result_id': result['id'],
                 'testcase': 'dist.rpmdeplint',
                 'type': 'test-result-passed',
@@ -242,6 +246,8 @@ def test_consume_compose_id_result(
         'summary': '1 of 2 required test results missing',
         'previous': old_decision,
         'satisfied_requirements': [{
+            'subject_type': 'compose',
+            'subject_identifier': compose_id,
             'result_id': result['id'],
             'testcase': 'compose.install_no_user',
             'type': 'test-result-passed'
@@ -310,6 +316,8 @@ def test_consume_legacy_result(
         'decision_context': 'bodhi_update_push_stable',
         'product_version': 'fedora-26',
         'satisfied_requirements': [{
+            'subject_type': 'koji_build',
+            'subject_identifier': nvr,
             'result_id': result['id'],
             'testcase': 'dist.rpmdeplint',
             'type': 'test-result-passed'
@@ -367,6 +375,8 @@ def test_consume_legacy_result(
         'decision_context': 'bodhi_update_push_testing',
         'product_version': 'fedora-26',
         'satisfied_requirements': [{
+            'subject_type': 'koji_build',
+            'subject_identifier': nvr,
             'result_id': result['id'],
             'testcase': 'dist.rpmdeplint',
             'type': 'test-result-passed'
@@ -569,6 +579,8 @@ def test_consume_new_result_container_image(
         'summary': 'All required tests passed',
         'previous': old_decision,
         'satisfied_requirements': [{
+            'subject_type': 'container-image',
+            'subject_identifier': nvr,
             'result_id': result['id'],
             'testcase': 'baseos-qe.baseos-ci.tier1.functional',
             'type': 'test-result-passed'

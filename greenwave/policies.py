@@ -173,7 +173,10 @@ class TestResultFailed(RuleNotSatisfied):
         }
 
     def to_waived(self):
-        return TestResultPassed(self.test_case_name, self.result_id)
+        return TestResultPassed(
+            self.subject,
+            self.test_case_name,
+            self.result_id)
 
 
 class TestResultErrored(RuleNotSatisfied):
@@ -210,7 +213,10 @@ class TestResultErrored(RuleNotSatisfied):
         }
 
     def to_waived(self):
-        return TestResultPassed(self.test_case_name, self.result_id)
+        return TestResultPassed(
+            self.subject,
+            self.test_case_name,
+            self.result_id)
 
 
 class InvalidRemoteRuleYaml(RuleNotSatisfied):
@@ -263,7 +269,8 @@ class TestResultPassed(RuleSatisfied):
     A required test case passed (that is, its outcome in ResultsDB was
     ``PASSED`` or ``INFO``) or a corresponding waiver was found.
     """
-    def __init__(self, test_case_name, result_id):
+    def __init__(self, subject, test_case_name, result_id):
+        self.subject = subject
         self.test_case_name = test_case_name
         self.result_id = result_id
 
@@ -272,6 +279,8 @@ class TestResultPassed(RuleSatisfied):
             'type': 'test-result-passed',
             'testcase': self.test_case_name,
             'result_id': self.result_id,
+            'subject_type': self.subject.type,
+            'subject_identifier': self.subject.identifier,
         }
 
 
@@ -607,7 +616,7 @@ class PassingTestCaseRule(Rule):
             log.debug('Test result passed for the result_id %s and testcase %s,'
                       ' because the outcome is %s', result['id'], self.test_case_name,
                       result['outcome'])
-            return TestResultPassed(self.test_case_name, result['id'])
+            return TestResultPassed(subject, self.test_case_name, result['id'])
 
         if result['outcome'] in ('QUEUED', 'RUNNING'):
             log.debug('Test result MISSING for the %s and '
