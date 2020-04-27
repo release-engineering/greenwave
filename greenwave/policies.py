@@ -123,29 +123,32 @@ class TestResultMissing(RuleNotSatisfied):
         }
 
     def to_waived(self):
-        return TestResultMissingWaived(
-            self.subject,
-            self.test_case_name,
-            self.scenario)
+        return TestResultWaived(self)
 
 
-class TestResultMissingWaived(RuleSatisfied):
+class TestResultWaived(RuleSatisfied):
     """
-    Same as TestResultMissing but the result was waived.
+    A waived unsatisfied rule.
+
+    Contains same data as unsatisfied rule except the type has "-waived"
+    suffix. Also, the deprecated "item" field is dropped.
     """
-    def __init__(self, subject, test_case_name, scenario):
-        self.subject = subject
-        self.test_case_name = test_case_name
-        self.scenario = scenario
+    def __init__(self, unsatisfied_rule):
+        self.unsatisfied_rule = unsatisfied_rule
 
     def to_json(self):
-        return {
-            'type': 'test-result-missing-waived',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'scenario': self.scenario,
-        }
+        satisfied_rule = self.unsatisfied_rule.to_json()
+        satisfied_rule['type'] += '-waived'
+
+        item = satisfied_rule.get('item')
+        if isinstance(item, dict) and 'item' in item and 'type' in item:
+            if 'subject_identifier' not in satisfied_rule:
+                satisfied_rule['subject_identifier'] = item['item']
+            if 'subject_type' not in satisfied_rule:
+                satisfied_rule['subject_type'] = item['type']
+            del satisfied_rule['item']
+
+        return satisfied_rule
 
 
 class TestResultFailed(RuleNotSatisfied):
@@ -173,10 +176,7 @@ class TestResultFailed(RuleNotSatisfied):
         }
 
     def to_waived(self):
-        return TestResultPassed(
-            self.subject,
-            self.test_case_name,
-            self.result_id)
+        return TestResultWaived(self)
 
 
 class TestResultErrored(RuleNotSatisfied):
@@ -213,10 +213,7 @@ class TestResultErrored(RuleNotSatisfied):
         }
 
     def to_waived(self):
-        return TestResultPassed(
-            self.subject,
-            self.test_case_name,
-            self.result_id)
+        return TestResultWaived(self)
 
 
 class InvalidRemoteRuleYaml(RuleNotSatisfied):

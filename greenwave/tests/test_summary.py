@@ -5,7 +5,7 @@ from greenwave.policies import (
     TestResultErrored,
     TestResultFailed,
     TestResultMissing,
-    TestResultMissingWaived,
+    TestResultWaived,
     InvalidRemoteRuleYaml,
 )
 
@@ -20,8 +20,6 @@ testResultErrored = TestResultErrored(
 testResultFailed = TestResultFailed(
     testSubject, 'test', None, 1)
 testResultMissing = TestResultMissing(
-    testSubject, 'test', None)
-testResultMissingWaived = TestResultMissingWaived(
     testSubject, 'test', None)
 testInvalidGatingYaml = InvalidRemoteRuleYaml(
     testSubject, 'test', 'Missing !Policy tag')
@@ -55,7 +53,7 @@ def test_summary_missing():
 
 def test_summary_missing_waived():
     answers = [
-        testResultMissingWaived,
+        TestResultWaived(testResultMissing),
     ]
     assert summarize_answers(answers) == 'All required tests passed'
 
@@ -86,7 +84,7 @@ def test_summary_one_passed_one_missing():
 def test_summary_one_passed_one_missing_waived():
     answers = [
         testResultPassed,
-        testResultMissingWaived,
+        TestResultWaived(testResultMissing),
     ]
     assert summarize_answers(answers) == 'All required tests passed'
 

@@ -113,7 +113,8 @@ def test_consume_new_waiver(
                 'subject_identifier': nvr,
                 'result_id': result['id'],
                 'testcase': failing_test,
-                'type': 'test-result-passed'
+                'type': 'test-result-failed-waived',
+                'scenario': None
             },
             {
                 'subject_type': 'koji_build',

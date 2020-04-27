@@ -37,11 +37,12 @@ def test_waive_failed_result():
     ]
     waived = waive_answers(answers, waivers)
     expected_json = dict(
-        type='test-result-passed',
+        type='test-result-failed-waived',
         testcase='test1',
         subject_type='koji_build',
         subject_identifier='nethack-1.2.3-1.rawhide',
         result_id=99,
+        scenario='scenario1',
     )
     assert 1 == len(waived)
     assert expected_json == waived[0].to_json()
