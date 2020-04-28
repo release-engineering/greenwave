@@ -387,7 +387,7 @@ def make_decision():
 
     :resjson bool policies_satisfied: True only if all requested policies are satisfied
     :resjson list satisfied_requirements: List of satisfied requirements of
-        requested policies.
+        requested policies. See also :ref:`decision_requirements`.
     :resjson list unsatisfied_requirements: Same as ``satisfied_requirements``
         for unsatisfied requirements.
     :resjson list results: List of all results for requested subjects. Included
