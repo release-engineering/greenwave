@@ -12,6 +12,7 @@ from greenwave.resources import (
     retrieve_scm_from_koji_build, retrieve_scm_from_koji, retrieve_yaml_remote_rule,
     NoSourceException
 )
+from greenwave.app_factory import create_app
 
 KOJI_URL = 'https://koji.fedoraproject.org/kojihub'
 
@@ -94,6 +95,21 @@ def test_retrieve_scm_from_build_without_namespace():
     assert namespace == ''
     assert rev == 'deadbeef'
     assert pkg_name == 'foo'
+
+
+def test_retrieve_scm_from_koji_build_not_found():
+    nvr = 'foo-1.2.3-1.fc29'
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        expected_error = '404 Not Found: Failed to find Koji build for "{}" at "{}"'.format(
+            nvr, app.config['KOJI_BASE_URL']
+        )
+        with mock.patch('xmlrpc.client.ServerProxy') as koji_server:
+            proxy = mock.MagicMock()
+            proxy.getBuild.return_value = {}
+            koji_server.return_value = proxy
+            with pytest.raises(NotFound, match=expected_error):
+                retrieve_scm_from_koji(nvr)
 
 
 def test_retrieve_scm_from_build_with_missing_rev():

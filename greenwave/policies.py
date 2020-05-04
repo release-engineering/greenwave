@@ -6,7 +6,7 @@ import logging
 import os
 import re
 import greenwave.resources
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, NotFound
 from flask import current_app
 from greenwave.utils import remove_duplicates, to_hashable
 from greenwave.safe_yaml import (
@@ -544,6 +544,8 @@ class RemoteRule(Rule):
             sub_policies = self._get_sub_policies(policy, subject)
         except SafeYAMLError:
             logging.exception('Failed to parse policies for %r', subject)
+        except NotFound:
+            logging.error('Koji build not found for %r', subject)
         except Exception:
             logging.exception('Failed to retrieve policies for %r', subject)
 
