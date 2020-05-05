@@ -130,11 +130,12 @@ Waived failed test result
 .. code-block:: json
 
     {
-        "type": "test-result-passed",
+        "type": "test-result-failed-waived",
         "testcase": "example.test.case",
         "subject_type": "koji-build",
         "subject_identifier": "nethack-1.2.3-1.rawhide",
-        "result_id": 1002
+        "result_id": 1002,
+        "scenario": null
     }
 
 Waived missing test result
