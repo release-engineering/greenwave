@@ -521,7 +521,7 @@ def make_decision():
         'satisfied_requirements':
             [answer.to_json() for answer in answers if answer.is_satisfied],
         'unsatisfied_requirements':
-            [answer.to_json() for answer in answers if not answer.is_satisfied],
+            [answer.to_json() for answer in answers if not answer.is_satisfied]
     }
 
     # Check if on-demand policy was specified
