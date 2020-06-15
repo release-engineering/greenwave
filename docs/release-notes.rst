@@ -2,6 +2,16 @@
 Release Notes
 =============
 
+Greenwave 1.5.5
+===============
+
+Released 16 June 2020
+
+* Subject information is now included also for passed test cases
+* Waived requirements are now consistent for both missed and failed tests
+* More precise error in logs for non-found Koji builds
+* Duplicate requirements are now being checked after waiving
+
 Greenwave 1.5.4
 ===============
 
