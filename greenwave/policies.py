@@ -498,7 +498,7 @@ class RemoteRule(Rule):
 
         return [
             sub_policy for sub_policy in policies
-            if sub_policy.decision_context == policy.decision_context
+            if set(sub_policy.all_decision_contexts).intersection(policy.all_decision_contexts)
         ]
 
     @remove_duplicates
@@ -675,6 +675,7 @@ class Policy(SafeYAMLObject):
         'id': SafeYAMLString(),
         'product_versions': SafeYAMLList(str),
         'decision_context': SafeYAMLString(),
+        'decision_contexts': SafeYAMLList(str, optional=True, default=list()),
         'subject_type': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
@@ -695,7 +696,7 @@ class Policy(SafeYAMLObject):
         There must be at least one matching rule or no rules in the policy.
         """
         decision_context = attributes.get('decision_context')
-        if decision_context and decision_context != self.decision_context:
+        if decision_context and (decision_context not in self.all_decision_contexts):
             return False
 
         product_version = attributes.get('product_version')
@@ -749,6 +750,15 @@ class Policy(SafeYAMLObject):
     def safe_yaml_label(self):
         return 'Policy {!r}'.format(self.id or 'untitled')
 
+    @property
+    def all_decision_contexts(self):
+        rv = []
+        if self.decision_contexts:
+            rv.extend(self.decision_contexts)
+        if self.decision_context and self.decision_context not in rv:
+            rv.append(self.decision_context)
+        return rv
+
 
 class OnDemandPolicy(Policy):
     root_yaml_tag = None
@@ -780,6 +790,7 @@ class RemotePolicy(Policy):
         'product_versions': SafeYAMLList(str, default=['*'], optional=True),
         'subject_type': SafeYAMLString(optional=True, default='koji_build'),
         'decision_context': SafeYAMLString(),
+        'decision_contexts': SafeYAMLList(str, optional=True),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
         'excluded_packages': SafeYAMLList(str, optional=True),
@@ -804,12 +815,14 @@ def _applicable_decision_context_product_version_pairs(policies, **attributes):
     product_version = attributes.get('product_version')
     if product_version:
         for policy in applicable_policies:
-            yield policy.decision_context, product_version
+            for decision_context in policy.all_decision_contexts:
+                yield decision_context, product_version
     else:
         for policy in applicable_policies:
             # FIXME: This can returns product version patterns like 'fedora-*'.
             for product_version in policy.product_versions:
-                yield policy.decision_context, product_version
+                for decision_context in policy.all_decision_contexts:
+                    yield decision_context, product_version
 
 
 def applicable_decision_context_product_version_pairs(policies, **attributes):
@@ -822,16 +835,11 @@ def applicable_decision_context_product_version_pairs(policies, **attributes):
 
 
 def _missing_decision_contexts_in_parent_policies(policies):
-    missing_decision_contexts = []
+    missing_decision_contexts = set()
     for policy in policies:
         # Assume a parent policy is not present for a policy in the remote rule
-        parent_present = False
         for parent_policy in current_app.config['policies']:
-            if parent_policy.decision_context == policy.decision_context:
-                parent_present = True
-                break
-        # If there are no parent policies for a decision_context in the remote rule,
-        # report it as missing to warn the user.
-        if not parent_present:
-            missing_decision_contexts.append(policy.decision_context)
-    return missing_decision_contexts
+            missing_decision_contexts.update(
+                set(parent_policy.all_decision_contexts).difference(policy.all_decision_contexts)
+            )
+    return list(missing_decision_contexts)

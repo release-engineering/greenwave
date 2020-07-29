@@ -198,6 +198,8 @@ def test_load_policies():
                for policy in app.config['policies'])
     assert any(policy.decision_context == 'bodhi_update_push_stable'
                for policy in app.config['policies'])
+    assert any(policy.all_decision_contexts == ['bodhi_update_push_stable']
+               for policy in app.config['policies'])
     assert any(getattr(rule, 'test_case_name', None) == 'dist.rpmdeplint'
                for policy in app.config['policies'] for rule in policy.rules)
 
@@ -912,6 +914,56 @@ def test_policy_with_arbitrary_subject_type(tmpdir):
     assert isinstance(decision[0], TestResultPassed)
 
 
+def test_policy_all_decision_contexts(tmpdir):
+    p = tmpdir.join('fedora.yaml')
+    p.write(dedent("""
+        --- !Policy
+        id: "some_policy1"
+        product_versions:
+          - rhel-9000
+        decision_context: test1
+        decision_contexts:
+          - test1
+          - test2
+          - test3
+        subject_type: kind-of-magic
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest}
+
+        --- !Policy
+        id: "some_policy2"
+        product_versions:
+          - rhel-9000
+        decision_context: test4
+        decision_contexts:
+          - test1
+          - test2
+          - test3
+        subject_type: kind-of-magic
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest}
+
+        --- !Policy
+        id: "some_policy2"
+        product_versions:
+          - rhel-9000
+        decision_context: test4
+        subject_type: kind-of-magic
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest}
+        """))
+    policies = load_policies(tmpdir.strpath)
+    policy = policies[0]
+    assert len(policy.all_decision_contexts) == 3
+    assert set(policy.all_decision_contexts) == {'test1', 'test2', 'test3'}
+    policy = policies[1]
+    assert len(policy.all_decision_contexts) == 4
+    assert set(policy.all_decision_contexts) == {'test1', 'test2', 'test3', 'test4'}
+    policy = policies[2]
+    assert len(policy.all_decision_contexts) == 1
+    assert policy.all_decision_contexts == ['test4']
+
+
 @pytest.mark.parametrize(('package', 'num_decisions'), [
     ('nethack', 1),
     ('net*', 1),
@@ -1103,6 +1155,7 @@ def test_policies_to_json():
         'id': 'test',
         'product_versions': ['fedora-rawhide'],
         'decision_context': 'test',
+        'decision_contexts': [],
         'subject_type': 'compose',
         'blacklist': [],
         'excluded_packages': [],
