@@ -17,8 +17,7 @@ from greenwave.subjects.factory import (
     create_subject_from_data,
     UnknownSubjectDataError,
 )
-
-import xmlrpc.client
+from greenwave.xmlrpc_server_proxy import get_server_proxy
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +62,7 @@ class ResultsDBHandler(Consumer):
 
         koji_base_url = self.flask_app.config['KOJI_BASE_URL']
         if koji_base_url:
-            self.koji_proxy = xmlrpc.client.ServerProxy(koji_base_url)
+            self.koji_proxy = get_server_proxy(koji_base_url)
         else:
             self.koji_proxy = None
 

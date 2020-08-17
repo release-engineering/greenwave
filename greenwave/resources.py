@@ -17,6 +17,7 @@ from werkzeug.exceptions import BadGateway, NotFound
 
 from greenwave.cache import cached
 from greenwave.request_session import get_requests_session
+from greenwave.xmlrpc_server_proxy import get_server_proxy
 
 log = logging.getLogger(__name__)
 
@@ -117,7 +118,7 @@ def retrieve_scm_from_koji(nvr):
     """ Retrieve cached rev and namespace from koji using the nvr """
     koji_url = current_app.config['KOJI_BASE_URL']
     try:
-        proxy = xmlrpc.client.ServerProxy(koji_url)
+        proxy = get_server_proxy(koji_url)
         build = proxy.getBuild(nvr)
     except (xmlrpc.client.ProtocolError, socket.error) as err:
         raise ConnectionError('Could not reach Koji: {}'.format(err))

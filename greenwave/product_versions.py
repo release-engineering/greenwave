@@ -5,7 +5,7 @@ Product version guessing for subject identifiers
 
 import logging
 import re
-
+import socket
 import xmlrpc.client
 
 log = logging.getLogger(__name__)
@@ -51,6 +51,8 @@ def _guess_koji_build_product_version(
 
         target = koji_proxy.getTaskRequest(koji_task_id)[1]
         return _guess_product_version(target, koji_build=True)
+    except socket.error as err:
+        raise ConnectionError('Could not reach Koji: {}'.format(err))
     except xmlrpc.client.Fault:
         pass
 

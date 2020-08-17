@@ -1295,7 +1295,7 @@ def test_on_demand_policy_match(two_rules):
 
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
-        with mock.patch('xmlrpc.client.ServerProxy') as koji_server:
+        with mock.patch('greenwave.resources.get_server_proxy') as koji_server:
             koji_server_instance = mock.MagicMock()
             koji_server_instance.getBuild.return_value = {'extra': {'source': None}}
             koji_server.return_value = koji_server_instance

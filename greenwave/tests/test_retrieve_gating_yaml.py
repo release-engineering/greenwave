@@ -104,7 +104,7 @@ def test_retrieve_scm_from_koji_build_not_found():
         expected_error = '404 Not Found: Failed to find Koji build for "{}" at "{}"'.format(
             nvr, app.config['KOJI_BASE_URL']
         )
-        with mock.patch('xmlrpc.client.ServerProxy') as koji_server:
+        with mock.patch('greenwave.resources.get_server_proxy') as koji_server:
             proxy = mock.MagicMock()
             proxy.getBuild.return_value = {}
             koji_server.return_value = proxy
@@ -170,7 +170,7 @@ def test_retrieve_yaml_remote_rule_connection_error():
             )
 
 
-@mock.patch('greenwave.resources.xmlrpc.client.ServerProxy')
+@mock.patch('greenwave.resources.get_server_proxy')
 def test_retrieve_scm_from_koji_build_socket_error(mock_xmlrpc_client):
     mock_auth_server = mock_xmlrpc_client.return_value
     mock_auth_server.getBuild.side_effect = socket.error('Socket is closed')
