@@ -2,6 +2,21 @@
 Release Notes
 =============
 
+Greenwave 1.6.0
+===============
+
+Released 25 August 2020
+
+* New policy field ``decision_contexts`` allows multiple decision contexts
+  to be added to the single policy. Old field ``decision_context`` is
+  still supported for old policies. However, it is obsolete and should not
+  be used together with the new field.
+* ``REMOTE_RULE_POLICIES['*']`` is now used before ``DIST_GIT_URL_TEMPLATE``
+  if both were specified.
+* Koji XML RPC calls now use ``REQUESTS_TIMEOUT`` option instead of the
+  unspecified default timeout which caused waiting on results indefinitely.
+
+
 Greenwave 1.5.5
 ===============
 
