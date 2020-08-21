@@ -445,11 +445,12 @@ class RemoteRule(Rule):
             return []
 
         rr_policies_conf = current_app.config.get('REMOTE_RULE_POLICIES', {})
-        cur_subject_url = rr_policies_conf.get(
-            policy.subject_type, current_app.config.get(
-                'DIST_GIT_URL_TEMPLATE', rr_policies_conf.get('*')
-            )
+        cur_subject_url = (
+            rr_policies_conf.get(policy.subject_type) or
+            rr_policies_conf.get('*') or
+            current_app.config.get('DIST_GIT_URL_TEMPLATE')
         )
+
         if not cur_subject_url:
             raise RuntimeError(f'Cannot use a remote rule for {subject} subject '
                                f'as it has not been configured')
