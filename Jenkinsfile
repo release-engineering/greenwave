@@ -62,7 +62,7 @@ node('fedora-29') {
     sh """
     ${installDepsCmd}
     sudo dnf -y install python3-flake8 python3-pylint python3-sphinx \
-        python3-sphinxcontrib-httpdomain python3-pytest-cov
+        python3-sphinxcontrib-httpdomain python3-pytest-cov mock-core-configs
     """
     /* Needed to get the latest /etc/mock/fedora-28-x86_64.cfg */
     sh 'sudo dnf -y update mock-core-configs'
