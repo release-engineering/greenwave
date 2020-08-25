@@ -21,8 +21,8 @@ Here is an example policy:
 
    --- !Policy
    id: taskotron_release_critical_tasks
-   decision_context: bodhi_update_push_stable
    decision_contexts:
+   - bodhi_update_push_stable
    - bodhi_update_context1
    - bodhi_update_context2
    subject_type: bodhi_update
@@ -52,7 +52,13 @@ The document is a map (dictionary) with the following keys:
 
    This is optional in ``gating.yaml`` files (see :ref:`remote-rule`).
 
-``decision_context``
+``decision_contexts``
+   Allows to specify many decision contexts for one policy. Previous
+   parameter `decision_context` was kept for backward compatibility
+   and its value is being used if this parameter is not specified.
+   However only one parameter can be used in the same policy.
+
+``decision_context`` (obsolete)
    This is an arbitrary string identifying the "context" of the decisions
    where this policy is applicable. In other words, if Greenwave is making
    decisions at gating points in a pipeline, this is how we identify which
@@ -63,11 +69,6 @@ The document is a map (dictionary) with the following keys:
    this example, the identifier is ``bodhi_update_push_stable``. `Bodhi`_
    passes this value when it asks Greenwave to decide whether a Bodhi update
    is ready to be pushed to the stable repositories.
-
-``decision_contexts``
-   Allows to specify many decision contexts for one policy. Previous
-   parameter was kept for backward compatibility and its value is being
-   added to this list if provided.
 
 .. _subject_type:
 

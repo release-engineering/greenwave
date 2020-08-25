@@ -675,7 +675,7 @@ class Policy(SafeYAMLObject):
     safe_yaml_attributes = {
         'id': SafeYAMLString(),
         'product_versions': SafeYAMLList(str),
-        'decision_context': SafeYAMLString(),
+        'decision_context': SafeYAMLString(optional=True),
         'decision_contexts': SafeYAMLList(str, optional=True, default=list()),
         'subject_type': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
@@ -685,6 +685,15 @@ class Policy(SafeYAMLObject):
         'relevance_key': SafeYAMLString(optional=True),
         'relevance_value': SafeYAMLString(optional=True),
     }
+
+    def validate(self):
+        if not self.decision_context and not self.decision_contexts:
+            raise SafeYAMLError('No decision contexts provided')
+        if self.decision_context and self.decision_contexts:
+            raise SafeYAMLError(
+                'Both properties "decision_contexts" and "decision_context" were set'
+            )
+        super().validate()
 
     def matches(self, **attributes):
         """
@@ -753,12 +762,11 @@ class Policy(SafeYAMLObject):
 
     @property
     def all_decision_contexts(self):
-        rv = []
         if self.decision_contexts:
-            rv.extend(self.decision_contexts)
-        if self.decision_context and self.decision_context not in rv:
-            rv.append(self.decision_context)
-        return rv
+            return self.decision_contexts
+        if self.decision_context:
+            return [self.decision_context]
+        raise SafeYAMLError('No decision contexts provided')
 
 
 class OnDemandPolicy(Policy):
@@ -837,10 +845,11 @@ def applicable_decision_context_product_version_pairs(policies, **attributes):
 
 def _missing_decision_contexts_in_parent_policies(policies):
     missing_decision_contexts = set()
+    parent_dcs = set()
+    for parent_policy in current_app.config['policies']:
+        parent_dcs.update(set(parent_policy.all_decision_contexts))
     for policy in policies:
-        # Assume a parent policy is not present for a policy in the remote rule
-        for parent_policy in current_app.config['policies']:
-            missing_decision_contexts.update(
-                set(parent_policy.all_decision_contexts).difference(policy.all_decision_contexts)
-            )
+        missing_decision_contexts.update(
+            set(policy.all_decision_contexts).difference(parent_dcs)
+        )
     return list(missing_decision_contexts)

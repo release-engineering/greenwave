@@ -879,7 +879,7 @@ def test_parse_policies_missing_product_versions():
 
 
 def test_parse_policies_missing_decision_context():
-    expected_error = "Policy 'test': Attribute 'decision_context' is required"
+    expected_error = "No decision contexts provided"
     with pytest.raises(SafeYAMLError, match=expected_error):
         Policy.safe_load_all(dedent("""
             --- !Policy
@@ -887,6 +887,24 @@ def test_parse_policies_missing_decision_context():
             product_versions: [fedora-rawhide]
             subject_type: compose
             blacklist: []
+            rules:
+              - !PassingTestCaseRule {test_case_name: compose.cloud.all}
+        """))
+
+
+def test_parse_policies_both_decision_contexts_set():
+    expected_error = 'Both properties "decision_contexts" and "decision_context" were set'
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        Policy.safe_load_all(dedent("""
+            --- !Policy
+            id: test
+            product_versions: [fedora-rawhide]
+            subject_type: compose
+            blacklist: []
+            decision_context: test1
+            decision_contexts:
+            - test1
+            - test2
             rules:
               - !PassingTestCaseRule {test_case_name: compose.cloud.all}
         """))
@@ -921,20 +939,6 @@ def test_policy_all_decision_contexts(tmpdir):
         id: "some_policy1"
         product_versions:
           - rhel-9000
-        decision_context: test1
-        decision_contexts:
-          - test1
-          - test2
-          - test3
-        subject_type: kind-of-magic
-        rules:
-          - !PassingTestCaseRule {test_case_name: sometest}
-
-        --- !Policy
-        id: "some_policy2"
-        product_versions:
-          - rhel-9000
-        decision_context: test4
         decision_contexts:
           - test1
           - test2
@@ -957,9 +961,6 @@ def test_policy_all_decision_contexts(tmpdir):
     assert len(policy.all_decision_contexts) == 3
     assert set(policy.all_decision_contexts) == {'test1', 'test2', 'test3'}
     policy = policies[1]
-    assert len(policy.all_decision_contexts) == 4
-    assert set(policy.all_decision_contexts) == {'test1', 'test2', 'test3', 'test4'}
-    policy = policies[2]
     assert len(policy.all_decision_contexts) == 1
     assert policy.all_decision_contexts == ['test4']
 
