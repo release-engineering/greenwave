@@ -44,8 +44,8 @@ class Transport(xmlrpc.client.Transport):
         super().__init__(*args, **kwargs)
         self._timeout = timeout
 
-    def make_connection(self, *args, **kwargs):  # pragma: no cover
-        connection = super().make_connection(*args, **kwargs)
+    def make_connection(self, host):  # pragma: no cover
+        connection = super().make_connection(host)
         connection.timeout = self._timeout
         return connection
 
@@ -55,7 +55,7 @@ class SafeTransport(xmlrpc.client.SafeTransport):
         super().__init__(*args, **kwargs)
         self._timeout = timeout
 
-    def make_connection(self, *args, **kwargs):  # pragma: no cover
-        connection = super().make_connection(*args, **kwargs)
+    def make_connection(self, host):  # pragma: no cover
+        connection = super().make_connection(host)
         connection.timeout = self._timeout
         return connection

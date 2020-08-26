@@ -17,4 +17,5 @@ def test_guess_koji_build_product_version_socket_error(task_id):
     )
     expected = 'Could not reach Koji: timed out'
     with pytest.raises(ConnectionError, match=expected):
+        # pylint: disable=protected-access
         product_versions._guess_koji_build_product_version(subject_identifier, mock_proxy, task_id)
