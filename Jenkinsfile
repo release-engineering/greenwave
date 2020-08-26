@@ -96,7 +96,8 @@ node('fedora-29') {
         sh '''
         sudo dnf install -y \
             python3-sphinx \
-            python3-sphinxcontrib-httpdomain
+            python3-sphinxcontrib-httpdomain \
+            make
         '''
         sh 'DEV=true GREENWAVE_CONFIG=$(pwd)/conf/settings.py.example make -C docs html'
         archiveArtifacts artifacts: 'docs/_build/html/**'
