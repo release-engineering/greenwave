@@ -128,32 +128,6 @@ node('fedora-29') {
         }
     }
 }
-node('docker') {
-    checkout scm
-    stage('Build Docker container') {
-        def appversion = sh(returnStdout: true, script: './get-version.sh').trim()
-        // Set the derived version in __init__.py
-        sh """
-        sed --regexp-extended --in-place \
-            -e "/^__version__ = /c\\__version__ = '${appversion}'" greenwave/__init__.py
-        """.trim()
-        /* Git builds will have a version like 0.3.2.dev1+git.3abbb08 following
-         * the rules in PEP440. But Docker does not let us have + in the tag
-         * name, so let's munge it here. */
-        appversion = appversion.replace('+', '-')
-        sh 'docker image prune -a -f'
-        /* Build and push the same image with the same tag to quay.io, but without the cacert. */
-        docker.withRegistry(
-                'https://quay.io/',
-                'quay-io-factory2-builder-sa-credentials') {
-            def image = docker.build "factory2/greenwave:${appversion}", "."
-            image.push()
-        }
-        /* Save container version for later steps (this is ugly but I can't find anything better...) */
-        writeFile file: 'appversion', text: appversion
-        archiveArtifacts artifacts: 'appversion'
-    }
-}
 
 node('fedora-29') {
     checkout scm
@@ -247,22 +221,6 @@ node('fedora-29') {
                                 ['environment': environment_label]).delete()
                     }
                 }
-            }
-        }
-    }
-}
-
-node('docker') {
-    checkout scm
-    if (scmVars.GIT_BRANCH == 'origin/master') {
-        stage('Tag "latest".') {
-            unarchive mapping: ['appversion': 'appversion']
-            def appversion = readFile('appversion').trim()
-            docker.withRegistry(
-                    'https://quay.io/',
-                    'quay-io-factory2-builder-sa-credentials') {
-                def image = docker.image("factory2/greenwave:${appversion}")
-                image.push('latest')
             }
         }
     }
