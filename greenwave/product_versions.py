@@ -57,7 +57,6 @@ def _guess_koji_build_product_version(
         raise ConnectionError('Could not reach Koji: {}'.format(err))
     except xmlrpc.client.Fault:
         log.exception('Unexpected Koji XML RPC fault')
-        pass
 
 
 def subject_product_version(
