@@ -114,13 +114,17 @@ class NoSourceException(RuntimeError):
 
 
 @cached
+def retrieve_koji_build(nvr, koji_url):
+    log.debug('Getting Koji build %r', nvr)
+    proxy = get_server_proxy(koji_url)
+    return proxy.getBuild(nvr)
+
+
 def retrieve_scm_from_koji(nvr):
     """ Retrieve cached rev and namespace from koji using the nvr """
     koji_url = current_app.config['KOJI_BASE_URL']
     try:
-        log.debug('Getting Koji build %r', nvr)
-        proxy = get_server_proxy(koji_url)
-        build = proxy.getBuild(nvr)
+        build = retrieve_koji_build(nvr, koji_url)
     except (xmlrpc.client.ProtocolError, socket.error) as err:
         raise ConnectionError('Could not reach Koji: {}'.format(err))
     return retrieve_scm_from_koji_build(nvr, build, koji_url)
