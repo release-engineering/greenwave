@@ -88,6 +88,20 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
         self.greenwave_api_url = self.flask_app.config['GREENWAVE_API_URL']
         log.info('Greenwave handler listening on: %s', self.topic)
 
+    def validate(self, message):
+        """
+        Wraps fedmsg.consumers.FedmsgConsumer.validate() to avoid propagating
+        unexpected exceptions which would cause fedmsg-hub to get stuck (stops
+        processing messages but doesn't quit).
+        """
+        try:
+            return super(Consumer, self).validate(message)
+        except RuntimeWarning:
+            raise
+        except Exception:
+            log.exception('Failed to validate message: %s', message)
+            raise RuntimeWarning('Unexpected exception during message validation')
+
     def consume(self, message):
         """
         Process the given message and take action.
