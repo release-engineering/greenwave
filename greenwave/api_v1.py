@@ -599,7 +599,7 @@ def validate_gating_yaml_post():
         msg = {'message': ('Greenwave could not find a parent policy(ies) for following decision'
                            ' context(s): {}. Please change your policy so that it will match a '
                            'decision context in the parent policies.'.format(
-                               ', '.join(missing_decision_contexts)))}
+                               ', '.join(sorted(missing_decision_contexts))))}
     else:
         msg = {'message': 'All OK'}
 
