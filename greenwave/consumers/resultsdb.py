@@ -132,6 +132,8 @@ class ResultsDBHandler(Consumer):
             brew_task_id,
         )
 
+        log.debug('Guessed product version: %r', product_version)
+
         self._publish_decision_change(
             submit_time=submit_time,
             subject=subject,

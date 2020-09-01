@@ -44,16 +44,19 @@ def _guess_koji_build_product_version(
         subject_identifier, koji_proxy, koji_task_id=None):
     try:
         if not koji_task_id:
+            log.debug('Getting Koji task ID for build %r', subject_identifier)
             build = koji_proxy.getBuild(subject_identifier) or {}
             koji_task_id = build.get('task_id')
             if not koji_task_id:
                 return None
 
+        log.debug('Getting Koji task request ID %r', koji_task_id)
         target = koji_proxy.getTaskRequest(koji_task_id)[1]
         return _guess_product_version(target, koji_build=True)
-    except socket.error as err:
+    except (xmlrpc.client.ProtocolError, socket.error) as err:
         raise ConnectionError('Could not reach Koji: {}'.format(err))
     except xmlrpc.client.Fault:
+        log.exception('Unexpected Koji XML RPC fault')
         pass
 
 
