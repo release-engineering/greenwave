@@ -95,11 +95,18 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
         Args:
             message (munch.Munch): A fedmsg about a new item.
         """
-        message = message.get('body', message)
-        log.debug('Processing message "%s"', message)
+        try:
+            message = message.get('body', message)
+            log.debug('Processing message "%s"', message)
 
-        with self.flask_app.app_context():
-            self._consume_message(message)
+            with self.flask_app.app_context():
+                self._consume_message(message)
+        except Exception:  # pylint: disable=broad-except
+            # Disallow propagating any other exception, otherwise NACK is sent
+            # and the message is scheduled to be received later. But it seems
+            # these messages can be only received by other consumer (or after
+            # restart) otherwise the messages can block the queue completely.
+            log.exception('Unexpected exception')
 
     def _inc(self, messaging_counter):
         """Helper method to increase monitoring counter."""
