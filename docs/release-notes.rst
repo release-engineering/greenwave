@@ -2,6 +2,18 @@
 Release Notes
 =============
 
+Greenwave 1.6.1
+===============
+
+Released 2 September 2020
+
+* Koji "getBuild()" XML RPC calls are now cached even if the build is not
+  found. In rare cases, when using a fake koji_build artifact, this can save a
+  lot of time.
+* Consumers using fedmsg can now work with ``stomp_ack_mode=client-individual``
+  option. In this mode, invalid fedmsg messages that cause an exception are
+  ACKed and not processed again (instead of NACKed and resent).
+
 Greenwave 1.6.0
 ===============
 
