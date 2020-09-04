@@ -96,7 +96,7 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
         """
         try:
             return super(Consumer, self).validate(message)
-        except RuntimeWarning:
+        except RuntimeWarning:  # pylint: disable=try-except-raise
             raise
         except Exception:
             log.exception('Failed to validate message: %s', message)
