@@ -516,7 +516,7 @@ def test_consume_new_result_container_image(
                         "fedora"
                     ],
                     "item": [
-                        "fedora@sha256:{}".format(sha256)
+                        nvr
                     ],
                     "system_provider": [
                         "openstack"

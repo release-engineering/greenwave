@@ -294,7 +294,7 @@ class TestDataBuilder(object):
         return self._create_result(data)
 
     def create_result(self, item, testcase_name, outcome,
-                      scenario=None, key=None, _type='koji_build'):
+                      scenario=None, key=None, _type='koji_build', **custom_data):
         data = {
             'testcase': {'name': testcase_name},
             'outcome': outcome,
@@ -305,6 +305,7 @@ class TestDataBuilder(object):
             data['data'] = {key: item}
         if scenario:
             data['data']['scenario'] = scenario
+        data['data'].update(custom_data)
         return self._create_result(data)
 
     def create_waiver(self, nvr, testcase_name, product_version, comment, waived=True,

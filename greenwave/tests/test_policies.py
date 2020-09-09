@@ -3,6 +3,7 @@
 
 import pytest
 import mock
+import time
 
 from textwrap import dedent
 
@@ -45,7 +46,8 @@ class DummyResultsRetriever(ResultsRetriever):
         self.outcome = outcome
 
     def _retrieve_data(self, params):
-        if (self.subject and params.get('item') == self.subject.identifier and
+        if (self.subject and (params.get('item') == self.subject.identifier or
+                              params.get('nvr') == self.subject.identifier) and
                 ('type' not in params or self.subject.type in params['type'].split(',')) and
                 params.get('testcases') == self.testcase):
             return [{
@@ -648,6 +650,37 @@ def test_remote_rule_policy_redhat_container_image(tmpdir):
                 decision = policy.check('rhel-8', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
+
+
+def test_redhat_container_image_subject_type():
+    nvr = '389-ds-1.4-820181127205924.9edba152'
+    rdb_url = 'http://results.db'
+    cur_time = time.strftime('%Y-%m-%dT%H:%M:%S.00')
+    testcase_name = 'testcase1'
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        rh_img_subject = create_subject('redhat-container-image', nvr)
+        retriever = ResultsRetriever(ignore_ids=list(), when=cur_time, url=rdb_url)
+        with mock.patch('requests.Session.get') as req_get:
+            req_get.json.return_value = {'data': {'item': [nvr]}}
+            retriever._retrieve_all(rh_img_subject, testcase_name)
+            assert req_get.call_count == 2
+            assert req_get.call_args_list[0] == mock.call(
+                f'{rdb_url}/results/latest',
+                params={'nvr': nvr,
+                        'type': 'redhat-container-image',
+                        '_distinct_on': 'scenario,system_architecture,system_variant',
+                        'since': f'1900-01-01T00:00:00.000000,{cur_time}',
+                        'testcases': testcase_name}
+            )
+            assert req_get.call_args_list[1] == mock.call(
+                f'{rdb_url}/results/latest',
+                params={'item': nvr,
+                        'type': 'koji_build',
+                        '_distinct_on': 'scenario,system_architecture,system_variant',
+                        'since': f'1900-01-01T00:00:00.000000,{cur_time}',
+                        'testcases': testcase_name}
+            )
 
 
 def test_remote_rule_policy_optional_id(tmpdir):

@@ -25,7 +25,12 @@ def create_subject_from_data(data):
             from data (in case data are invalid or subject configuration is
             missing)
     """
+    type_id = data.get("type")
+
     for type_ in subject_types():
+        if type_id and type_ != type_id:
+            continue
+
         if not type_.item_key:
             continue
 
@@ -35,7 +40,6 @@ def create_subject_from_data(data):
 
         return Subject(type_, item)
 
-    type_id = data.get("type")
     item = data.get("item")
     if type_id and item:
         return create_subject(type_id, item)

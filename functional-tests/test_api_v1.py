@@ -508,6 +508,56 @@ def test_make_a_decision_on_no_results(requests_session, greenwave_server, testd
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
 
+def test_make_a_decision_on_redhat_cont_image(requests_session, greenwave_server, testdatabuilder):
+    item1_nvr = testdatabuilder.unique_nvr()
+    # _type='koji-build'
+    result1 = testdatabuilder.create_result(item=item1_nvr,
+                                            testcase_name='test.testcase1',
+                                            outcome='FAILED')
+    result2 = testdatabuilder.create_result(item=item1_nvr,
+                                            testcase_name='test.testcase2',
+                                            outcome='FAILED', _type='redhat-container-image',
+                                            nvr=item1_nvr)
+    data = {
+        'product_version': 'fedora-26',
+        'subject_type': 'redhat-container-image',
+        'subject_identifier': item1_nvr,
+        "rules": [
+            {
+                "type": "PassingTestCaseRule",
+                "test_case_name": "test.testcase1"
+            },
+            {
+                "type": "PassingTestCaseRule",
+                "test_case_name": "test.testcase2"
+            }
+        ]
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied'] is False
+    expected_summary = '2 of 2 required tests failed'
+    assert res_data['summary'] == expected_summary
+    expected_unsatisfied_requirements = [
+        {
+            'item': {'item': item1_nvr, 'type': 'redhat-container-image'},
+            'result_id': result1['id'],
+            'testcase': 'test.testcase1',
+            'scenario': None,
+            'type': 'test-result-failed'
+        },
+        {
+            'item': {'item': item1_nvr, 'type': 'redhat-container-image'},
+            'result_id': result2['id'],
+            'testcase': 'test.testcase2',
+            'type': 'test-result-failed',
+            'scenario': None,
+        }
+    ]
+    assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
+
+
 def test_subject_type_group(requests_session, greenwave_server, testdatabuilder):
     results_item = 'sha256:' + sha256(os.urandom(50)).hexdigest()
 
