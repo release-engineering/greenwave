@@ -441,8 +441,8 @@ def test_consume_new_result_container_image(
         testdatabuilder):
     unique_id = str(time.time()).encode('utf-8')
     sha256 = hashlib.sha256(unique_id).hexdigest()
-    nvr = 'fedora@sha256:{}'.format(sha256)
-    result = testdatabuilder.create_result(item=nvr,
+    item_hash = 'fedora@sha256:{}'.format(sha256)
+    result = testdatabuilder.create_result(item=item_hash,
                                            testcase_name='baseos-qe.baseos-ci.tier1.functional',
                                            outcome='PASSED', _type='container-image')
     message = {
@@ -516,7 +516,7 @@ def test_consume_new_result_container_image(
                         "fedora"
                     ],
                     "item": [
-                        nvr
+                        item_hash
                     ],
                     "system_provider": [
                         "openstack"
@@ -561,7 +561,7 @@ def test_consume_new_result_container_image(
     data = {
         'decision_context': 'container-image-test',
         'product_version': 'c3i',
-        'subject': [{'item': nvr, 'type': 'container-image'}],
+        'subject': [{'item': item_hash, 'type': 'container-image'}],
         'when': right_before_this_time(result['submit_time']),
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
@@ -573,14 +573,14 @@ def test_consume_new_result_container_image(
         'decision_context': 'container-image-test',
         'policies_satisfied': True,
         'product_version': 'c3i',
-        'subject': [{'item': nvr, 'type': 'container-image'}],
+        'subject': [{'item': item_hash, 'type': 'container-image'}],
         'subject_type': 'container-image',
-        'subject_identifier': nvr,
+        'subject_identifier': item_hash,
         'summary': 'All required tests passed',
         'previous': old_decision,
         'satisfied_requirements': [{
             'subject_type': 'container-image',
-            'subject_identifier': nvr,
+            'subject_identifier': item_hash,
             'result_id': result['id'],
             'testcase': 'baseos-qe.baseos-ci.tier1.functional',
             'type': 'test-result-passed'
