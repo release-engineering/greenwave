@@ -663,7 +663,7 @@ def test_redhat_container_image_subject_type():
         retriever = ResultsRetriever(ignore_ids=list(), when=cur_time, url=rdb_url)
         with mock.patch('requests.Session.get') as req_get:
             req_get.json.return_value = {'data': {'item': [nvr]}}
-            retriever._retrieve_all(rh_img_subject, testcase_name)
+            retriever._retrieve_all(rh_img_subject, testcase_name)  # pylint: disable=W0212
             assert req_get.call_count == 2
             assert req_get.call_args_list[0] == mock.call(
                 f'{rdb_url}/results/latest',
