@@ -2,6 +2,17 @@
 Release Notes
 =============
 
+Greenwave 1.6.2
+===============
+
+Released 5 October 2020
+
+* Changes for subject type ``redhat-container-image``. There are
+  two queries now. One for the subject type itself and second is for
+  the ``koji-build`` subject type.
+* When looking for the appropriate subject type for the received message,
+  the name of subject type are now being checked first
+
 Greenwave 1.6.1
 ===============
 
