@@ -12,6 +12,36 @@ from greenwave.policies import Policy
 from greenwave.subjects.factory import create_subject
 
 
+@pytest.fixture(autouse=True)
+def mock_retrieve_decision():
+    with mock.patch('greenwave.decision.make_decision') as mocked:
+        def retrieve_decision(data, config):
+            #pylint: disable=unused-argument
+            if 'when' in data:
+                return None
+            return {}
+        mocked.side_effect = retrieve_decision
+        yield mocked
+
+
+@pytest.fixture
+def mock_retrieve_results():
+    with mock.patch('greenwave.resources.ResultsRetriever.retrieve') as mocked:
+        yield mocked
+
+
+@pytest.fixture
+def mock_retrieve_scm_from_koji():
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as mocked:
+        yield mocked
+
+
+@pytest.fixture
+def mock_retrieve_yaml_remote_rule():
+    with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as mocked:
+        yield mocked
+
+
 def announcement_subject(message):
     cls = greenwave.consumers.resultsdb.ResultsDBHandler
 
@@ -119,14 +149,9 @@ parameters = [
 
 
 @pytest.mark.parametrize("config,publish", parameters)
-@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
-@mock.patch('greenwave.resources.retrieve_decision')
-@mock.patch('greenwave.resources.retrieve_scm_from_koji')
-@mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
 def test_remote_rule_decision_change(
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
-        mock_retrieve_decision,
         mock_retrieve_results,
         config,
         publish):
@@ -166,12 +191,6 @@ def test_remote_rule_decision_change(
             }
             mock_retrieve_results.return_value = [result]
 
-            def retrieve_decision(url, data):
-                #pylint: disable=unused-argument
-                if 'when' in data:
-                    return None
-                return {}
-            mock_retrieve_decision.side_effect = retrieve_decision
             mock_retrieve_scm_from_koji.return_value = ('rpms', nvr,
                                                         'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
 
@@ -227,14 +246,9 @@ def test_remote_rule_decision_change(
 
 
 @pytest.mark.parametrize("config,publish", parameters)
-@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
-@mock.patch('greenwave.resources.retrieve_decision')
-@mock.patch('greenwave.resources.retrieve_scm_from_koji')
-@mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
 def test_remote_rule_decision_change_not_matching(
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
-        mock_retrieve_decision,
         mock_retrieve_results,
         config,
         publish):
@@ -274,12 +288,6 @@ def test_remote_rule_decision_change_not_matching(
             }
             mock_retrieve_results.return_value = [result]
 
-            def retrieve_decision(url, data):
-                #pylint: disable=unused-argument
-                if 'when' in data:
-                    return None
-                return {}
-            mock_retrieve_decision.side_effect = retrieve_decision
             mock_retrieve_scm_from_koji.return_value = ('rpms', nvr,
                                                         'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
 
@@ -374,14 +382,9 @@ def test_guess_product_version_failure(nvr):
 
 
 @pytest.mark.parametrize("config,publish", parameters)
-@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
-@mock.patch('greenwave.resources.retrieve_decision')
-@mock.patch('greenwave.resources.retrieve_scm_from_koji')
-@mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
 def test_decision_change_for_modules(
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
-        mock_retrieve_decision,
         mock_retrieve_results,
         config,
         publish):
@@ -425,12 +428,6 @@ def test_decision_change_for_modules(
             }
             mock_retrieve_results.return_value = [result]
 
-            def retrieve_decision(url, data):
-                #pylint: disable=unused-argument
-                if 'when' in data:
-                    return None
-                return {}
-            mock_retrieve_decision.side_effect = retrieve_decision
             mock_retrieve_scm_from_koji.return_value = ('modules', nsvc,
                                                         '97273b80dd568bd15f9636b695f6001ecadb65e0')
 
@@ -485,11 +482,7 @@ def test_decision_change_for_modules(
             }
 
 
-@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
-@mock.patch('greenwave.resources.retrieve_decision')
-def test_real_fedora_messaging_msg(
-        mock_retrieve_decision,
-        mock_retrieve_results):
+def test_real_fedora_messaging_msg(mock_retrieve_results):
     message = {
         'msg': {
             'task': {
@@ -573,13 +566,6 @@ def test_real_fedora_messaging_msg(
             }
             mock_retrieve_results.return_value = [result]
 
-            def retrieve_decision(url, data):
-                #pylint: disable=unused-argument
-                if 'when' in data:
-                    return None
-                return {}
-            mock_retrieve_decision.side_effect = retrieve_decision
-
             hub = mock.MagicMock()
             hub.config = {
                 'environment': 'environment',
@@ -610,11 +596,7 @@ def test_real_fedora_messaging_msg(
             }
 
 
-@mock.patch('greenwave.resources.ResultsRetriever.retrieve')
-@mock.patch('greenwave.resources.retrieve_decision')
-def test_container_brew_build(
-        mock_retrieve_decision,
-        mock_retrieve_results):
+def test_container_brew_build(mock_retrieve_results):
     message = {
         'msg': {
             'submit_time': '2019-08-27T13:57:53.490376',
@@ -652,13 +634,6 @@ def test_container_brew_build(
                 'submit_time': '2019-04-24 13:06:12.135146'
             }
             mock_retrieve_results.return_value = [result]
-
-            def retrieve_decision(url, data):
-                #pylint: disable=unused-argument
-                if 'when' in data:
-                    return None
-                return {}
-            mock_retrieve_decision.side_effect = retrieve_decision
 
             hub = mock.MagicMock()
             hub.config = {

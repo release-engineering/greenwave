@@ -6,14 +6,14 @@ import requests
 import fedmsg.consumers
 
 import greenwave.app_factory
+import greenwave.decision
+
 from greenwave.monitor import (
     publish_decision_exceptions_result_counter,
     messaging_tx_to_send_counter, messaging_tx_stopped_counter,
     messaging_tx_sent_ok_counter, messaging_tx_failed_counter)
 from greenwave.policies import applicable_decision_context_product_version_pairs
 from greenwave.utils import right_before_this_time
-
-import greenwave.resources
 
 try:
     import fedora_messaging.api
@@ -161,10 +161,10 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
         log.debug('querying greenwave at: %s', greenwave_url)
 
         try:
-            decision = greenwave.resources.retrieve_decision(greenwave_url, request_data)
+            decision = greenwave.decision.make_decision(request_data, self.flask_app.config)
 
             request_data['when'] = right_before_this_time(submit_time)
-            old_decision = greenwave.resources.retrieve_decision(greenwave_url, request_data)
+            old_decision = greenwave.decision.make_decision(request_data, self.flask_app.config)
             log.debug('old decision: %s', old_decision)
         except requests.exceptions.HTTPError as e:
             log.exception('Failed to retrieve decision for data=%s, error: %s', request_data, e)

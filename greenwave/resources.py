@@ -183,10 +183,3 @@ def retrieve_yaml_remote_rule(url):
     response = requests_session.request('GET', url)
     response.raise_for_status()
     return response.content
-
-
-# NOTE - not cached.
-def retrieve_decision(greenwave_url, data):
-    response = requests_session.post(greenwave_url, json=data)
-    response.raise_for_status()
-    return response.json()
