@@ -63,6 +63,16 @@ class ResultsRetriever(BaseRetriever):
                     return [result]
             return []
 
+        # Try to get passing test case result from external cache.
+        external_cache_key = None
+        if testcase and not self.since:
+            external_cache_key = (
+                "greenwave.resources:ResultsRetriever|"
+                f"{subject.type} {subject.identifier} {testcase} {scenarios}")
+            results = self.get_external_cache(external_cache_key)
+            if results:
+                return results
+
         params = {
             '_distinct_on': 'scenario,system_architecture,system_variant'
         }
@@ -81,6 +91,12 @@ class ResultsRetriever(BaseRetriever):
         if not testcase:
             self.cache[cache_key] = results
 
+        # Store test case results in external cache if all are passing,
+        # otherwise retrieve from ResultsDB again later.
+        if external_cache_key and all(
+                result.get('outcome') in ('PASSED', 'INFO') for result in results):
+            self.set_external_cache(external_cache_key, results)
+
         return results
 
     def _make_request(self, params, **request_args):
@@ -88,6 +104,12 @@ class ResultsRetriever(BaseRetriever):
             self.url + '/results/latest',
             params=params,
             **request_args)
+
+    def get_external_cache(self, key):
+        return current_app.cache.get(key)
+
+    def set_external_cache(self, key, value):
+        current_app.cache.set(key, value)
 
 
 class WaiversRetriever(BaseRetriever):

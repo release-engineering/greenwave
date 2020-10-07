@@ -44,12 +44,15 @@ class DummyResultsRetriever(ResultsRetriever):
         self.subject = subject
         self.testcase = testcase
         self.outcome = outcome
+        self.external_cache = {}
+        self.retrieve_data_called = 0
 
     def _retrieve_data(self, params):
+        self.retrieve_data_called += 1
         if (self.subject and (params.get('item') == self.subject.identifier or
                               params.get('nvr') == self.subject.identifier) and
                 ('type' not in params or self.subject.type in params['type'].split(',')) and
-                params.get('testcases') == self.testcase):
+                (params.get('testcases') is None or params.get('testcases') == self.testcase)):
             return [{
                 'id': 123,
                 'data': {
@@ -60,6 +63,12 @@ class DummyResultsRetriever(ResultsRetriever):
                 'outcome': self.outcome,
             }]
         return []
+
+    def get_external_cache(self, key):
+        return self.external_cache.get(key)
+
+    def set_external_cache(self, key, value):
+        self.external_cache[key] = value
 
 
 def test_summarize_answers():
@@ -1442,3 +1451,46 @@ def test_two_rules_no_duplicate(tmpdir):
                 decision = policy.check('fedora-31', subject, results)
                 assert len(decision) == 1
                 assert isinstance(decision[0], TestResultFailed)
+
+
+def test_cache_all_results_temporarily():
+    """
+    All results are stored in temporary cache (valid during single request).
+    """
+    subject = create_test_subject('bodhi_update', 'update-1')
+    results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
+
+    retrieved = results.retrieve(subject, testcase=None)
+    assert results.retrieve_data_called == 1
+    assert retrieved
+
+    cached = results.retrieve(subject, testcase='sometest')
+    assert results.retrieve_data_called == 1
+    assert cached == retrieved
+
+
+def test_cache_passing_results():
+    """
+    Passing results are stored in external cache because it's not expected that
+    the outcome changes once they passed.
+    """
+    subject = create_test_subject('bodhi_update', 'update-1')
+    results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
+
+    retrieved = results.retrieve(subject, testcase=None)
+    assert results.retrieve_data_called == 1
+    assert retrieved
+
+    results2 = DummyResultsRetriever(subject, 'sometest', 'PASSED')
+    results2.external_cache = results.external_cache
+    retrieved2 = results2.retrieve(subject, testcase='sometest')
+    assert results2.retrieve_data_called == 1
+    assert retrieved2
+    assert retrieved2 != retrieved
+
+    # Result stays PASSED even if the latest is now FAILED.
+    results3 = DummyResultsRetriever(subject, 'sometest', 'FAILED')
+    results3.external_cache = results.external_cache
+    cached = results3.retrieve(subject, testcase='sometest')
+    assert results3.retrieve_data_called == 0
+    assert cached == retrieved2
