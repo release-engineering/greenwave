@@ -94,7 +94,8 @@ class ResultsRetriever(BaseRetriever):
         # Store test case results in external cache if all are passing,
         # otherwise retrieve from ResultsDB again later.
         if external_cache_key and all(
-                result.get('outcome') in ('PASSED', 'INFO') for result in results):
+                result.get('outcome') in current_app.config['OUTCOMES_PASSED']
+                for result in results):
             self.set_external_cache(external_cache_key, results)
 
         return results

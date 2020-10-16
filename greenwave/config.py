@@ -52,6 +52,10 @@ class Config(object):
     # Greenwave API url
     GREENWAVE_API_URL = 'https://greenwave.domain.local/api/v1.0'
 
+    OUTCOMES_PASSED = ('PASSED', 'INFO')
+    OUTCOMES_ERROR = ('ERROR',)
+    OUTCOMES_INCOMPLETE = ('QUEUED', 'RUNNING')
+
 
 class ProductionConfig(Config):
     DEBUG = False

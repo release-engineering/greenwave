@@ -118,6 +118,11 @@ class ResultsDBHandler(Consumer):
         except KeyError:
             submit_time = msg['result']['submit_time']
 
+        outcome = msg.get('outcome')
+        if outcome in self.flask_app.config['OUTCOMES_INCOMPLETE']:
+            log.debug('Assuming no decision change on outcome %r', outcome)
+            return
+
         brew_task_id = _get_brew_task_id(msg)
 
         subject = self.announcement_subject(message)

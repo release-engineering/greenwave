@@ -154,7 +154,7 @@ class TestResultWaived(RuleSatisfied):
 class TestResultFailed(RuleNotSatisfied):
     """
     A required test case did not pass (that is, its outcome in ResultsDB was
-    not ``PASSED`` or ``INFO``).
+    not passing).
     """
 
     def __init__(self, subject, test_case_name, scenario, result_id):
@@ -182,8 +182,8 @@ class TestResultFailed(RuleNotSatisfied):
 class TestResultErrored(RuleNotSatisfied):
     """
     A required test case failed to finish, i.e. the system failed during the
-    testing process and could not finish the testing.  (outcome in ResultsDB
-    was ``ERROR``).
+    testing process and could not finish the testing (outcome in ResultsDB
+    was an error).
     """
 
     def __init__(
@@ -263,8 +263,8 @@ class MissingRemoteRuleYaml(RuleNotSatisfied):
 
 class TestResultPassed(RuleSatisfied):
     """
-    A required test case passed (that is, its outcome in ResultsDB was
-    ``PASSED`` or ``INFO``) or a corresponding waiver was found.
+    A required test case passed (that is, its outcome in ResultsDB was passing)
+    or a corresponding waiver was found.
     """
     def __init__(self, subject, test_case_name, result_id):
         self.subject = subject
@@ -612,30 +612,32 @@ class PassingTestCaseRule(Rule):
         }
 
     def _answer_for_result(self, result, subject):
-        if result['outcome'] in ('PASSED', 'INFO'):
+        outcome = result['outcome']
+
+        if outcome in current_app.config['OUTCOMES_PASSED']:
             log.debug('Test result passed for the result_id %s and testcase %s,'
                       ' because the outcome is %s', result['id'], self.test_case_name,
-                      result['outcome'])
+                      outcome)
             return TestResultPassed(subject, self.test_case_name, result['id'])
 
-        if result['outcome'] in ('QUEUED', 'RUNNING'):
+        if outcome in current_app.config['OUTCOMES_INCOMPLETE']:
             log.debug('Test result MISSING for the %s and '
                       'testcase %s, because the outcome is %s', subject,
-                      self.test_case_name, result['outcome'])
+                      self.test_case_name, outcome)
             return TestResultMissing(subject, self.test_case_name, self.scenario)
 
-        if result['outcome'] == 'ERROR':
+        if outcome in current_app.config['OUTCOMES_ERROR']:
             error_reason = result.get('error_reason')
             log.debug('Test result ERROR for the %s and '
-                      'testcase %s, error reason: %s', subject,
-                      self.test_case_name, error_reason)
+                      'testcase %s, because the outcome is %s; error reason: %s',
+                      subject, self.test_case_name, outcome, error_reason)
             return TestResultErrored(
                 subject, self.test_case_name, self.scenario, result['id'],
                 error_reason)
 
         log.debug('Test result failed for the %s and '
                   'testcase %s, because the outcome is %s and it didn\'t match any of the '
-                  'previous cases', subject, self.test_case_name, result['outcome'])
+                  'previous cases', subject, self.test_case_name, outcome)
         return TestResultFailed(subject, self.test_case_name, self.scenario, result['id'])
 
 

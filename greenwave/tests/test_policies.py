@@ -29,10 +29,11 @@ from greenwave.waivers import waive_answers
 from greenwave.config import TestingConfig, Config
 
 
-def create_test_subject(type_id, item):
+@pytest.fixture(autouse=True)
+def app():
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
-        return create_subject(type_id, item)
+        yield
 
 
 class DummyResultsRetriever(ResultsRetriever):
@@ -72,7 +73,7 @@ class DummyResultsRetriever(ResultsRetriever):
 
 
 def test_summarize_answers():
-    subject = create_test_subject('koji_build', 'nvr')
+    subject = create_subject('koji_build', 'nvr')
     assert summarize_answers([RuleSatisfied()]) == \
         'All required tests passed'
     assert summarize_answers([TestResultFailed(subject, 'test', None, 'id'),
@@ -108,7 +109,7 @@ def test_decision_with_missing_result(tmpdir):
     policy = policies[0]
 
     results = DummyResultsRetriever()
-    subject = create_test_subject('koji_build', 'some_nevr')
+    subject = create_subject('koji_build', 'some_nevr')
 
     # Ensure that absence of a result is failure.
     decision = policy.check('fedora-rawhide', subject, results)
@@ -138,7 +139,7 @@ def test_waive_brew_koji_mismatch(tmpdir):
     policy = policies[0]
 
     item = 'some_nevr'
-    subject = create_test_subject('koji_build', item)
+    subject = create_subject('koji_build', item)
     results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
 
     decision = policy.check('fedora-rawhide', subject, results)
@@ -181,7 +182,7 @@ def test_waive_bodhi_update(tmpdir):
     policy = policies[0]
 
     item = 'some_bodhi_update'
-    subject = create_test_subject('bodhi_update', item)
+    subject = create_subject('bodhi_update', item)
     results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
 
     decision = policy.check('fedora-rawhide', subject, results)
@@ -300,7 +301,7 @@ def test_remote_rule_policy(tmpdir, namespace):
     """ Testing the RemoteRule with the koji interaction.
     In this case we are just mocking koji """
 
-    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+    subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -325,44 +326,42 @@ def test_remote_rule_policy(tmpdir, namespace):
 
     p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                f.return_value = remote_fragment
-                policies = load_policies(tmpdir.strpath)
-                policy = policies[0]
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment
+            policies = load_policies(tmpdir.strpath)
+            policy = policies[0]
 
-                # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(subject, 'dist.upgradepath')
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], RuleSatisfied)
+            # Ensure that presence of a result is success.
+            results = DummyResultsRetriever(subject, 'dist.upgradepath')
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], RuleSatisfied)
 
-                # Ensure that absence of a result is failure.
-                results = DummyResultsRetriever()
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultMissing)
+            # Ensure that absence of a result is failure.
+            results = DummyResultsRetriever()
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultMissing)
 
-                # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultFailed)
-                f.assert_called_with(
-                    'https://src.fedoraproject.org/{0}'.format(
-                        '' if not namespace else namespace + '/'
-                    ) + 'nethack/raw/c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml'
-                )
+            # And that a result with a failure, is a failure.
+            results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultFailed)
+            f.assert_called_with(
+                'https://src.fedoraproject.org/{0}'.format(
+                    '' if not namespace else namespace + '/'
+                ) + 'nethack/raw/c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml'
+            )
 
 
 def test_remote_rule_policy_old_config(tmpdir):
     """ Testing the RemoteRule with the koji interaction.
     In this case we are just mocking koji """
 
-    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+    subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -427,7 +426,7 @@ def test_remote_rule_policy_brew_build_group(tmpdir):
     """ Testing the RemoteRule with the koji interaction.
     In this case we are just mocking koji """
 
-    subject = create_test_subject(
+    subject = create_subject(
         'brew-build-group',
         'sha256:0f41e56a1c32519e189ddbcb01d2551e861bd74e603d01769ef5f70d4b30a2dd'
     )
@@ -456,44 +455,42 @@ def test_remote_rule_policy_brew_build_group(tmpdir):
 
     p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                f.return_value = remote_fragment
-                policies = load_policies(tmpdir.strpath)
-                policy = policies[0]
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment
+            policies = load_policies(tmpdir.strpath)
+            policy = policies[0]
 
-                # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(subject, 'dist.upgradepath')
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], RuleSatisfied)
+            # Ensure that presence of a result is success.
+            results = DummyResultsRetriever(subject, 'dist.upgradepath')
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], RuleSatisfied)
 
-                # Ensure that absence of a result is failure.
-                results = DummyResultsRetriever()
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultMissing)
+            # Ensure that absence of a result is failure.
+            results = DummyResultsRetriever()
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultMissing)
 
-                # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultFailed)
-                f.assert_called_with(
-                    'https://git.example.com/devops/greenwave-policies/side-tags/raw/'
-                    'master/0f41e56a1c32519e189ddbcb01d2551e861bd74e603d01769ef5f70d4b30a2dd.yaml'
-                )
-            scm.assert_not_called()
+            # And that a result with a failure, is a failure.
+            results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultFailed)
+            f.assert_called_with(
+                'https://git.example.com/devops/greenwave-policies/side-tags/raw/'
+                'master/0f41e56a1c32519e189ddbcb01d2551e861bd74e603d01769ef5f70d4b30a2dd.yaml'
+            )
+        scm.assert_not_called()
 
 
 def test_remote_rule_policy_with_no_remote_rule_policies_param_defined(tmpdir):
     """ Testing the RemoteRule with the koji interaction.
     But this time let's assume that REMOTE_RULE_POLICIES is not defined. """
 
-    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+    subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -545,7 +542,7 @@ def test_remote_rule_policy_redhat_module(tmpdir, namespace):
     In this case we are just mocking koji """
 
     nvr = '389-ds-1.4-820181127205924.9edba152'
-    subject = create_test_subject('redhat-module', nvr)
+    subject = create_subject('redhat-module', nvr)
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -571,33 +568,31 @@ def test_remote_rule_policy_redhat_module(tmpdir, namespace):
 
     p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = (namespace, '389-ds', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                f.return_value = remote_fragment
-                policies = load_policies(tmpdir.strpath)
-                policy = policies[0]
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = (namespace, '389-ds', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment
+            policies = load_policies(tmpdir.strpath)
+            policy = policies[0]
 
-                # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(subject, 'baseos-ci.redhat-module.tier0.functional')
-                decision = policy.check('rhel-8', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], RuleSatisfied)
+            # Ensure that presence of a result is success.
+            results = DummyResultsRetriever(subject, 'baseos-ci.redhat-module.tier0.functional')
+            decision = policy.check('rhel-8', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], RuleSatisfied)
 
-                # Ensure that absence of a result is failure.
-                results = DummyResultsRetriever(subject)
-                decision = policy.check('rhel-8', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultMissing)
+            # Ensure that absence of a result is failure.
+            results = DummyResultsRetriever(subject)
+            decision = policy.check('rhel-8', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultMissing)
 
-                # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(
-                    subject, 'baseos-ci.redhat-module.tier0.functional', 'FAILED')
-                decision = policy.check('rhel-8', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultFailed)
+            # And that a result with a failure, is a failure.
+            results = DummyResultsRetriever(
+                subject, 'baseos-ci.redhat-module.tier0.functional', 'FAILED')
+            decision = policy.check('rhel-8', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultFailed)
 
 
 def test_remote_rule_policy_redhat_container_image(tmpdir):
@@ -605,7 +600,7 @@ def test_remote_rule_policy_redhat_container_image(tmpdir):
     In this case we are just mocking koji """
 
     nvr = '389-ds-1.4-820181127205924.9edba152'
-    subject = create_test_subject('redhat-container-image', nvr)
+    subject = create_subject('redhat-container-image', nvr)
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -631,34 +626,32 @@ def test_remote_rule_policy_redhat_container_image(tmpdir):
 
     p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = ('containers', '389-ds', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                f.return_value = remote_fragment
-                policies = load_policies(tmpdir.strpath)
-                policy = policies[0]
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = ('containers', '389-ds', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment
+            policies = load_policies(tmpdir.strpath)
+            policy = policies[0]
 
-                # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(
-                    subject, 'baseos-ci.redhat-container-image.tier0.functional')
-                decision = policy.check('rhel-8', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], RuleSatisfied)
+            # Ensure that presence of a result is success.
+            results = DummyResultsRetriever(
+                subject, 'baseos-ci.redhat-container-image.tier0.functional')
+            decision = policy.check('rhel-8', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], RuleSatisfied)
 
-                # Ensure that absence of a result is failure.
-                results = DummyResultsRetriever(subject)
-                decision = policy.check('rhel-8', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultMissing)
+            # Ensure that absence of a result is failure.
+            results = DummyResultsRetriever(subject)
+            decision = policy.check('rhel-8', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultMissing)
 
-                # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(
-                    subject, 'baseos-ci.redhat-container-image.tier0.functional', 'FAILED')
-                decision = policy.check('rhel-8', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultFailed)
+            # And that a result with a failure, is a failure.
+            results = DummyResultsRetriever(
+                subject, 'baseos-ci.redhat-container-image.tier0.functional', 'FAILED')
+            decision = policy.check('rhel-8', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultFailed)
 
 
 def test_redhat_container_image_subject_type():
@@ -666,34 +659,32 @@ def test_redhat_container_image_subject_type():
     rdb_url = 'http://results.db'
     cur_time = time.strftime('%Y-%m-%dT%H:%M:%S.00')
     testcase_name = 'testcase1'
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        rh_img_subject = create_subject('redhat-container-image', nvr)
-        retriever = ResultsRetriever(ignore_ids=list(), when=cur_time, url=rdb_url)
-        with mock.patch('requests.Session.get') as req_get:
-            req_get.json.return_value = {'data': {'item': [nvr]}}
-            retriever._retrieve_all(rh_img_subject, testcase_name)  # pylint: disable=W0212
-            assert req_get.call_count == 2
-            assert req_get.call_args_list[0] == mock.call(
-                f'{rdb_url}/results/latest',
-                params={'nvr': nvr,
-                        'type': 'redhat-container-image',
-                        '_distinct_on': 'scenario,system_architecture,system_variant',
-                        'since': f'1900-01-01T00:00:00.000000,{cur_time}',
-                        'testcases': testcase_name}
-            )
-            assert req_get.call_args_list[1] == mock.call(
-                f'{rdb_url}/results/latest',
-                params={'item': nvr,
-                        'type': 'koji_build',
-                        '_distinct_on': 'scenario,system_architecture,system_variant',
-                        'since': f'1900-01-01T00:00:00.000000,{cur_time}',
-                        'testcases': testcase_name}
-            )
+    rh_img_subject = create_subject('redhat-container-image', nvr)
+    retriever = ResultsRetriever(ignore_ids=list(), when=cur_time, url=rdb_url)
+    with mock.patch('requests.Session.get') as req_get:
+        req_get.json.return_value = {'data': {'item': [nvr]}}
+        retriever._retrieve_all(rh_img_subject, testcase_name)  # pylint: disable=W0212
+        assert req_get.call_count == 2
+        assert req_get.call_args_list[0] == mock.call(
+            f'{rdb_url}/results/latest',
+            params={'nvr': nvr,
+                    'type': 'redhat-container-image',
+                    '_distinct_on': 'scenario,system_architecture,system_variant',
+                    'since': f'1900-01-01T00:00:00.000000,{cur_time}',
+                    'testcases': testcase_name}
+        )
+        assert req_get.call_args_list[1] == mock.call(
+            f'{rdb_url}/results/latest',
+            params={'item': nvr,
+                    'type': 'koji_build',
+                    '_distinct_on': 'scenario,system_architecture,system_variant',
+                    'since': f'1900-01-01T00:00:00.000000,{cur_time}',
+                    'testcases': testcase_name}
+        )
 
 
 def test_remote_rule_policy_optional_id(tmpdir):
-    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+    subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -715,8 +706,58 @@ def test_remote_rule_policy_optional_id(tmpdir):
 
     p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment
+            policies = load_policies(tmpdir.strpath)
+            policy = policies[0]
+
+            results = DummyResultsRetriever()
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultMissing)
+            assert decision[0].is_satisfied is False
+
+
+def test_remote_rule_malformed_yaml(tmpdir):
+    """ Testing the RemoteRule with a malformed gating.yaml file """
+
+    subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
+
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+        """)
+
+    remote_fragments = [dedent("""
+        --- !Policy
+           : "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        blacklist: []
+        rules:
+          - !PassingTestCaseRule {test_case_name: dist.upgradepath}
+        """), dedent("""
+        --- !Policy
+        id: "some-policy-from-a-random-packager"
+        product_versions:
+          - fedora-26
+        decision_context: bodhi_update_push_stable_with_remoterule
+        rules:
+          - !RemoteRule {test_case_name: dist.upgradepath}
+        """)]
+
+    for remote_fragment in remote_fragments:
+        p = tmpdir.join('gating.yaml')
+        p.write(serverside_fragment)
         with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
             scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
@@ -727,69 +768,15 @@ def test_remote_rule_policy_optional_id(tmpdir):
                 results = DummyResultsRetriever()
                 decision = policy.check('fedora-26', subject, results)
                 assert len(decision) == 1
-                assert isinstance(decision[0], TestResultMissing)
+                assert isinstance(decision[0], InvalidRemoteRuleYaml)
                 assert decision[0].is_satisfied is False
-
-
-def test_remote_rule_malformed_yaml(tmpdir):
-    """ Testing the RemoteRule with a malformed gating.yaml file """
-
-    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
-
-    serverside_fragment = dedent("""
-        --- !Policy
-        id: "taskotron_release_critical_tasks_with_remoterule"
-        product_versions:
-          - fedora-26
-        decision_context: bodhi_update_push_stable_with_remoterule
-        subject_type: koji_build
-        rules:
-          - !RemoteRule {}
-        """)
-
-    remote_fragments = [dedent("""
-        --- !Policy
-           : "some-policy-from-a-random-packager"
-        product_versions:
-          - fedora-26
-        decision_context: bodhi_update_push_stable_with_remoterule
-        blacklist: []
-        rules:
-          - !PassingTestCaseRule {test_case_name: dist.upgradepath}
-        """), dedent("""
-        --- !Policy
-        id: "some-policy-from-a-random-packager"
-        product_versions:
-          - fedora-26
-        decision_context: bodhi_update_push_stable_with_remoterule
-        rules:
-          - !RemoteRule {test_case_name: dist.upgradepath}
-        """)]
-
-    for remote_fragment in remote_fragments:
-        p = tmpdir.join('gating.yaml')
-        p.write(serverside_fragment)
-        app = create_app('greenwave.config.TestingConfig')
-        with app.app_context():
-            with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-                scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-                with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                    f.return_value = remote_fragment
-                    policies = load_policies(tmpdir.strpath)
-                    policy = policies[0]
-
-                    results = DummyResultsRetriever()
-                    decision = policy.check('fedora-26', subject, results)
-                    assert len(decision) == 1
-                    assert isinstance(decision[0], InvalidRemoteRuleYaml)
-                    assert decision[0].is_satisfied is False
 
 
 def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
     """ Testing the RemoteRule with a malformed gating.yaml file
     But this time waiving the error """
 
-    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+    subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -824,56 +811,52 @@ def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
     for remote_fragment in remote_fragments:
         p = tmpdir.join('gating.yaml')
         p.write(serverside_fragment)
-        app = create_app('greenwave.config.TestingConfig')
-        with app.app_context():
-            with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-                scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-                with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                    f.return_value = remote_fragment
-                    policies = load_policies(tmpdir.strpath)
-                    policy = policies[0]
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+                f.return_value = remote_fragment
+                policies = load_policies(tmpdir.strpath)
+                policy = policies[0]
 
-                    results = DummyResultsRetriever()
-                    waivers = [{
-                        'id': 1,
-                        'subject_type': 'koji_build',
-                        'subject_identifier': 'nethack-1.2.3-1.el9000',
-                        'subject': {'type': 'koji_build', 'item': 'nethack-1.2.3-1.el9000'},
-                        'testcase': 'invalid-gating-yaml',
-                        'product_version': 'fedora-26',
-                        'comment': 'Waiving the invalid gating.yaml file',
-                        'waived': True,
-                    }]
-                    decision = policy.check('fedora-26', subject, results)
-                    decision = waive_answers(decision, waivers)
-                    assert len(decision) == 0
+                results = DummyResultsRetriever()
+                waivers = [{
+                    'id': 1,
+                    'subject_type': 'koji_build',
+                    'subject_identifier': 'nethack-1.2.3-1.el9000',
+                    'subject': {'type': 'koji_build', 'item': 'nethack-1.2.3-1.el9000'},
+                    'testcase': 'invalid-gating-yaml',
+                    'product_version': 'fedora-26',
+                    'comment': 'Waiving the invalid gating.yaml file',
+                    'waived': True,
+                }]
+                decision = policy.check('fedora-26', subject, results)
+                decision = waive_answers(decision, waivers)
+                assert len(decision) == 0
 
 
 def test_remote_rule_required():
     """ Testing the RemoteRule with required flag set """
-    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                f.return_value = None
-                policies = Policy.safe_load_all(dedent("""
-                    --- !Policy
-                    id: test
-                    product_versions: [fedora-rawhide]
-                    decision_context: test
-                    subject_type: koji_build
-                    rules:
-                      - !RemoteRule {required: true}
-                """))
-                policy = policies[0]
-                results = DummyResultsRetriever()
-                decision = policy.check('fedora-rawhide', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], MissingRemoteRuleYaml)
-                assert not decision[0].is_satisfied
-                assert decision[0].subject.identifier == subject.identifier
+    subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = None
+            policies = Policy.safe_load_all(dedent("""
+                --- !Policy
+                id: test
+                product_versions: [fedora-rawhide]
+                decision_context: test
+                subject_type: koji_build
+                rules:
+                  - !RemoteRule {required: true}
+            """))
+            policy = policies[0]
+            results = DummyResultsRetriever()
+            decision = policy.check('fedora-rawhide', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], MissingRemoteRuleYaml)
+            assert not decision[0].is_satisfied
+            assert decision[0].subject.identifier == subject.identifier
 
 
 def test_parse_policies_missing_tag():
@@ -967,7 +950,7 @@ def test_policy_with_arbitrary_subject_type(tmpdir):
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
-    subject = create_test_subject('kind-of-magic', 'nethack-1.2.3-1.el9000')
+    subject = create_subject('kind-of-magic', 'nethack-1.2.3-1.el9000')
     results = DummyResultsRetriever(subject, 'sometest', 'PASSED')
     decision = policy.check('rhel-9000', subject, results)
     assert len(decision) == 1
@@ -1029,7 +1012,7 @@ def test_policy_with_packages_whitelist(tmpdir, package, num_decisions):
     policies = load_policies(tmpdir.strpath)
     policy = policies[0]
 
-    subject = create_test_subject('koji_build', 'nethack-1.2.3-1.el9000')
+    subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
     results = DummyResultsRetriever(subject, 'sometest', 'PASSED')
     decision = policy.check('rhel-9000', subject, results)
     assert len(decision) == num_decisions
@@ -1211,7 +1194,7 @@ def test_policies_to_json():
 
 def test_policy_with_subject_type_component_version(tmpdir):
     nv = '389-ds-base-1.4.0.10'
-    subject = create_test_subject('component-version', nv)
+    subject = create_subject('component-version', nv)
     p = tmpdir.join('fedora.yaml')
     p.write(dedent("""
         --- !Policy
@@ -1235,7 +1218,7 @@ def test_policy_with_subject_type_component_version(tmpdir):
 @pytest.mark.parametrize('subject_type', ["redhat-module", "redhat-container-image"])
 def test_policy_with_subject_type_redhat_module(tmpdir, subject_type):
     nsvc = 'httpd:2.4:20181018085700:9edba152'
-    subject = create_test_subject(subject_type, nsvc)
+    subject = create_subject(subject_type, nsvc)
     p = tmpdir.join('fedora.yaml')
     p.write(dedent("""
         --- !Policy
@@ -1262,7 +1245,7 @@ def test_remote_rule_policy_on_demand_policy(namespace):
     In this case we are just mocking koji """
 
     nvr = 'nethack-1.2.3-1.el9000'
-    subject = create_test_subject('koji_build', nvr)
+    subject = create_subject('koji_build', nvr)
 
     serverside_json = {
         'product_version': 'fedora-26',
@@ -1284,31 +1267,29 @@ def test_remote_rule_policy_on_demand_policy(namespace):
         - !PassingTestCaseRule {test_case_name: dist.upgradepath}
         """)
 
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                f.return_value = remote_fragment
-                policy = OnDemandPolicy.create_from_json(serverside_json)
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = (namespace, 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment
+            policy = OnDemandPolicy.create_from_json(serverside_json)
 
-                # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(subject, 'dist.upgradepath')
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], RuleSatisfied)
+            # Ensure that presence of a result is success.
+            results = DummyResultsRetriever(subject, 'dist.upgradepath')
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], RuleSatisfied)
 
-                # Ensure that absence of a result is failure.
-                results = DummyResultsRetriever()
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultMissing)
+            # Ensure that absence of a result is failure.
+            results = DummyResultsRetriever()
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultMissing)
 
-                # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultFailed)
+            # And that a result with a failure, is a failure.
+            results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultFailed)
 
 
 @pytest.mark.parametrize('two_rules', (True, False))
@@ -1316,7 +1297,7 @@ def test_on_demand_policy_match(two_rules):
     """ Proceed other rules when there's no source URL in Koji build """
 
     nvr = 'httpd-2.4.el9000'
-    subject = create_test_subject('koji_build', nvr)
+    subject = create_subject('koji_build', nvr)
 
     serverside_json = {
         'product_version': 'fedora-30',
@@ -1336,26 +1317,24 @@ def test_on_demand_policy_match(two_rules):
             "test_case_name": "fake.testcase.tier0.validation"
         })
 
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        with mock.patch('greenwave.resources.get_server_proxy') as koji_server:
-            koji_server_instance = mock.MagicMock()
-            koji_server_instance.getBuild.return_value = {'extra': {'source': None}}
-            koji_server.return_value = koji_server_instance
-            policy = OnDemandPolicy.create_from_json(serverside_json)
+    with mock.patch('greenwave.resources.get_server_proxy') as koji_server:
+        koji_server_instance = mock.MagicMock()
+        koji_server_instance.getBuild.return_value = {'extra': {'source': None}}
+        koji_server.return_value = koji_server_instance
+        policy = OnDemandPolicy.create_from_json(serverside_json)
 
-            policy_matches = policy.matches(subject=subject)
+        policy_matches = policy.matches(subject=subject)
 
-            koji_server_instance.getBuild.assert_called_once()
-            assert policy_matches
+        koji_server_instance.getBuild.assert_called_once()
+        assert policy_matches
 
-            results = DummyResultsRetriever(
-                subject, 'fake.testcase.tier0.validation', 'PASSED'
-            )
-            decision = policy.check('fedora-30', subject, results)
-            if two_rules:
-                assert len(decision) == 1
-                assert isinstance(decision[0], RuleSatisfied)
+        results = DummyResultsRetriever(
+            subject, 'fake.testcase.tier0.validation', 'PASSED'
+        )
+        decision = policy.check('fedora-30', subject, results)
+        if two_rules:
+            assert len(decision) == 1
+            assert isinstance(decision[0], RuleSatisfied)
 
 
 def test_remote_rule_policy_on_demand_policy_required():
@@ -1363,7 +1342,7 @@ def test_remote_rule_policy_on_demand_policy_required():
     In this case we are just mocking koji """
 
     nvr = 'nethack-1.2.3-1.el9000'
-    subject = create_test_subject('koji_build', nvr)
+    subject = create_subject('koji_build', nvr)
 
     serverside_json = {
         'product_version': 'fedora-26',
@@ -1377,29 +1356,27 @@ def test_remote_rule_policy_on_demand_policy_required():
         ],
     }
 
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                f.return_value = None
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = None
 
-                policy = OnDemandPolicy.create_from_json(serverside_json)
-                assert len(policy.rules) == 1
-                assert isinstance(policy.rules[0], RemoteRule)
-                assert policy.rules[0].required
+            policy = OnDemandPolicy.create_from_json(serverside_json)
+            assert len(policy.rules) == 1
+            assert isinstance(policy.rules[0], RemoteRule)
+            assert policy.rules[0].required
 
-                results = DummyResultsRetriever()
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], MissingRemoteRuleYaml)
-                assert not decision[0].is_satisfied
-                assert decision[0].subject.identifier == subject.identifier
+            results = DummyResultsRetriever()
+            decision = policy.check('fedora-26', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], MissingRemoteRuleYaml)
+            assert not decision[0].is_satisfied
+            assert decision[0].subject.identifier == subject.identifier
 
 
 def test_two_rules_no_duplicate(tmpdir):
     nvr = 'nethack-1.2.3-1.el9000'
-    subject = create_test_subject('koji_build', nvr)
+    subject = create_subject('koji_build', nvr)
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -1425,39 +1402,37 @@ def test_two_rules_no_duplicate(tmpdir):
 
     p = tmpdir.join('gating.yaml')
     p.write(serverside_fragment)
-    app = create_app('greenwave.config.TestingConfig')
-    with app.app_context():
-        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
-            scm.return_value = ('rmps', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-            with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
-                f.return_value = remote_fragment
-                policies = load_policies(tmpdir.strpath)
-                policy = policies[0]
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = ('rmps', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment
+            policies = load_policies(tmpdir.strpath)
+            policy = policies[0]
 
-                # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(subject, 'dist.upgradepath')
-                decision = policy.check('fedora-31', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], RuleSatisfied)
+            # Ensure that presence of a result is success.
+            results = DummyResultsRetriever(subject, 'dist.upgradepath')
+            decision = policy.check('fedora-31', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], RuleSatisfied)
 
-                # Ensure that absence of a result is failure.
-                results = DummyResultsRetriever()
-                decision = policy.check('fedora-31', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultMissing)
+            # Ensure that absence of a result is failure.
+            results = DummyResultsRetriever()
+            decision = policy.check('fedora-31', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultMissing)
 
-                # And that a result with a failure, is a failure.
-                results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
-                decision = policy.check('fedora-31', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], TestResultFailed)
+            # And that a result with a failure, is a failure.
+            results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
+            decision = policy.check('fedora-31', subject, results)
+            assert len(decision) == 1
+            assert isinstance(decision[0], TestResultFailed)
 
 
 def test_cache_all_results_temporarily():
     """
     All results are stored in temporary cache (valid during single request).
     """
-    subject = create_test_subject('bodhi_update', 'update-1')
+    subject = create_subject('bodhi_update', 'update-1')
     results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
 
     retrieved = results.retrieve(subject, testcase=None)
@@ -1474,7 +1449,7 @@ def test_cache_passing_results():
     Passing results are stored in external cache because it's not expected that
     the outcome changes once they passed.
     """
-    subject = create_test_subject('bodhi_update', 'update-1')
+    subject = create_subject('bodhi_update', 'update-1')
     results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
 
     retrieved = results.retrieve(subject, testcase=None)
