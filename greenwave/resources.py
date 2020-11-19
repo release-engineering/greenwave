@@ -24,6 +24,13 @@ log = logging.getLogger(__name__)
 requests_session = get_requests_session()
 
 
+def _requests_timeout():
+    timeout = current_app.config['REQUESTS_TIMEOUT']
+    if isinstance(timeout, tuple):
+        return timeout[1]
+    return timeout
+
+
 class BaseRetriever:
     def __init__(self, ignore_ids, when, url):
         self.ignore_ids = ignore_ids
@@ -137,9 +144,16 @@ class NoSourceException(RuntimeError):
 
 
 @cached
+def retrieve_koji_task_request(nvr, koji_url):
+    log.debug('Getting Koji task request ID %r', nvr)
+    proxy = get_server_proxy(koji_url, _requests_timeout())
+    return proxy.getTaskRequest(nvr)
+
+
+@cached
 def retrieve_koji_build(nvr, koji_url):
     log.debug('Getting Koji build %r', nvr)
-    proxy = get_server_proxy(koji_url)
+    proxy = get_server_proxy(koji_url, _requests_timeout())
     return proxy.getBuild(nvr)
 
 

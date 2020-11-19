@@ -1,3 +1,4 @@
+import mock
 import pytest
 
 from greenwave.app_factory import create_app
@@ -18,3 +19,10 @@ def app():
 @pytest.fixture
 def client(app):
     yield app.test_client()
+
+
+@pytest.fixture
+def koji_proxy():
+    mock_proxy = mock.Mock()
+    with mock.patch('greenwave.resources.get_server_proxy', return_value=mock_proxy):
+        yield mock_proxy

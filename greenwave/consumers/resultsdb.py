@@ -17,7 +17,6 @@ from greenwave.subjects.factory import (
     create_subject_from_data,
     UnknownSubjectDataError,
 )
-from greenwave.xmlrpc_server_proxy import get_server_proxy
 
 log = logging.getLogger(__name__)
 
@@ -59,12 +58,7 @@ class ResultsDBHandler(Consumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        koji_base_url = self.flask_app.config['KOJI_BASE_URL']
-        if koji_base_url:
-            self.koji_proxy = get_server_proxy(koji_base_url)
-        else:
-            self.koji_proxy = None
+        self.koji_base_url = self.flask_app.config['KOJI_BASE_URL']
 
     @staticmethod
     def announcement_subject(message):
@@ -133,7 +127,7 @@ class ResultsDBHandler(Consumer):
 
         product_version = subject_product_version(
             subject,
-            self.koji_proxy,
+            self.koji_base_url,
             brew_task_id,
         )
 

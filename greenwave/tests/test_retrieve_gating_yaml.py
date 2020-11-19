@@ -97,19 +97,16 @@ def test_retrieve_scm_from_build_without_namespace():
     assert pkg_name == 'foo'
 
 
-def test_retrieve_scm_from_koji_build_not_found():
+def test_retrieve_scm_from_koji_build_not_found(koji_proxy):
     nvr = 'foo-1.2.3-1.fc29'
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
         expected_error = '404 Not Found: Failed to find Koji build for "{}" at "{}"'.format(
             nvr, app.config['KOJI_BASE_URL']
         )
-        with mock.patch('greenwave.resources.get_server_proxy') as koji_server:
-            proxy = mock.MagicMock()
-            proxy.getBuild.return_value = {}
-            koji_server.return_value = proxy
-            with pytest.raises(NotFound, match=expected_error):
-                retrieve_scm_from_koji(nvr)
+        koji_proxy.getBuild.return_value = {}
+        with pytest.raises(NotFound, match=expected_error):
+            retrieve_scm_from_koji(nvr)
 
 
 def test_retrieve_scm_from_build_with_missing_rev():
@@ -170,10 +167,8 @@ def test_retrieve_yaml_remote_rule_connection_error():
             )
 
 
-@mock.patch('greenwave.resources.get_server_proxy')
-def test_retrieve_scm_from_koji_build_socket_error(mock_xmlrpc_client):
-    mock_auth_server = mock_xmlrpc_client.return_value
-    mock_auth_server.getBuild.side_effect = socket.error('Socket is closed')
+def test_retrieve_scm_from_koji_build_socket_error(koji_proxy):
+    koji_proxy.getBuild.side_effect = socket.error('Socket is closed')
     app = greenwave.app_factory.create_app()
     nvr = 'nethack-3.6.1-3.fc29'
     expected_error = 'Could not reach Koji: Socket is closed'

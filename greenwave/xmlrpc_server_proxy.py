@@ -5,11 +5,11 @@ Provides an "xmlrpc.client.ServerProxy" object with a timeout on the socket.
 """
 import urllib.parse
 import xmlrpc.client
+from functools import lru_cache
 
-from flask import current_app, has_app_context
 
-
-def get_server_proxy(uri, timeout=None):
+@lru_cache(maxsize=None)
+def get_server_proxy(uri, timeout):
     """
     Create an :py:class:`xmlrpc.client.ServerProxy` instance with a socket timeout.
 
@@ -17,19 +17,12 @@ def get_server_proxy(uri, timeout=None):
 
     Args:
         uri (str): The connection point on the server in the format of scheme://host/target.
-        timeout (int): The timeout to set on the transport socket. This defaults to the Flask
-            configuration `REQUESTS_TIMEOUT` if there is an application context.
+        timeout (int): The timeout to set on the transport socket.
 
     Returns:
         xmlrpc.client.ServerProxy: An instance of :py:class:`xmlrpc.client.ServerProxy` with
             a socket timeout set.
     """
-    if timeout is None and has_app_context():
-        if isinstance(current_app.config['REQUESTS_TIMEOUT'], tuple):
-            timeout = current_app.config['REQUESTS_TIMEOUT'][1]
-        else:
-            timeout = current_app.config['REQUESTS_TIMEOUT']
-
     parsed_uri = urllib.parse.urlparse(uri)
     if parsed_uri.scheme == 'https':
         transport = SafeTransport(timeout=timeout)

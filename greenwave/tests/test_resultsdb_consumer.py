@@ -339,28 +339,23 @@ def test_guess_product_version():
         assert product_version == 'rhel-8'
 
 
-def test_guess_product_version_with_koji():
-    koji_proxy = mock.MagicMock()
+def test_guess_product_version_with_koji(koji_proxy, app):
     koji_proxy.getBuild.return_value = {'task_id': 666}
     koji_proxy.getTaskRequest.return_value = ['git://example.com/project', 'rawhide', {}]
 
-    app = create_app()
-    with app.app_context():
-        subject = create_subject('container-build', 'fake_koji_build')
-    product_version = subject_product_version(subject, koji_proxy)
+    subject = create_subject('container-build', 'fake_koji_build')
+    product_version = subject_product_version(subject, 'http://localhost:5006/kojihub')
+
     koji_proxy.getBuild.assert_called_once_with('fake_koji_build')
     koji_proxy.getTaskRequest.assert_called_once_with(666)
     assert product_version == 'fedora-rawhide'
 
 
-def test_guess_product_version_with_koji_without_task_id():
-    koji_proxy = mock.MagicMock()
+def test_guess_product_version_with_koji_without_task_id(koji_proxy, app):
     koji_proxy.getBuild.return_value = {'task_id': None}
 
-    app = create_app()
-    with app.app_context():
-        subject = create_subject('container-build', 'fake_koji_build')
-    product_version = subject_product_version(subject, koji_proxy)
+    subject = create_subject('container-build', 'fake_koji_build')
+    product_version = subject_product_version(subject, 'http://localhost:5006/kojihub')
 
     koji_proxy.getBuild.assert_called_once_with('fake_koji_build')
     koji_proxy.getTaskRequest.assert_not_called()
@@ -573,7 +568,7 @@ def test_real_fedora_messaging_msg(mock_retrieve_results):
             }
             handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
 
-            handler.koji_proxy = None
+            handler.koji_base_url = None
             handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
             with handler.flask_app.app_context():
                 handler.consume(message)
@@ -596,7 +591,7 @@ def test_real_fedora_messaging_msg(mock_retrieve_results):
             }
 
 
-def test_container_brew_build(mock_retrieve_results):
+def test_container_brew_build(mock_retrieve_results, koji_proxy):
     message = {
         'msg': {
             'submit_time': '2019-08-27T13:57:53.490376',
@@ -642,11 +637,9 @@ def test_container_brew_build(mock_retrieve_results):
             }
             handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
 
-            koji_proxy = mock.MagicMock()
             koji_proxy.getBuild.return_value = None
             koji_proxy.getTaskRequest.return_value = [
                 'git://example.com/project', 'example_product_version', {}]
-            handler.koji_proxy = koji_proxy
 
             handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
             with handler.flask_app.app_context():

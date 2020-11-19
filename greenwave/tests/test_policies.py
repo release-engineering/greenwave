@@ -1293,7 +1293,7 @@ def test_remote_rule_policy_on_demand_policy(namespace):
 
 
 @pytest.mark.parametrize('two_rules', (True, False))
-def test_on_demand_policy_match(two_rules):
+def test_on_demand_policy_match(two_rules, koji_proxy):
     """ Proceed other rules when there's no source URL in Koji build """
 
     nvr = 'httpd-2.4.el9000'
@@ -1317,24 +1317,21 @@ def test_on_demand_policy_match(two_rules):
             "test_case_name": "fake.testcase.tier0.validation"
         })
 
-    with mock.patch('greenwave.resources.get_server_proxy') as koji_server:
-        koji_server_instance = mock.MagicMock()
-        koji_server_instance.getBuild.return_value = {'extra': {'source': None}}
-        koji_server.return_value = koji_server_instance
-        policy = OnDemandPolicy.create_from_json(serverside_json)
+    koji_proxy.getBuild.return_value = {'extra': {'source': None}}
+    policy = OnDemandPolicy.create_from_json(serverside_json)
 
-        policy_matches = policy.matches(subject=subject)
+    policy_matches = policy.matches(subject=subject)
 
-        koji_server_instance.getBuild.assert_called_once()
-        assert policy_matches
+    koji_proxy.getBuild.assert_called_once()
+    assert policy_matches
 
-        results = DummyResultsRetriever(
-            subject, 'fake.testcase.tier0.validation', 'PASSED'
-        )
-        decision = policy.check('fedora-30', subject, results)
-        if two_rules:
-            assert len(decision) == 1
-            assert isinstance(decision[0], RuleSatisfied)
+    results = DummyResultsRetriever(
+        subject, 'fake.testcase.tier0.validation', 'PASSED'
+    )
+    decision = policy.check('fedora-30', subject, results)
+    if two_rules:
+        assert len(decision) == 1
+        assert isinstance(decision[0], RuleSatisfied)
 
 
 def test_remote_rule_policy_on_demand_policy_required():

@@ -8,6 +8,8 @@ import re
 import socket
 import xmlrpc.client
 
+from greenwave.resources import retrieve_koji_build, retrieve_koji_task_request
+
 log = logging.getLogger(__name__)
 
 
@@ -41,17 +43,16 @@ def _guess_product_version(toparse, koji_build=False):
 
 
 def _guess_koji_build_product_version(
-        subject_identifier, koji_proxy, koji_task_id=None):
+        subject_identifier, koji_base_url, koji_task_id=None):
     try:
         if not koji_task_id:
             log.debug('Getting Koji task ID for build %r', subject_identifier)
-            build = koji_proxy.getBuild(subject_identifier) or {}
+            build = retrieve_koji_build(subject_identifier, koji_base_url) or {}
             koji_task_id = build.get('task_id')
             if not koji_task_id:
                 return None
 
-        log.debug('Getting Koji task request ID %r', koji_task_id)
-        target = koji_proxy.getTaskRequest(koji_task_id)[1]
+        target = retrieve_koji_task_request(koji_task_id, koji_base_url)[1]
         return _guess_product_version(target, koji_build=True)
     except (xmlrpc.client.ProtocolError, socket.error) as err:
         raise ConnectionError('Could not reach Koji: {}'.format(err))
@@ -61,7 +62,7 @@ def _guess_koji_build_product_version(
 
 def subject_product_version(
         subject,
-        koji_proxy=None,
+        koji_base_url=None,
         koji_task_id=None):
     if subject.product_version:
         return subject.product_version
@@ -72,6 +73,6 @@ def subject_product_version(
         if product_version:
             return product_version
 
-    if koji_proxy and subject.is_koji_build:
+    if koji_base_url and subject.is_koji_build:
         return _guess_koji_build_product_version(
-            subject.identifier, koji_proxy, koji_task_id)
+            subject.identifier, koji_base_url, koji_task_id)
