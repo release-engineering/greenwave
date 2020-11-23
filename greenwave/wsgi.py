@@ -4,6 +4,6 @@ import logging
 from greenwave.logger import init_logging, log_to_stdout
 from greenwave.app_factory import create_app
 
-app = create_app()
 init_logging()
-log_to_stdout(level=logging.DEBUG if app.debug else logging.INFO)
+log_to_stdout(logging.DEBUG)
+app = create_app()
