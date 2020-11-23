@@ -72,7 +72,7 @@ services:
       - waiverdb-db
 
   memcached:
-    image: "docker.io/modularitycontainers/memcached"
+    image: "quay.io/factory2/memcached"
 
 networks:
   default:
