@@ -1,3 +1,5 @@
+import logging
+
 import requests
 
 from json import dumps
@@ -9,6 +11,8 @@ from urllib3.exceptions import ProxyError, SSLError
 from flask import current_app, has_app_context
 
 from greenwave import __version__
+
+log = logging.getLogger(__name__)
 
 
 class ErrorResponse(requests.Response):
@@ -26,6 +30,8 @@ class ErrorResponse(requests.Response):
 
 class RequestsSession(requests.Session):
     def request(self, *args, **kwargs):  # pylint:disable=arguments-differ
+        log.debug('Request: args=%r, kwargs=%r', args, kwargs)
+
         req_url = kwargs.get('url', args[1])
 
         kwargs.setdefault('headers', {'Content-Type': 'application/json'})
@@ -34,11 +40,13 @@ class RequestsSession(requests.Session):
             kwargs.setdefault('verify', current_app.config['REQUESTS_VERIFY'])
 
         try:
-            return super().request(*args, **kwargs)
+            ret_val = super().request(*args, **kwargs)
         except (ConnectTimeout, RetryError) as e:
             ret_val = ErrorResponse(504, str(e), req_url)
         except (ConnectionError, ProxyError, SSLError) as e:
             ret_val = ErrorResponse(502, str(e), req_url)
+
+        log.debug('Request finished: %r', ret_val)
         return ret_val
 
 
