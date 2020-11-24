@@ -24,6 +24,10 @@ def create_app(config_obj=None):
     if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':
         raise Warning("You need to change the app.secret_key value for production")
 
+    logging_config = app.config.get('LOGGING')
+    if logging_config:
+        logging.config.dictConfig(logging_config)
+
     policies_dir = app.config['POLICIES_DIR']
     log.debug("config: Loading policies from %r", policies_dir)
     app.config['policies'] = load_policies(policies_dir)

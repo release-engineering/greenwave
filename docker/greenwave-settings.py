@@ -16,3 +16,33 @@ CACHE = {
         'distributed_lock': True
     }
 }
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'loggers': {
+        'greenwave': {
+            'level': 'DEBUG',
+        },
+        'dogpile.cache': {
+            'level': 'DEBUG',
+        },
+    },
+    'handlers': {
+        'console': {
+            'formatter': 'bare',
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+            'level': 'DEBUG',
+        },
+    },
+    'formatters': {
+        'bare': {
+            'format': '[%(asctime)s] [%(process)d] [%(levelname)s] %(name)s: %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        }
+    },
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console'],
+    },
+}

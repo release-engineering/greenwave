@@ -5,7 +5,7 @@ import sys
 
 
 def log_to_stdout(level=logging.INFO):
-    fmt = '%(asctime)s [pid %(process)5d] %(name)s %(levelname)s %(message)s'
+    fmt = '[%(asctime)s] [%(process)d] [%(levelname)s] %(name)s: %(message)s'
     datefmt = '%Y-%m-%d %H:%M:%S'
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(level)
