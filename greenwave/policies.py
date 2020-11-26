@@ -449,46 +449,53 @@ class RemoteRule(Rule):
             return []
 
         rr_policies_conf = current_app.config.get('REMOTE_RULE_POLICIES', {})
-        cur_subject_url = (
+        cur_subject_urls = (
             rr_policies_conf.get(policy.subject_type) or
             rr_policies_conf.get('*') or
             current_app.config.get('DIST_GIT_URL_TEMPLATE')
         )
 
-        if not cur_subject_url:
+        if not cur_subject_urls:
             raise RuntimeError(f'Cannot use a remote rule for {subject} subject '
                                f'as it has not been configured')
 
-        response = None
-        url_params = {}
-        if '{pkg_name}' in cur_subject_url or '{pkg_namespace}' in cur_subject_url or \
-                '{rev}' in cur_subject_url:
-            try:
-                pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
-                    subject.identifier
-                )
-            except greenwave.resources.NoSourceException as e:
-                log.error(e)
-                return None
+        if not isinstance(cur_subject_urls, list):
+            cur_subject_urls = [cur_subject_urls]
 
-            # if the element is actually a container and not a pkg there will be a "-container"
-            # string at the end of the "pkg_name" and it will not match with the one in the
-            # remote rule file URL
-            if pkg_namespace == 'containers':
-                pkg_name = re.sub('-container$', '', pkg_name)
-            if pkg_namespace:
-                pkg_namespace += '/'
-            url_params.update(rev=rev, pkg_name=pkg_name, pkg_namespace=pkg_namespace)
+        for current_url in cur_subject_urls:
+            response = None
+            url_params = {}
+            if '{pkg_name}' in current_url or '{pkg_namespace}' in current_url or \
+                    '{rev}' in current_url:
+                try:
+                    pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
+                        subject.identifier
+                    )
+                except greenwave.resources.NoSourceException as e:
+                    log.error(e)
+                    return None
 
-        if '{subject_id}' in cur_subject_url:
-            subj_id = subject.identifier
-            if subj_id.startswith('sha256:'):
-                subj_id = subj_id[7:]
-            url_params.update(subject_id=subj_id)
+                # if the element is actually a container and not a pkg there will be a "-container"
+                # string at the end of the "pkg_name" and it will not match with the one in the
+                # remote rule file URL
+                if pkg_namespace == 'containers':
+                    pkg_name = re.sub('-container$', '', pkg_name)
+                if pkg_namespace:
+                    pkg_namespace += '/'
+                url_params.update(rev=rev, pkg_name=pkg_name, pkg_namespace=pkg_namespace)
 
-        response = greenwave.resources.retrieve_yaml_remote_rule(
-            cur_subject_url.format(**url_params)
-        )
+            if '{subject_id}' in current_url:
+                subj_id = subject.identifier
+                if subj_id.startswith('sha256:'):
+                    subj_id = subj_id[7:]
+                url_params.update(subject_id=subj_id)
+
+            response = greenwave.resources.retrieve_yaml_remote_rule(
+                current_url.format(**url_params)
+            )
+
+            if response is not None:
+                break
 
         if response is None:
             # greenwave extension file not found
