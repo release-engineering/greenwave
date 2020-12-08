@@ -8,7 +8,7 @@ import datetime
 
 from flask import jsonify, current_app, request
 from flask.config import Config
-from requests import ConnectionError, Timeout
+import requests
 from werkzeug.exceptions import HTTPException
 
 log = logging.getLogger(__name__)
@@ -26,11 +26,11 @@ def json_error(error):
     if isinstance(error, HTTPException):
         msg = error.description
         status_code = error.code
-    elif isinstance(error, ConnectionError):
+    elif isinstance(error, (ConnectionError, requests.ConnectionError)):
         current_app.logger.exception('Connection error: {}'.format(error))
         msg = 'Error connecting to upstream server: {}'.format(error)
         status_code = 502
-    elif isinstance(error, Timeout):
+    elif isinstance(error, requests.Timeout):
         current_app.logger.exception('Timeout error: {}'.format(error))
         msg = 'Timeout connecting to upstream server: {}'.format(error)
         status_code = 504

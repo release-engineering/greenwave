@@ -4,8 +4,7 @@ import json
 import os
 
 import pytest
-
-from requests import ConnectionError, ConnectTimeout, Timeout
+import requests
 from werkzeug.exceptions import InternalServerError
 
 import greenwave.app_factory
@@ -19,8 +18,9 @@ SETTINGS_BASE_NAME = os.path.join(SETTINGS_DIR, 'settings')
 @pytest.mark.parametrize(('error, expected_status_code,'
                           'expected_error_message_part'), [
     (ConnectionError('ERROR'), 502, 'ERROR'),
-    (ConnectTimeout('TIMEOUT'), 502, 'TIMEOUT'),
-    (Timeout('TIMEOUT'), 504, 'TIMEOUT'),
+    (requests.ConnectionError('ERROR'), 502, 'ERROR'),
+    (requests.ConnectTimeout('TIMEOUT'), 502, 'TIMEOUT'),
+    (requests.Timeout('TIMEOUT'), 504, 'TIMEOUT'),
     (InternalServerError(), 500, 'The server encountered an internal error')
 ])
 def test_json_connection_error(error, expected_status_code,

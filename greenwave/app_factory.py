@@ -10,7 +10,7 @@ from greenwave.policies import load_policies
 from greenwave.subjects.subject_type import load_subject_types
 
 from dogpile.cache import make_region
-from requests import ConnectionError, Timeout
+import requests
 from werkzeug.exceptions import default_exceptions
 
 log = logging.getLogger(__name__)
@@ -45,7 +45,8 @@ def create_app(config_obj=None):
     for code in default_exceptions.keys():
         app.register_error_handler(code, json_error)
     app.register_error_handler(ConnectionError, json_error)
-    app.register_error_handler(Timeout, json_error)
+    app.register_error_handler(requests.ConnectionError, json_error)
+    app.register_error_handler(requests.Timeout, json_error)
 
     # register blueprints
     app.register_blueprint(api, url_prefix="/api/v1.0")
