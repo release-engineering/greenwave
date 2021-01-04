@@ -11,8 +11,10 @@ def _is_waived(answer, waivers):
     return any(
         waiver['subject_type'] == answer.subject.type and
         waiver['subject_identifier'] == answer.subject.identifier and
-        waiver['testcase'] == answer.test_case_name
-        for waiver in waivers)
+        waiver['testcase'] == answer.test_case_name and
+        (not waiver.get('scenario') or waiver['scenario'] == answer.scenario)
+        for waiver in waivers
+    )
 
 
 def _maybe_waive(answer, waivers):

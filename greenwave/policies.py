@@ -221,10 +221,11 @@ class InvalidRemoteRuleYaml(RuleNotSatisfied):
     Remote policy parsing failed.
     """
 
-    def __init__(self, subject, test_case_name, details):
+    def __init__(self, subject, test_case_name, details, scenario=None):
         self.subject = subject
         self.test_case_name = test_case_name
         self.details = details
+        self.scenario = scenario
 
     def to_json(self):
         return {
@@ -232,6 +233,7 @@ class InvalidRemoteRuleYaml(RuleNotSatisfied):
             'testcase': self.test_case_name,
             'subject_type': self.subject.type,
             'subject_identifier': self.subject.identifier,
+            'scenario': self.scenario,
             'details': self.details
         }
 
@@ -245,6 +247,7 @@ class MissingRemoteRuleYaml(RuleNotSatisfied):
     """
 
     test_case_name = 'missing-gating-yaml'
+    scenario = None
 
     def __init__(self, subject):
         self.subject = subject
@@ -255,6 +258,7 @@ class MissingRemoteRuleYaml(RuleNotSatisfied):
             'testcase': self.test_case_name,
             'subject_type': self.subject.type,
             'subject_identifier': self.subject.identifier,
+            'scenario': self.scenario
         }
 
     def to_waived(self):

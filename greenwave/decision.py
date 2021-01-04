@@ -169,6 +169,7 @@ def make_decision(data, config):
                     subject_identifier=answer.subject.identifier,
                     product_version=product_version,
                     testcase=answer.test_case_name,
+                    scenario=answer.scenario
                 ))
 
     if waiver_filters:

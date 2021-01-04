@@ -168,3 +168,47 @@ def test_waive_answers_duplicates():
     ]
     assert len(answers_json) == len(answers_to_check)
     assert all(a in answers_json for a in answers_to_check)
+
+
+def test_waive_scenario():
+    answers = [
+        TestResultFailed(
+            subject=test_subject(),
+            test_case_name='test1',
+            scenario='scenario1',
+            result_id=99,
+        )
+    ]
+
+    waivers = [
+        dict(
+            subject_type='koji_build',
+            subject_identifier='nethack-1.2.3-1.rawhide',
+            product_version='rawhide',
+            testcase='test1',
+            scenario='scenario2'
+        )
+    ]
+    waived = waive_answers(answers, waivers)
+    assert answers == waived
+
+    waivers = [
+        dict(
+            subject_type='koji_build',
+            subject_identifier='nethack-1.2.3-1.rawhide',
+            product_version='rawhide',
+            testcase='test1',
+            scenario='scenario1'
+        )
+    ]
+    waived = waive_answers(answers, waivers)
+    expected_json = dict(
+        type='test-result-failed-waived',
+        testcase='test1',
+        subject_type='koji_build',
+        subject_identifier='nethack-1.2.3-1.rawhide',
+        result_id=99,
+        scenario='scenario1',
+    )
+    assert 1 == len(waived)
+    assert expected_json == waived[0].to_json()
