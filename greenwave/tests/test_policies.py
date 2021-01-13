@@ -654,6 +654,64 @@ def test_remote_rule_policy_redhat_container_image(tmpdir):
             assert isinstance(decision[0], TestResultFailed)
 
 
+def test_get_sub_policies_multiple_urls(tmpdir):
+    """ Testing the RemoteRule with the koji interaction when on_demand policy is given.
+    In this case we are just mocking koji """
+
+    config = TestingConfig()
+    config.REMOTE_RULE_POLICIES = {'*': [
+        'https://src1.fp.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml',
+        'https://src2.fp.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
+    ]}
+
+    app = create_app(config)
+
+    nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_subject('koji_build', nvr)
+
+    serverside_json = {
+        'product_version': 'fedora-26',
+        'id': 'taskotron_release_critical_tasks_with_remoterule',
+        'subject': [{'item': nvr, 'type': 'koji_build'}],
+        'rules': [
+            {
+                'type': 'RemoteRule',
+                'required': True
+            },
+        ],
+    }
+
+    with app.app_context():
+        with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+            scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+            with mock.patch('greenwave.resources.requests_session') as session:
+                response = mock.MagicMock()
+                response.status_code = 404
+                session.request.side_effect = [response, response]
+
+                policy = OnDemandPolicy.create_from_json(serverside_json)
+                assert isinstance(policy.rules[0], RemoteRule)
+                assert policy.rules[0].required
+
+                results = DummyResultsRetriever()
+                decision = policy.check('fedora-26', subject, results)
+                expected_call1 = mock.call(
+                    'HEAD', 'https://src1.fp.org/{0}/{1}/raw/{2}/f/gating.yaml'.format(
+                        *scm.return_value
+                    )
+                )
+                expected_call2 = mock.call(
+                    'HEAD', 'https://src2.fp.org/{0}/{1}/raw/{2}/f/gating.yaml'.format(
+                        *scm.return_value
+                    )
+                )
+                assert session.request.mock_calls == [expected_call1, expected_call2]
+                assert len(decision) == 1
+                assert isinstance(decision[0], MissingRemoteRuleYaml)
+                assert not decision[0].is_satisfied
+                assert decision[0].subject.identifier == subject.identifier
+
+
 def test_redhat_container_image_subject_type():
     nvr = '389-ds-1.4-820181127205924.9edba152'
     rdb_url = 'http://results.db'
