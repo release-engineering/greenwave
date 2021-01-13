@@ -2,6 +2,18 @@
 Release Notes
 =============
 
+Greenwave 1.7.0
+===============
+
+Released 13 January 2021
+
+* Added a support for the 'scenario' field in waivers
+* Greenwave will now return a JSON error message when the Koji connection times out
+* Koji client and requests will be cached in resultsdb-consumer
+* Decision change message won't be published on 'QUEUED' and 'RUNNING' test result messages
+* Greenwave will now cache successful (passed) results
+* `REMOTE_RULE_POLICIES` now supports multiple URL templates (list)
+
 Greenwave 1.6.2
 ===============
 
