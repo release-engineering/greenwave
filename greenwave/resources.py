@@ -211,17 +211,8 @@ def retrieve_yaml_remote_rule(url):
     """ Retrieve a remote rule file content from the git web UI. """
     response = requests_session.request('HEAD', url)
     if response.status_code == 404:
-        log.debug(f'Server returned 404 for {url}. Trying to change the extension (yml<->yaml)')
-        if url.rfind('.yml') != -1:
-            url = url.replace('.yml', '.yaml')
-            response = requests_session.request('HEAD', url)
-        elif url.rfind('.yaml') != -1:
-            url = url.replace('.yaml', '.yml')
-            response = requests_session.request('HEAD', url)
-        if response.status_code == 404:
-            log.debug('Changing extension was still unsuccessful!')
-            return None
-        log.debug('Extension change was successful!')
+        log.debug(f'Server returned 404 for {url}.')
+        return None
 
     if response.status_code != 200:
         raise BadGateway('Error occurred while retrieving a remote rule file from the repo.')

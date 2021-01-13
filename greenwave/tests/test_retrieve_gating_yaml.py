@@ -139,34 +139,10 @@ def test_retrieve_yaml_remote_rule_no_namespace():
                 )
             )
 
-            expected_call1 = mock.call(
+            assert session.request.mock_calls == [mock.call(
                 'HEAD', 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml'
-            )
-            expected_call2 = mock.call(
-                'HEAD', 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yml'
-            )
-            assert session.request.mock_calls == [expected_call1, expected_call2]
+            )]
             assert returned_file is None
-
-
-def test_retrieve_yaml_remote_rule_change_ext():
-    app = greenwave.app_factory.create_app()
-    with app.app_context():
-        with mock.patch('greenwave.resources.requests_session') as session:
-            response1 = mock.MagicMock()
-            response2 = mock.MagicMock()
-            response1.status_code = 404
-            response2.status_code = 200
-            response2.content = 'ABC'
-            session.request.side_effect = [response1, response2, response2]
-
-            returned_file = retrieve_yaml_remote_rule('https://xxx/yyy.yml')
-
-            expected_call1 = mock.call('HEAD', 'https://xxx/yyy.yml')
-            expected_call2 = mock.call('HEAD', 'https://xxx/yyy.yaml')
-            expected_call3 = mock.call('GET', 'https://xxx/yyy.yaml')
-            assert session.request.mock_calls == [expected_call1, expected_call2, expected_call3]
-            assert returned_file == response2.content
 
 
 def test_retrieve_yaml_remote_rule_connection_error():
