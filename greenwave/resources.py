@@ -65,10 +65,7 @@ class ResultsRetriever(BaseRetriever):
         # retrieved for given Subject.
         cache_key = (subject.type, subject.identifier, scenarios)
         if testcase and cache_key in self.cache:
-            for result in self.cache[cache_key]:
-                if result['testcase']['name'] == testcase:
-                    return [result]
-            return []
+            return [res for res in self.cache[cache_key] if res['testcase']['name'] == testcase]
 
         # Try to get passing test case result from external cache.
         external_cache_key = None
