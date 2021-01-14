@@ -69,6 +69,7 @@ class DevelopmentConfig(Config):
     WAIVERDB_API_URL = 'http://localhost:5004/api/v1.0'
     GREENWAVE_API_URL = 'http://localhost:5005/api/v1.0'
     POLICIES_DIR = _local_conf_dir('policies')
+    SUBJECT_TYPES_DIR = _local_conf_dir('subject_types')
     REMOTE_RULE_POLICIES = {
         'brew-build-group': (
             'https://git.example.com/devops/greenwave-policies/side-tags/raw/master/{pkg_namespace}'
