@@ -272,8 +272,8 @@ Greenwave will check if a remote rule file exists, if it does, it pulls it
 down, loads it, and uses it to additionally evaluate the subject of the
 decision.
 
-Greenwave requires these configuration parameters ``KOJI_BASE_URL`` and
-``REMOTE_RULE_POLICIES``.
+To be able to get remote rule file, Greenwave requires ``REMOTE_RULE_POLICIES``
+option to be set.
 
 ``REMOTE_RULE_POLICIES`` is a map, where the key is the subject type. There could be
 a default pattern "*" used when no subject type matched. Old parameter ``DIST_GIT_URL_TEMPLATE``
@@ -298,5 +298,9 @@ Below is an example configuration of remote rule URLs:
 
 In the URL templates the following parameters can be used: ``{pkg_name}``, ``{pkg_namespace}``
 and ``{rev}``. Values for all of these parameters are being retrieved from Koji.
+
+If any of these parameters are used in the template, ``KOJI_BASE_URL`` option
+must be set.
+
 Parameter ``{subject_id}`` can also be used in URL template. If the subject identifier
 contains a hash starting with the ``sha256:`` prefix, this prefix would be removed.
