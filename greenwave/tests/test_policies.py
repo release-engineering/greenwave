@@ -961,10 +961,11 @@ def test_parse_policies_missing_product_versions():
         """))
 
 
-def test_parse_policies_missing_decision_context():
+@pytest.mark.parametrize('policy_class', [Policy, RemotePolicy])
+def test_parse_policies_missing_decision_context(policy_class):
     expected_error = "No decision contexts provided"
     with pytest.raises(SafeYAMLError, match=expected_error):
-        Policy.safe_load_all(dedent("""
+        policy_class.safe_load_all(dedent("""
             --- !Policy
             id: test
             product_versions: [fedora-rawhide]
@@ -975,10 +976,11 @@ def test_parse_policies_missing_decision_context():
         """))
 
 
-def test_parse_policies_both_decision_contexts_set():
+@pytest.mark.parametrize('policy_class', [Policy, RemotePolicy])
+def test_parse_policies_both_decision_contexts_set(policy_class):
     expected_error = 'Both properties "decision_contexts" and "decision_context" were set'
     with pytest.raises(SafeYAMLError, match=expected_error):
-        Policy.safe_load_all(dedent("""
+        policy_class.safe_load_all(dedent("""
             --- !Policy
             id: test
             product_versions: [fedora-rawhide]
@@ -1111,6 +1113,19 @@ def test_parse_policies_remote_missing_id_is_ok():
     """))
     assert len(policies) == 1
     assert policies[0].id is None
+
+
+def test_parse_policies_remote_decision_contexts():
+    policies = RemotePolicy.safe_load_all(dedent("""
+        --- !Policy
+        product_versions: [fedora-rawhide]
+        decision_contexts: [test1, test2]
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: test.case.name}
+    """))
+    assert len(policies) == 1
+    assert policies[0].all_decision_contexts == ["test1", "test2"]
 
 
 def test_parse_policies_remote_missing_subject_type_is_ok():

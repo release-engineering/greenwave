@@ -811,7 +811,7 @@ class RemotePolicy(Policy):
         'id': SafeYAMLString(optional=True),
         'product_versions': SafeYAMLList(str, default=['*'], optional=True),
         'subject_type': SafeYAMLString(optional=True, default='koji_build'),
-        'decision_context': SafeYAMLString(),
+        'decision_context': SafeYAMLString(optional=True),
         'decision_contexts': SafeYAMLList(str, optional=True),
         'rules': SafeYAMLList(Rule),
         'blacklist': SafeYAMLList(str, optional=True),
