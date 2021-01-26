@@ -6,8 +6,9 @@ Greenwave publishes a decision change message whenever a decision (a response
 of the API call) would change for a policy predefined in the Greenwave
 configuration, i.e. when there is a new test result in ResultsDB or a new
 waiver in WaiverDB related to a predefined policy, and the new result/waiver
-changes the previous decision. The new result/waiver and related policy must
-have the subject type, product version, and test case name match.
+changes the previous decision, specifically satisfied or unsatisfied
+requirements (ignoring ``result_id`` values). The new result/waiver and related
+policy must have the subject type, product version, and test case name match.
 
 The message topic is "greenwave.decision.update".
 
