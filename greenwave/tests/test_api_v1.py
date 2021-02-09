@@ -148,6 +148,57 @@ def test_make_decision_with_no_tests_required_and_missing_gating_yaml(mock_resul
             mock_waivers.assert_not_called()
 
 
+def test_make_decision_with_no_tests_required_and_empty_remote_rules(mock_results, mock_waivers):
+    mock_results.return_value = []
+    mock_waivers.return_value = []
+    policies = """
+        --- !Policy
+        id: "test_policy"
+        product_versions:
+          - fedora-rawhide
+        decision_contexts:
+          - test_policies
+          - xyz
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+    """
+
+    remote_fragment1 = dedent("""
+        --- !Policy
+        decision_contexts:
+          - test_policies
+          - abc
+        rules: [ ]
+        """)
+
+    remote_fragment2 = dedent("""
+        --- !Policy
+        decision_contexts:
+          - foo
+          - bar
+        rules: [ ]
+        """)
+
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment1
+            response = make_decision(policies=policies)
+            assert 200 == response.status_code
+            assert 'no tests are required' == response.json['summary']
+            mock_waivers.assert_not_called()
+
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment2
+            response = make_decision(policies=policies)
+            assert 404 == response.status_code
+            print(response.json)
+            assert 'Cannot find any applicable policies for koji_build subjects at gating point ' \
+                   'test_policies in fedora-rawhide' == response.json['message']
+            mock_waivers.assert_not_called()
+
+
 def test_make_decision_with_missing_required_gating_yaml(mock_results, mock_waivers):
     mock_results.return_value = []
     mock_waivers.return_value = []

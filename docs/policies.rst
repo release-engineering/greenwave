@@ -107,6 +107,10 @@ The document is a map (dictionary) with the following keys:
    Currently there are a few rule types, ``PassingTestCaseRule`` being one of
    them.  See the :ref:`rule-types` section below for a full list.
 
+   List of rules can be empty if no tests are required for the specified decision
+   contexts. This is useful in the remote rules. See
+   :ref:`remoterule-configure-additional-policies` section for details.
+
 ``packages`` (optional)
    A list of binary RPM package names this policy applies to.
 
@@ -257,7 +261,7 @@ Here's an example of a RemoteRule:
    id: "test_remoterule"
    product_versions:
      - fedora-29
-   decision_context: osci_compose_gate
+   decision_contexts: [osci_compose_gate]
    subject_type: koji_build
    excluded_packages: []
    rules:
@@ -271,6 +275,12 @@ nothing will change.
 Greenwave will check if a remote rule file exists, if it does, it pulls it
 down, loads it, and uses it to additionally evaluate the subject of the
 decision.
+
+If a remote rule file exists it should contain a policy for each required decision
+context. If no tests are required for the particular decision context, there
+should be empty rules set, i.e. ``rules: []``. In this case the evaluation result
+will be ``no tests are required``. If there is no decision context matching the
+original policy, the result will be ``Cannot find any applicable policies``.
 
 To be able to get remote rule file, Greenwave requires ``REMOTE_RULE_POLICIES``
 option to be set.
