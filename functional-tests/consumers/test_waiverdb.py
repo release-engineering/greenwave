@@ -81,6 +81,7 @@ def test_consume_new_waiver(
                     'subject_identifier': nvr,
                     'result_id': results[0]['id'],
                     'testcase': passing_tests[0],
+                    'source': None,
                     'type': 'test-result-passed'
                 },
                 {
@@ -88,6 +89,7 @@ def test_consume_new_waiver(
                     'subject_identifier': nvr,
                     'result_id': results[1]['id'],
                     'testcase': passing_tests[1],
+                    'source': None,
                     'type': 'test-result-passed'
                 }
             ],
@@ -98,6 +100,7 @@ def test_consume_new_waiver(
                     'testcase': failing_test,
                     'type': 'test-result-failed',
                     'scenario': None,
+                    'source': None,
                 },
             ],
         },
@@ -114,13 +117,15 @@ def test_consume_new_waiver(
                 'result_id': result['id'],
                 'testcase': failing_test,
                 'type': 'test-result-failed-waived',
-                'scenario': None
+                'scenario': None,
+                'source': None,
             },
             {
                 'subject_type': 'koji_build',
                 'subject_identifier': nvr,
                 'result_id': results[0]['id'],
                 'testcase': passing_tests[0],
+                'source': None,
                 'type': 'test-result-passed'
             },
             {
@@ -128,6 +133,7 @@ def test_consume_new_waiver(
                 'subject_identifier': nvr,
                 'result_id': results[1]['id'],
                 'testcase': passing_tests[1],
+                'source': None,
                 'type': 'test-result-passed'
             }
         ],

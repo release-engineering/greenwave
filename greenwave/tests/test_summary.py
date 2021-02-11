@@ -16,13 +16,13 @@ from greenwave.subjects.subject_type import GenericSubjectType
 testSubject = Subject(GenericSubjectType('koji_build'), 'nethack-1.2.3-1.el9000')
 testResultPassed = RuleSatisfied()
 testResultErrored = TestResultErrored(
-    testSubject, 'test', None, 1, 'some error')
+    testSubject, 'test', None, None, 1, 'some error')
 testResultFailed = TestResultFailed(
-    testSubject, 'test', None, 1)
+    testSubject, 'test', None, None, 1)
 testResultMissing = TestResultMissing(
-    testSubject, 'test', None)
+    testSubject, 'test', None, None)
 testInvalidGatingYaml = InvalidRemoteRuleYaml(
-    testSubject, 'test', 'Missing !Policy tag')
+    testSubject, 'test', 'Missing !Policy tag', None)
 
 
 def test_summary_passed():

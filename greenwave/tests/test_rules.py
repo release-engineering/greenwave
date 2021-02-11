@@ -3,8 +3,11 @@ import pytest
 
 from textwrap import dedent
 
+from werkzeug.exceptions import NotFound
+
 from greenwave.app_factory import create_app
 from greenwave.policies import Policy, RemoteRule
+from greenwave.resources import NoSourceException
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.subjects.factory import create_subject
 
@@ -68,16 +71,83 @@ def test_match_remote_rule(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remot
         assert rule.matches(policy, subject=subject, testcase='some_test_case')
         assert not rule.matches(policy, subject=subject, testcase='other_test_case')
 
-        # Simulate invalid gating.yaml file.
-        def raiseYamlError(*args):
-            #pylint: disable=unused-argument
-            raise SafeYAMLError()
-        mock_retrieve_yaml_remote_rule.side_effect = raiseYamlError
 
-        assert rule.matches(policy)
-        assert not rule.matches(policy, subject=subject)
-        assert not rule.matches(policy, subject=subject, testcase='some_test_case')
-        assert not rule.matches(policy, subject=subject, testcase='other_test_case')
+@mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
+@mock.patch('greenwave.resources.retrieve_scm_from_koji')
+def test_remote_rule_include_failures(
+        mock_retrieve_scm_from_koji, mock_retrieve_yaml_remote_rule):
+    policy_yaml = dedent("""
+        --- !Policy
+        id: "some_policy"
+        product_versions: [rhel-9000]
+        decision_context: bodhi_update_push_stable
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+    """)
+    nvr = 'nethack-1.2.3-1.el9000'
+    mock_retrieve_scm_from_koji.return_value = ('rpms', nvr, '123')
+
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        subject = create_subject('koji_build', nvr)
+        policies = Policy.safe_load_all(policy_yaml)
+        assert len(policies) == 1
+
+        policy = policies[0]
+        assert len(policy.rules) == 1
+
+        rule = policy.rules[0]
+
+        # Include any failure fetching/parsing remote rule file in the
+        # decision.
+        mock_retrieve_yaml_remote_rule.return_value = "--- !Policy"
+        assert rule.matches(policy, subject=subject, testcase='other_test_case')
+        answers = rule.check(
+            policy, product_version='rhel-9000', subject=subject, results_retriever=None)
+        assert len(answers) == 2
+        assert answers[1].test_case_name == 'invalid-gating-yaml'
+
+        mock_retrieve_scm_from_koji.side_effect = NotFound
+        assert rule.matches(policy, subject=subject, testcase='other_test_case')
+        answers = rule.check(
+            policy, product_version='rhel-9000', subject=subject, results_retriever=None)
+        assert len(answers) == 1
+        assert answers[0].error == f'Koji build not found for {subject}'
+
+
+@mock.patch('greenwave.resources.retrieve_scm_from_koji')
+def test_remote_rule_exclude_no_source(mock_retrieve_scm_from_koji):
+    policy_yaml = dedent("""
+        --- !Policy
+        id: "some_policy"
+        product_versions: [rhel-9000]
+        decision_context: bodhi_update_push_stable
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+    """)
+    nvr = 'nethack-1.2.3-1.el9000'
+
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        subject = create_subject('koji_build', nvr)
+        policies = Policy.safe_load_all(policy_yaml)
+        assert len(policies) == 1
+
+        policy = policies[0]
+        assert len(policy.rules) == 1
+
+        rule = policy.rules[0]
+
+        mock_retrieve_scm_from_koji.side_effect = NoSourceException
+        assert rule.matches(policy, subject=subject)
+        assert rule.matches(policy, subject=subject, testcase='some_test_case')
+        assert rule.matches(policy, subject=subject, testcase='other_test_case')
+
+        answers = rule.check(
+            policy, product_version='rhel-9000', subject=subject, results_retriever=None)
+        assert answers == []
 
 
 @pytest.mark.parametrize(('required_flag', 'required_value'), (

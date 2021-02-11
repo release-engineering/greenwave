@@ -11,6 +11,7 @@ from greenwave.app_factory import create_app
 from greenwave.policies import (
     load_policies,
     summarize_answers,
+    FetchedRemoteRuleYaml,
     Policy,
     RemotePolicy,
     RemoteRule,
@@ -75,23 +76,22 @@ class DummyResultsRetriever(ResultsRetriever):
 
 
 def test_summarize_answers():
-    subject = create_subject('koji_build', 'nvr')
-    assert summarize_answers([RuleSatisfied()]) == \
+    testSubject = create_subject('koji_build', 'nvr')
+    testResultPassed = RuleSatisfied()
+    testResultFailed = TestResultFailed(testSubject, 'test', None, None, 1)
+    testResultMissing = TestResultMissing(testSubject, 'test', None, None)
+
+    assert summarize_answers([testResultPassed]) == \
         'All required tests passed'
-    assert summarize_answers([TestResultFailed(subject, 'test', None, 'id'),
-                              RuleSatisfied()]) == \
+    assert summarize_answers([testResultFailed, testResultPassed]) == \
         '1 of 2 required tests failed'
-    assert summarize_answers([TestResultMissing(subject, 'test', None)]) == \
+    assert summarize_answers([testResultMissing]) == \
         '1 of 1 required test results missing'
-    assert summarize_answers([TestResultMissing(subject, 'test', None),
-                              TestResultFailed(subject, 'test', None, 'id')]) == \
+    assert summarize_answers([testResultMissing, testResultFailed]) == \
         '1 of 2 required tests failed, 1 result missing'
-    assert summarize_answers([TestResultMissing(subject, 'testa', None),
-                              TestResultMissing(subject, 'testb', None),
-                              TestResultFailed(subject, 'test', None, 'id')]) == \
+    assert summarize_answers([testResultMissing, testResultMissing, testResultFailed]) == \
         '1 of 3 required tests failed, 2 results missing'
-    assert summarize_answers([TestResultMissing(subject, 'test', None),
-                             RuleSatisfied()]) == \
+    assert summarize_answers([testResultMissing, testResultPassed]) == \
         '1 of 2 required test results missing'
 
 
@@ -338,20 +338,23 @@ def test_remote_rule_policy(tmpdir, namespace):
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'dist.upgradepath')
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], RuleSatisfied)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], RuleSatisfied)
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever()
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultMissing)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultMissing)
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultFailed)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultFailed)
             f.assert_called_with(
                 'https://src.fedoraproject.org/{0}'.format(
                     '' if not namespace else namespace + '/'
@@ -413,8 +416,9 @@ def test_remote_rule_policy_old_config(tmpdir):
                     # Ensure that presence of a result is success.
                     results = DummyResultsRetriever(subject, 'dist.upgradepath')
                     decision = policy.check('fedora-26', subject, results)
-                    assert len(decision) == 1
-                    assert isinstance(decision[0], RuleSatisfied)
+                    assert len(decision) == 2
+                    assert isinstance(decision[0], FetchedRemoteRuleYaml)
+                    assert isinstance(decision[1], RuleSatisfied)
 
                     f.assert_called_once_with(
                         'http://localhost.localdomain/nethack/'
@@ -467,20 +471,23 @@ def test_remote_rule_policy_brew_build_group(tmpdir):
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'dist.upgradepath')
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], RuleSatisfied)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], RuleSatisfied)
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever()
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultMissing)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultMissing)
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultFailed)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultFailed)
             f.assert_called_with(
                 'https://git.example.com/devops/greenwave-policies/side-tags/raw/'
                 'master/0f41e56a1c32519e189ddbcb01d2551e861bd74e603d01769ef5f70d4b30a2dd.yaml'
@@ -530,8 +537,9 @@ def test_remote_rule_policy_with_no_remote_rule_policies_param_defined(tmpdir):
                 # Ensure that presence of a result is success.
                 results = DummyResultsRetriever(subject, 'dist.upgradepath')
                 decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], RuleSatisfied)
+                assert len(decision) == 2
+                assert isinstance(decision[0], FetchedRemoteRuleYaml)
+                assert isinstance(decision[1], RuleSatisfied)
                 f.assert_called_with(
                     'https://src.fedoraproject.org/rpms/nethack/raw/'
                     'c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml'
@@ -580,21 +588,24 @@ def test_remote_rule_policy_redhat_module(tmpdir, namespace):
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'baseos-ci.redhat-module.tier0.functional')
             decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], RuleSatisfied)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], RuleSatisfied)
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever(subject)
             decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultMissing)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultMissing)
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(
                 subject, 'baseos-ci.redhat-module.tier0.functional', 'FAILED')
             decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultFailed)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultFailed)
 
 
 def test_remote_rule_policy_redhat_container_image(tmpdir):
@@ -639,21 +650,24 @@ def test_remote_rule_policy_redhat_container_image(tmpdir):
             results = DummyResultsRetriever(
                 subject, 'baseos-ci.redhat-container-image.tier0.functional')
             decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], RuleSatisfied)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], RuleSatisfied)
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever(subject)
             decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultMissing)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultMissing)
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(
                 subject, 'baseos-ci.redhat-container-image.tier0.functional', 'FAILED')
             decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultFailed)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultFailed)
 
 
 def test_get_sub_policies_multiple_urls(tmpdir):
@@ -775,9 +789,10 @@ def test_remote_rule_policy_optional_id(tmpdir):
 
             results = DummyResultsRetriever()
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultMissing)
-            assert decision[0].is_satisfied is False
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultMissing)
+            assert decision[1].is_satisfied is False
 
 
 def test_remote_rule_malformed_yaml(tmpdir):
@@ -827,9 +842,11 @@ def test_remote_rule_malformed_yaml(tmpdir):
 
                 results = DummyResultsRetriever()
                 decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 1
-                assert isinstance(decision[0], InvalidRemoteRuleYaml)
-                assert decision[0].is_satisfied is False
+                assert len(decision) == 2
+                assert isinstance(decision[0], FetchedRemoteRuleYaml)
+                assert isinstance(decision[1], InvalidRemoteRuleYaml)
+                assert decision[0].is_satisfied is True
+                assert decision[1].is_satisfied is False
 
 
 def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
@@ -891,7 +908,8 @@ def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
                 }]
                 decision = policy.check('fedora-26', subject, results)
                 decision = waive_answers(decision, waivers)
-                assert len(decision) == 0
+                assert len(decision) == 1
+                assert isinstance(decision[0], FetchedRemoteRuleYaml)
 
 
 def test_remote_rule_required():
@@ -1351,20 +1369,23 @@ def test_remote_rule_policy_on_demand_policy(namespace):
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'dist.upgradepath')
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], RuleSatisfied)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], RuleSatisfied)
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever()
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultMissing)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultMissing)
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
             decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultFailed)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultFailed)
 
 
 @pytest.mark.parametrize('two_rules', (True, False))
@@ -1484,20 +1505,23 @@ def test_two_rules_no_duplicate(tmpdir):
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'dist.upgradepath')
             decision = policy.check('fedora-31', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], RuleSatisfied)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], RuleSatisfied)
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever()
             decision = policy.check('fedora-31', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultMissing)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultMissing)
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
             decision = policy.check('fedora-31', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], TestResultFailed)
+            assert len(decision) == 2
+            assert isinstance(decision[0], FetchedRemoteRuleYaml)
+            assert isinstance(decision[1], TestResultFailed)
 
 
 def test_cache_all_results_temporarily():

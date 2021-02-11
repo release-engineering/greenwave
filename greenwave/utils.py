@@ -160,22 +160,3 @@ def add_to_timestamp(timestamp, **kwargs):
 
 def right_before_this_time(timestamp):
     return add_to_timestamp(timestamp, microseconds=-1)
-
-
-def remove_duplicates(func):
-    def wrapper(*args, **kwargs):
-        rv = func(*args, **kwargs)
-        if isinstance(rv, list) and len(rv):
-            rv = list(dict.fromkeys(rv))
-        return rv
-    return wrapper
-
-
-def to_hashable(val):
-    if isinstance(val, list) or isinstance(val, tuple):
-        return tuple([to_hashable(v) for v in val])
-    if isinstance(val, dict):
-        return tuple([(k, to_hashable(val[k])) for k in sorted(val.keys())])
-    if isinstance(val, set):
-        return tuple(sorted(val))
-    return val

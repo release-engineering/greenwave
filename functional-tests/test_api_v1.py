@@ -260,6 +260,7 @@ def test_make_a_decision_with_verbose_flag(requests_session, greenwave_server, t
             'type': 'test-result-passed',
             'subject_type': 'koji_build',
             'subject_identifier': nvr,
+            'source': None,
         } for result in results
     ]
     assert res_data['satisfied_requirements'] == expected_satisfied_requirements
@@ -382,6 +383,7 @@ def test_make_a_decision_on_failed_result(requests_session, greenwave_server, te
             'result_id': result['id'],
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
             'scenario': None,
+            'source': None,
             'type': 'test-result-failed'
         },
     ] + [
@@ -392,6 +394,7 @@ def test_make_a_decision_on_failed_result(requests_session, greenwave_server, te
             'testcase': name,
             'type': 'test-result-missing',
             'scenario': None,
+            'source': None,
         } for name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
@@ -423,6 +426,7 @@ def test_make_a_decision_on_queued_result(requests_session, greenwave_server, te
             'subject_type': result['data']['type'][0],
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
             'scenario': None,
+            'source': None,
             'type': 'test-result-missing'
         },
     ] + [
@@ -433,6 +437,7 @@ def test_make_a_decision_on_queued_result(requests_session, greenwave_server, te
             'testcase': name,
             'type': 'test-result-missing',
             'scenario': None,
+            'source': None,
         } for name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
@@ -464,6 +469,7 @@ def test_make_a_decision_on_running_result(requests_session, greenwave_server, t
             'subject_type': result['data']['type'][0],
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
             'scenario': None,
+            'source': None,
             'type': 'test-result-missing'
         },
     ] + [
@@ -474,6 +480,7 @@ def test_make_a_decision_on_running_result(requests_session, greenwave_server, t
             'testcase': name,
             'type': 'test-result-missing',
             'scenario': None,
+            'source': None,
         } for name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
@@ -503,6 +510,7 @@ def test_make_a_decision_on_no_results(requests_session, greenwave_server, testd
             'testcase': name,
             'type': 'test-result-missing',
             'scenario': None,
+            'source': None,
         } for name in TASKTRON_RELEASE_CRITICAL_TASKS
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
@@ -545,6 +553,7 @@ def test_make_a_decision_on_redhat_cont_image(requests_session, greenwave_server
             'result_id': result1['id'],
             'testcase': 'test.testcase1',
             'scenario': None,
+            'source': None,
             'type': 'test-result-failed'
         },
         {
@@ -553,6 +562,7 @@ def test_make_a_decision_on_redhat_cont_image(requests_session, greenwave_server
             'testcase': 'test.testcase2',
             'type': 'test-result-failed',
             'scenario': None,
+            'source': None,
         }
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
@@ -687,6 +697,7 @@ def test_multiple_results_in_a_subject(
             'testcase': 'dist.abicheck',
             'type': 'test-result-failed',
             'scenario': None,
+            'source': None,
         },
     ]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
@@ -728,6 +739,7 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
             'type': 'test-result-missing',
             'scenario': None,
+            'source': None,
         },
     ]
     assert r.status_code == 200
@@ -813,6 +825,7 @@ def test_make_a_decision_on_failing_result_with_scenario(
         'testcase': testcase_name,
         'type': 'test-result-failed',
         'scenario': 'scenario2',
+        'source': None,
     }]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
 
@@ -858,6 +871,7 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
             'type': 'test-result-failed',
             'scenario': None,
+            'source': None,
         },
     ]
     assert res_data['policies_satisfied'] is False
@@ -1133,6 +1147,7 @@ def test_make_a_decision_about_compose_all_variants_architectures(
         'item': {'productmd.compose.id': compose_id},
         'result_id': failed_results['id'],
         'scenario': None,
+        'source': None,
         'testcase': 'rtt.acceptance.validation',
         'type': 'test-result-failed'
     }]

@@ -59,6 +59,7 @@ def test_consume_new_result(
                 'subject_identifier': nvr,
                 'result_id': result['id'],
                 'testcase': 'dist.rpmdeplint',
+                'source': None,
                 'type': 'test-result-passed',
             },
         ],
@@ -70,6 +71,7 @@ def test_consume_new_result(
                 'subject_identifier': nvr,
                 'type': 'test-result-missing',
                 'scenario': None,
+                'source': None,
             },
             {
                 'testcase': 'dist.upgradepath',
@@ -78,6 +80,7 @@ def test_consume_new_result(
                 'subject_identifier': nvr,
                 'type': 'test-result-missing',
                 'scenario': None,
+                'source': None,
             }
         ],
         'summary': '2 of 3 required test results missing',
@@ -102,6 +105,7 @@ def test_consume_new_result(
                     'subject_identifier': nvr,
                     'type': 'test-result-missing',
                     'scenario': None,
+                    'source': None,
                 },
                 {
                     'testcase': 'dist.rpmdeplint',
@@ -110,6 +114,7 @@ def test_consume_new_result(
                     'subject_identifier': nvr,
                     'type': 'test-result-missing',
                     'scenario': None,
+                    'source': None,
                 },
                 {
                     'testcase': 'dist.upgradepath',
@@ -118,6 +123,7 @@ def test_consume_new_result(
                     'subject_identifier': nvr,
                     'type': 'test-result-missing',
                     'scenario': None,
+                    'source': None,
                 },
             ],
         },
@@ -133,6 +139,7 @@ def test_consume_new_result(
                 'result_id': result['id'],
                 'testcase': 'dist.rpmdeplint',
                 'type': 'test-result-passed',
+                'source': None,
             },
         ],
         'unsatisfied_requirements': [],
@@ -156,6 +163,7 @@ def test_consume_new_result(
                     'subject_identifier': nvr,
                     'type': 'test-result-missing',
                     'scenario': None,
+                    'source': None,
                 },
             ],
         },
@@ -250,6 +258,7 @@ def test_consume_compose_id_result(
             'subject_identifier': compose_id,
             'result_id': result['id'],
             'testcase': 'compose.install_no_user',
+            'source': None,
             'type': 'test-result-passed'
         }],
         'unsatisfied_requirements': [{
@@ -257,6 +266,7 @@ def test_consume_compose_id_result(
             'subject_type': 'compose',
             'subject_identifier': compose_id,
             'scenario': 'scenario2',
+            'source': None,
             'testcase': 'compose.install_no_user',
             'type': 'test-result-missing'}
         ]
@@ -320,6 +330,7 @@ def test_consume_legacy_result(
             'subject_identifier': nvr,
             'result_id': result['id'],
             'testcase': 'dist.rpmdeplint',
+            'source': None,
             'type': 'test-result-passed'
         }],
         'unsatisfied_requirements': [
@@ -333,6 +344,7 @@ def test_consume_legacy_result(
                 'subject_identifier': nvr,
                 'type': 'test-result-missing',
                 'scenario': None,
+                'source': None,
             },
             {
                 'testcase': 'dist.upgradepath',
@@ -344,6 +356,7 @@ def test_consume_legacy_result(
                 'subject_identifier': nvr,
                 'type': 'test-result-missing',
                 'scenario': None,
+                'source': None,
             }
         ],
         'summary': '2 of 3 required test results missing',
@@ -379,6 +392,7 @@ def test_consume_legacy_result(
             'subject_identifier': nvr,
             'result_id': result['id'],
             'testcase': 'dist.rpmdeplint',
+            'source': None,
             'type': 'test-result-passed'
         }],
         'unsatisfied_requirements': [],
@@ -583,6 +597,7 @@ def test_consume_new_result_container_image(
             'subject_identifier': item_hash,
             'result_id': result['id'],
             'testcase': 'baseos-qe.baseos-ci.tier1.functional',
+            'source': None,
             'type': 'test-result-passed'
         }],
         'unsatisfied_requirements': []

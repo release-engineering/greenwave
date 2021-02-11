@@ -152,12 +152,14 @@ def make_decision(data, config):
                 product_version=product_version,
             ))
 
+        visited_rules = set()
         for policy in subject_policies:
             answers.extend(
                 policy.check(
                     product_version,
                     subject,
-                    results_retriever))
+                    results_retriever,
+                    visited_rules))
 
         applicable_policies.extend(subject_policies)
 

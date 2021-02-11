@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 
-from greenwave.utils import remove_duplicates
-
-
 def _is_waived(answer, waivers):
     """
     Returns true only if there is a matching waiver for given answer.
@@ -27,7 +24,6 @@ def _maybe_waive(answer, waivers):
     return answer
 
 
-@remove_duplicates
 def waive_answers(answers, waivers):
     """
     Returns answers with unsatisfied answers waived
