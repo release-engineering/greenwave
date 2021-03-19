@@ -5,9 +5,6 @@ LABEL \
     license="GPLv2+" \
     build-date=""
 
-# The caller can optionally provide a cacert url
-ARG cacert_url=undefined
-
 WORKDIR /src
 RUN dnf -y install \
     git-core \
@@ -22,12 +19,6 @@ RUN dnf -y install \
     python3-requests \
     && dnf -y clean all \
     && rm -rf /tmp/*
-
-RUN if [ "$cacert_url" != "undefined" ]; then \
-        cd /etc/pki/ca-trust/source/anchors \
-        && curl -O --insecure $cacert_url \
-        && update-ca-trust extract; \
-    fi
 
 # This will allow a non-root user to install a custom root CA at run-time
 RUN chmod 777 /etc/pki/tls/certs/ca-bundle.crt
