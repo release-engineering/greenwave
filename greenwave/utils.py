@@ -76,15 +76,19 @@ def load_config(config_obj=None):
     if config_obj is None:
         if os.getenv('TEST') == 'true':
             config_obj = 'greenwave.config.TestingConfig'
-        elif os.getenv('DEV') == 'true':
+        elif os.getenv('DEV') == 'true' or os.getenv('DOCS') == 'true':
             config_obj = 'greenwave.config.DevelopmentConfig'
         else:
             config_obj = 'greenwave.config.ProductionConfig'
 
     if os.getenv('TEST') == 'true':
-        default_config_file = os.getcwd() + '/conf/settings.py.example'
+        default_config_file = os.path.join(os.getcwd(), 'conf', 'settings.py.example')
     elif os.getenv('DEV') == 'true':
-        default_config_file = os.getcwd() + '/conf/settings.py'
+        default_config_file = os.path.join(os.getcwd(), 'conf', 'settings.py')
+    elif os.getenv('DOCS') == 'true':
+        default_config_file = os.path.normpath(
+            os.path.join(os.getcwd(), '..', 'conf', 'settings.py.example')
+        )
     else:
         default_config_file = '/etc/greenwave/settings.py'
 
