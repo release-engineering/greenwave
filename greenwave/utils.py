@@ -131,7 +131,7 @@ def sha1_mangle_key(key):
     return hashlib.sha1(key.encode('utf-8')).hexdigest()
 
 
-def right_before_this_time(timestamp):
+def add_to_timestamp(timestamp, **kwargs):
     """
     A utility function that takes a timestamp with format %Y-%m-%dT%H:%M:%S.%f
     and returns the microsecond before that timestamp. It returns always a
@@ -139,6 +139,8 @@ def right_before_this_time(timestamp):
     ask for a decision before a specific timestamp (example: the creation of a
     result).
     """
+    delta = datetime.timedelta(**kwargs)
+
     date_format = '%Y-%m-%dT%H:%M:%S.%f'
 
     if timestamp.endswith(' UTC'):
@@ -148,8 +150,12 @@ def right_before_this_time(timestamp):
         from_date_format = date_format
 
     return datetime.datetime.strftime(
-        datetime.datetime.strptime(timestamp, from_date_format) -
-        datetime.timedelta(microseconds=1), date_format)
+        datetime.datetime.strptime(timestamp, from_date_format) + delta,
+        date_format)
+
+
+def right_before_this_time(timestamp):
+    return add_to_timestamp(timestamp, microseconds=-1)
 
 
 def remove_duplicates(func):

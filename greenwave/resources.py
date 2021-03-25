@@ -69,12 +69,12 @@ class ResultsRetriever(BaseRetriever):
 
         # Try to get passing test case result from external cache.
         external_cache_key = None
-        if testcase and not self.since:
+        if testcase:
             external_cache_key = (
                 "greenwave.resources:ResultsRetriever|"
                 f"{subject.type} {subject.identifier} {testcase} {scenarios}")
             results = self.get_external_cache(external_cache_key)
-            if results:
+            if results and self._results_match_time(results):
                 return results
 
         params = {
@@ -109,6 +109,13 @@ class ResultsRetriever(BaseRetriever):
             self.url + '/results/latest',
             params=params,
             **request_args)
+
+    def _results_match_time(self, results):
+        if not self.since:
+            return True
+
+        until = self.since.split(',')[1]
+        return all(result['submit_time'] < until for result in results)
 
     def get_external_cache(self, key):
         return current_app.cache.get(key)

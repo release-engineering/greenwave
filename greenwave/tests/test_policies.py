@@ -27,6 +27,7 @@ from greenwave.safe_yaml import SafeYAMLError
 from greenwave.subjects.factory import create_subject
 from greenwave.waivers import waive_answers
 from greenwave.config import TestingConfig, Config
+from greenwave.utils import add_to_timestamp
 
 
 @pytest.fixture(autouse=True)
@@ -37,10 +38,10 @@ def app():
 
 
 class DummyResultsRetriever(ResultsRetriever):
-    def __init__(self, subject=None, testcase=None, outcome='PASSED'):
+    def __init__(self, subject=None, testcase=None, outcome='PASSED', when=''):
         super(DummyResultsRetriever, self).__init__(
             ignore_ids=[],
-            when='',
+            when=when,
             url='')
         self.subject = subject
         self.testcase = testcase
@@ -62,6 +63,7 @@ class DummyResultsRetriever(ResultsRetriever):
                 },
                 'testcase': {'name': self.testcase},
                 'outcome': self.outcome,
+                'submit_time': '2021-03-25T07:26:56.191741',
             }]
         return []
 
@@ -1538,4 +1540,20 @@ def test_cache_passing_results():
     results3.external_cache = results.external_cache
     cached = results3.retrieve(subject, testcase='sometest')
     assert results3.retrieve_data_called == 0
+    assert cached == retrieved2
+
+    # Match submit_time with "since" parameter.
+    when1 = retrieved2[0]['submit_time']
+    when2 = add_to_timestamp(when1, microseconds=1)
+
+    results3 = DummyResultsRetriever(subject, 'sometest', 'FAILED', when=when1)
+    results3.external_cache = results.external_cache
+    not_cached = results3.retrieve(subject, testcase='sometest')
+    assert results3.retrieve_data_called == 1
+    assert not_cached == retrieved
+
+    results4 = DummyResultsRetriever(subject, 'sometest', 'FAILED', when=when2)
+    results4.external_cache = results.external_cache
+    cached = results4.retrieve(subject, testcase='sometest')
+    assert results4.retrieve_data_called == 0
     assert cached == retrieved2
