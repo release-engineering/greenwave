@@ -60,10 +60,10 @@ class ResultsRetriever(BaseRetriever):
         super().__init__(**args)
         self.cache = {}
 
-    def _retrieve_all(self, subject, testcase=None, scenarios=None):
+    def _retrieve_all(self, subject, testcase=None):
         # Get test case result from cache if all test case results were already
         # retrieved for given Subject.
-        cache_key = (subject.type, subject.identifier, scenarios)
+        cache_key = (subject.type, subject.identifier)
         if testcase and cache_key in self.cache:
             return [res for res in self.cache[cache_key] if res['testcase']['name'] == testcase]
 
@@ -72,7 +72,7 @@ class ResultsRetriever(BaseRetriever):
         if testcase:
             external_cache_key = (
                 "greenwave.resources:ResultsRetriever|"
-                f"{subject.type} {subject.identifier} {testcase} {scenarios}")
+                f"{subject.type} {subject.identifier} {testcase}")
             results = self.get_external_cache(external_cache_key)
             if results and self._results_match_time(results):
                 return results
@@ -84,8 +84,6 @@ class ResultsRetriever(BaseRetriever):
             params.update({'since': self.since})
         if testcase:
             params.update({'testcases': testcase})
-        if scenarios:
-            params.update({'scenario': ','.join(scenarios)})
 
         results = []
         for query in subject.result_queries():

@@ -6,6 +6,7 @@ from textwrap import dedent
 from werkzeug.exceptions import NotFound
 
 from greenwave.app_factory import create_app
+from greenwave.decision import Decision
 from greenwave.policies import Policy, RemoteRule
 from greenwave.resources import NoSourceException
 from greenwave.safe_yaml import SafeYAMLError
@@ -103,17 +104,19 @@ def test_remote_rule_include_failures(
         # decision.
         mock_retrieve_yaml_remote_rule.return_value = "--- !Policy"
         assert rule.matches(policy, subject=subject, testcase='other_test_case')
-        answers = rule.check(
-            policy, product_version='rhel-9000', subject=subject, results_retriever=None)
-        assert len(answers) == 2
-        assert answers[1].test_case_name == 'invalid-gating-yaml'
+        decision = Decision('bodhi_update_push_stable', 'rhel-9000')
+        decision.check(subject, policies, results_retriever=None)
+        assert len(decision.answers) == 2
+        assert decision.answers[1].test_case_name == 'invalid-gating-yaml'
 
+        # Reload rules to clear cache.
+        policies = Policy.safe_load_all(policy_yaml)
         mock_retrieve_scm_from_koji.side_effect = NotFound
         assert rule.matches(policy, subject=subject, testcase='other_test_case')
-        answers = rule.check(
-            policy, product_version='rhel-9000', subject=subject, results_retriever=None)
-        assert len(answers) == 1
-        assert answers[0].error == f'Koji build not found for {subject}'
+        decision = Decision('bodhi_update_push_stable', 'rhel-9000')
+        decision.check(subject, policies, results_retriever=None)
+        assert [x.to_json()['type'] for x in decision.answers] == ['failed-fetch-gating-yaml']
+        assert decision.answers[0].error == f'Koji build not found for {subject}'
 
 
 @mock.patch('greenwave.resources.retrieve_scm_from_koji')
@@ -145,9 +148,9 @@ def test_remote_rule_exclude_no_source(mock_retrieve_scm_from_koji):
         assert rule.matches(policy, subject=subject, testcase='some_test_case')
         assert rule.matches(policy, subject=subject, testcase='other_test_case')
 
-        answers = rule.check(
-            policy, product_version='rhel-9000', subject=subject, results_retriever=None)
-        assert answers == []
+        decision = Decision('bodhi_update_push_stable', 'rhel-9000')
+        decision.check(subject, policies, results_retriever=None)
+        assert decision.answers == []
 
 
 @pytest.mark.parametrize(('required_flag', 'required_value'), (

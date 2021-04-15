@@ -106,6 +106,10 @@ class Answer(object):
         """
         raise NotImplementedError()
 
+    def __repr__(self):
+        attributes = ' '.join(f'{k}={v}' for k, v in self.to_json().items())
+        return f'<{self.__class__.__name__} {attributes}>'
+
 
 class RuleSatisfied(Answer):
     """
@@ -484,23 +488,13 @@ class Rule(SafeYAMLObject):
 
     This base class is not used directly.
     """
-    def check(
-            self,
-            policy,
-            product_version,
-            subject,
-            results_retriever,
-            visited_rules=None):
+    def check(self, policy, rule_context):
         """
         Evaluate this policy rule for the given item.
 
         Args:
             policy (Policy): Parent policy of the rule
-            product_version (str): Product version we are making a decision about
-            subject (Subject): Item we are making a decision about (for
-                example, Koji build NVR, Bodhi update id, ...)
-            results_retriever (ResultsRetriever): Object for retrieving data
-                from ResultsDB.
+            rule_context (RuleContext): rule context
 
         Returns:
             Answer: An instance of a subclass of :py:class:`Answer` describing the result.
@@ -588,19 +582,15 @@ class RemoteRule(Rule):
         ]
         return sub_policies, answers
 
-    def check(
-            self,
-            policy,
-            product_version,
-            subject,
-            results_retriever,
-            visited_rules=None):
-        policies, answers = self._get_sub_policies(policy, subject)
+    def check(self, policy, rule_context):
+        policies, answers = self._get_sub_policies(policy, rule_context.subject)
+
+        # Copy cached value.
+        answers = list(answers)
 
         for remote_policy in policies:
-            if remote_policy.matches_product_version(product_version):
-                response = remote_policy.check(
-                    product_version, subject, results_retriever, visited_rules)
+            if remote_policy.matches_product_version(rule_context.product_version):
+                response = remote_policy.check(rule_context)
 
                 if not isinstance(response, list):
                     response = [response]
@@ -646,14 +636,8 @@ class PassingTestCaseRule(Rule):
         'scenario': SafeYAMLString(optional=True),
     }
 
-    def check(
-            self,
-            policy,
-            product_version,
-            subject,
-            results_retriever,
-            visited_rules=None):
-        matching_results = results_retriever.retrieve(subject, self.test_case_name)
+    def check(self, policy, rule_context):
+        matching_results = rule_context.get_results(self.test_case_name)
 
         if self.scenario is not None:
             matching_results = [
@@ -662,13 +646,16 @@ class PassingTestCaseRule(Rule):
 
         # Investigate the absence of result first.
         if not matching_results:
-            return TestResultMissing(subject, self.test_case_name, self.scenario, policy.source)
+            return [
+                TestResultMissing(
+                    rule_context.subject, self.test_case_name, self.scenario, policy.source)
+            ]
 
         # If we find multiple matching results, we always use the first one which
         # will be the latest chronologically, because ResultsDB always returns
         # results ordered by `submit_time` descending.
         return [
-            self._answer_for_result(result, subject, policy.source)
+            self._answer_for_result(result, rule_context.subject, policy.source)
             for result in matching_results
         ]
 
@@ -725,13 +712,7 @@ class ObsoleteRule(Rule):
         tag = self.yaml_tag or '!' + type(self).__name__
         raise SafeYAMLError('{} is obsolete. {}'.format(tag, self.advice))
 
-    def check(
-            self,
-            policy,
-            product_version,
-            subject,
-            results_retriever,
-            visited_rules=None):
+    def check(self, policy, rule_context):
         raise ValueError('This rule is obsolete and can\'t be checked')
 
 
@@ -802,23 +783,15 @@ class Policy(SafeYAMLObject):
     def matches_sub_policy(self, sub_policy):
         return set(sub_policy.all_decision_contexts).intersection(self.all_decision_contexts)
 
-    def check(
-            self,
-            product_version,
-            subject,
-            results_retriever,
-            visited_rules=None):
-        if visited_rules is None:
-            visited_rules = set()
-
+    def check(self, rule_context):
         # If an item is about a package and it is in the blacklist, return RuleSatisfied()
-        name = subject.package_name
+        name = rule_context.subject.package_name
         if name:
             if name in self.blacklist:
-                return [BlacklistedInPolicy(subject.identifier, self)]
+                return [BlacklistedInPolicy(rule_context.subject.identifier, self)]
             for exclude in self.excluded_packages:
                 if fnmatch(name, exclude):
-                    return [ExcludedInPolicy(subject.identifier, self)]
+                    return [ExcludedInPolicy(rule_context.subject.identifier, self)]
             if self.packages and not any(fnmatch(name, package) for package in self.packages):
                 # If the `packages` whitelist is set and this package isn't in the
                 # `packages` whitelist, then the policy doesn't apply to it
@@ -826,20 +799,7 @@ class Policy(SafeYAMLObject):
 
         answers = []
         for rule in self.rules:
-            if rule in visited_rules:
-                continue
-            visited_rules.add(rule)
-
-            response = rule.check(
-                self,
-                product_version,
-                subject,
-                results_retriever,
-                visited_rules)
-            if isinstance(response, list):
-                answers.extend(response)
-            else:
-                answers.append(response)
+            answers.extend(rule_context.verify(self, rule))
         return answers
 
     def matches_product_version(self, product_version):

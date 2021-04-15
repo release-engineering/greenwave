@@ -23,6 +23,111 @@ from greenwave.waivers import waive_answers
 log = logging.getLogger(__name__)
 
 
+class RuleContext:
+    """
+    Environment for verifying rules from multiple policies for a single
+    decision subject.
+    """
+    def __init__(self, product_version, subject, results_retriever):
+        self.product_version = product_version
+        self.subject = subject
+        self.results_retriever = results_retriever
+        self.verified_rules = set()
+
+    def get_results(self, test_case_name):
+        return self.results_retriever.retrieve(self.subject, test_case_name)
+
+    def verify(self, policy, rule):
+        if rule in self.verified_rules:
+            return []
+
+        self.verified_rules.add(rule)
+
+        return rule.check(policy, self)
+
+
+class Decision:
+    """
+    Collects answers from rules from policies.
+    """
+    def __init__(self, decision_context, product_version, verbose=False):
+        self.decision_context = decision_context
+        self.product_version = product_version
+        self.verbose = verbose
+
+        self.verbose_results = []
+        self.waivers = []
+        self.waiver_filters = []
+        self.answers = []
+        self.applicable_policies = []
+
+    def check(self, subject, policies, results_retriever):
+        subject_policies = [
+            policy for policy in policies
+            if policy.matches(
+                decision_context=self.decision_context,
+                product_version=self.product_version,
+                subject=subject)
+        ]
+
+        if not subject_policies:
+            if subject.ignore_missing_policy:
+                return
+
+            log.error(
+                'Cannot find any applicable policies for %s subjects at gating point %s in %s',
+                subject.type, self.decision_context, self.product_version)
+            raise NotFound(
+                'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
+                    subject.type, self.decision_context, self.product_version))
+
+        if self.verbose:
+            # Retrieve test results and waivers for all items when verbose output is requested.
+            self.verbose_results.extend(results_retriever.retrieve(subject))
+            self.waiver_filters.append(dict(
+                subject_type=subject.type,
+                subject_identifier=subject.identifier,
+                product_version=self.product_version,
+            ))
+
+        rule_context = RuleContext(self.product_version, subject, results_retriever)
+        for policy in subject_policies:
+            self.answers.extend(policy.check(rule_context))
+
+        self.applicable_policies.extend(subject_policies)
+
+    def waive_answers(self, waivers_retriever):
+        if not self.verbose:
+            for answer in self.answers:
+                if not answer.is_satisfied:
+                    self.waiver_filters.append(dict(
+                        subject_type=answer.subject.type,
+                        subject_identifier=answer.subject.identifier,
+                        product_version=self.product_version,
+                        testcase=answer.test_case_name,
+                        scenario=answer.scenario
+                    ))
+
+        if self.waiver_filters:
+            self.waivers = waivers_retriever.retrieve(self.waiver_filters)
+        else:
+            self.waivers = []
+
+        self.answers = waive_answers(self.answers, self.waivers)
+
+    def policies_satisfied(self):
+        return all(answer.is_satisfied for answer in self.answers)
+
+    def summary(self):
+        return summarize_answers(self.answers)
+
+    def satisfied_requirements(self):
+        return [answer.to_json() for answer in self.answers if answer.is_satisfied]
+
+    def unsatisfied_requirements(self):
+        return [answer.to_json() for answer in self.answers if not answer.is_satisfied]
+
+
 def _decision_subject(data):
     try:
         subject = create_subject_from_data(data)
@@ -108,9 +213,6 @@ def make_decision(data, config):
         except ValueError:
             raise BadRequest('Invalid "when" parameter, must be in ISO8601 format')
 
-    answers = []
-    verbose_results = []
-    applicable_policies = []
     retriever_args = {'when': when}
     results_retriever = ResultsRetriever(
         ignore_ids=ignore_results,
@@ -120,83 +222,30 @@ def make_decision(data, config):
         ignore_ids=ignore_waivers,
         url=config['WAIVERDB_API_URL'],
         **retriever_args)
-    waiver_filters = []
 
     policies = on_demand_policies or config['policies']
+    decision = Decision(decision_context, product_version, verbose)
     for subject in _decision_subjects_for_request(data):
-        subject_policies = [
-            policy for policy in policies
-            if policy.matches(
-                decision_context=decision_context,
-                product_version=product_version,
-                subject=subject)
-        ]
+        decision.check(subject, policies, results_retriever)
 
-        if not subject_policies:
-            if subject.ignore_missing_policy:
-                continue
-
-            log.error(
-                'Cannot find any applicable policies for %s subjects at gating point %s in %s',
-                subject.type, decision_context, product_version)
-            raise NotFound(
-                'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
-                    subject.type, decision_context, product_version))
-
-        if verbose:
-            # Retrieve test results and waivers for all items when verbose output is requested.
-            verbose_results.extend(results_retriever.retrieve(subject))
-            waiver_filters.append(dict(
-                subject_type=subject.type,
-                subject_identifier=subject.identifier,
-                product_version=product_version,
-            ))
-
-        visited_rules = set()
-        for policy in subject_policies:
-            answers.extend(
-                policy.check(
-                    product_version,
-                    subject,
-                    results_retriever,
-                    visited_rules))
-
-        applicable_policies.extend(subject_policies)
-
-    if not verbose:
-        for answer in answers:
-            if not answer.is_satisfied:
-                waiver_filters.append(dict(
-                    subject_type=answer.subject.type,
-                    subject_identifier=answer.subject.identifier,
-                    product_version=product_version,
-                    testcase=answer.test_case_name,
-                    scenario=answer.scenario
-                ))
-
-    if waiver_filters:
-        waivers = waivers_retriever.retrieve(waiver_filters)
-    else:
-        waivers = []
-    answers = waive_answers(answers, waivers)
+    decision.waive_answers(waivers_retriever)
 
     response = {
-        'policies_satisfied': all(answer.is_satisfied for answer in answers),
-        'summary': summarize_answers(answers),
-        'satisfied_requirements':
-            [answer.to_json() for answer in answers if answer.is_satisfied],
-        'unsatisfied_requirements':
-            [answer.to_json() for answer in answers if not answer.is_satisfied]
+        'policies_satisfied': decision.policies_satisfied(),
+        'summary': decision.summary(),
+        'satisfied_requirements': decision.satisfied_requirements(),
+        'unsatisfied_requirements': decision.unsatisfied_requirements(),
     }
 
-    # Check if on-demand policy was specified
+    # Include applicable_policies if on-demand policy was not specified.
     if not rules:
-        response.update({'applicable_policies': [policy.id for policy in applicable_policies]})
+        response.update({'applicable_policies': [
+            policy.id for policy in decision.applicable_policies]})
 
     if verbose:
         response.update({
-            'results': list({result['id']: result for result in verbose_results}.values()),
-            'waivers': list({waiver['id']: waiver for waiver in waivers}.values()),
+            'results': list({result['id']: result for result in decision.verbose_results}.values()),
+            'waivers': list({waiver['id']: waiver for waiver in decision.waivers}.values()),
         })
 
     return response

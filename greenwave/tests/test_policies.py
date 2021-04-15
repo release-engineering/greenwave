@@ -8,19 +8,16 @@ import time
 from textwrap import dedent
 
 from greenwave.app_factory import create_app
+from greenwave.decision import Decision
 from greenwave.policies import (
     load_policies,
     summarize_answers,
-    FetchedRemoteRuleYaml,
     Policy,
     RemotePolicy,
     RemoteRule,
     RuleSatisfied,
     TestResultMissing,
     TestResultFailed,
-    TestResultPassed,
-    InvalidRemoteRuleYaml,
-    MissingRemoteRuleYaml,
     OnDemandPolicy
 )
 from greenwave.resources import ResultsRetriever
@@ -36,6 +33,10 @@ def app():
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
         yield
+
+
+def answer_types(answers):
+    return [x.to_json()['type'] for x in answers]
 
 
 class DummyResultsRetriever(ResultsRetriever):
@@ -108,15 +109,14 @@ def test_decision_with_missing_result(tmpdir):
           - !PassingTestCaseRule {test_case_name: sometest}
         """))
     policies = load_policies(tmpdir.strpath)
-    policy = policies[0]
 
+    subject = create_subject('compose', 'some_nevr')
     results = DummyResultsRetriever()
-    subject = create_subject('koji_build', 'some_nevr')
+    decision = Decision('rawhide_compose_sync_to_mirrors', 'fedora-rawhide')
 
     # Ensure that absence of a result is failure.
-    decision = policy.check('fedora-rawhide', subject, results)
-    assert len(decision) == 1
-    assert isinstance(decision[0], TestResultMissing)
+    decision.check(subject, policies, results)
+    assert answer_types(decision.answers) == ['test-result-missing']
 
 
 def test_waive_brew_koji_mismatch(tmpdir):
@@ -138,28 +138,28 @@ def test_waive_brew_koji_mismatch(tmpdir):
           - !PassingTestCaseRule {test_case_name: sometest}
         """))
     policies = load_policies(tmpdir.strpath)
-    policy = policies[0]
 
-    item = 'some_nevr'
-    subject = create_subject('koji_build', item)
+    subject = create_subject('koji_build', 'some_nevr')
     results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
 
-    decision = policy.check('fedora-rawhide', subject, results)
-    assert len(decision) == 1
-    assert isinstance(decision[0], TestResultFailed)
+    # Ensure that absence of a result is failure.
+    decision = Decision('test', 'fedora-rawhide')
+    decision.check(subject, policies, results)
+    answers = waive_answers(decision.answers, [])
+    assert answer_types(answers) == ['test-result-failed']
 
     waivers = [{
         'id': 1,
-        'subject_identifier': item,
-        'subject_type': 'koji_build',
+        'subject_identifier': subject.identifier,
+        'subject_type': subject.type,
         'testcase': 'sometest',
         'product_version': 'fedora-rawhide',
         'waived': True,
     }]
-    decision = policy.check('fedora-rawhide', subject, results)
-    decision = waive_answers(decision, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], RuleSatisfied)
+    decision = Decision('test', 'fedora-rawhide')
+    decision.check(subject, policies, results)
+    answers = waive_answers(decision.answers, waivers)
+    assert answer_types(answers) == ['test-result-failed-waived']
 
 
 def test_waive_bodhi_update(tmpdir):
@@ -181,28 +181,26 @@ def test_waive_bodhi_update(tmpdir):
           - !PassingTestCaseRule {test_case_name: sometest}
         """))
     policies = load_policies(tmpdir.strpath)
-    policy = policies[0]
 
-    item = 'some_bodhi_update'
-    subject = create_subject('bodhi_update', item)
+    subject = create_subject('bodhi_update', 'some_bodhi_update')
     results = DummyResultsRetriever(subject, 'sometest', 'FAILED')
 
-    decision = policy.check('fedora-rawhide', subject, results)
-    assert len(decision) == 1
-    assert isinstance(decision[0], TestResultFailed)
+    decision = Decision('test', 'fedora-rawhide')
+    decision.check(subject, policies, results)
+    assert answer_types(decision.answers) == ['test-result-failed']
 
     waivers = [{
         'id': 1,
-        'subject_identifier': item,
-        'subject_type': 'bodhi_update',
+        'subject_identifier': subject.identifier,
+        'subject_type': subject.type,
         'testcase': 'sometest',
         'product_version': 'fedora-rawhide',
         'waived': True,
     }]
-    decision = policy.check('fedora-rawhide', subject, results)
-    decision = waive_answers(decision, waivers)
-    assert len(decision) == 1
-    assert isinstance(decision[0], RuleSatisfied)
+    decision = Decision('test', 'fedora-rawhide')
+    decision.check(subject, policies, results)
+    answers = waive_answers(decision.answers, waivers)
+    assert answer_types(answers) == ['test-result-failed-waived']
 
 
 def test_load_policies():
@@ -333,28 +331,24 @@ def test_remote_rule_policy(tmpdir, namespace):
         with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
             f.return_value = remote_fragment
             policies = load_policies(tmpdir.strpath)
-            policy = policies[0]
 
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'dist.upgradepath')
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], RuleSatisfied)
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-passed']
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever()
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultMissing)
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-missing']
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultFailed)
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-failed']
             f.assert_called_with(
                 'https://src.fedoraproject.org/{0}'.format(
                     '' if not namespace else namespace + '/'
@@ -411,19 +405,19 @@ def test_remote_rule_policy_old_config(tmpdir):
                 with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                     f.return_value = remote_fragment
                     policies = load_policies(tmpdir.strpath)
-                    policy = policies[0]
 
                     # Ensure that presence of a result is success.
                     results = DummyResultsRetriever(subject, 'dist.upgradepath')
-                    decision = policy.check('fedora-26', subject, results)
-                    assert len(decision) == 2
-                    assert isinstance(decision[0], FetchedRemoteRuleYaml)
-                    assert isinstance(decision[1], RuleSatisfied)
+                    decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+                    decision.check(subject, policies, results)
+                    assert answer_types(decision.answers) == [
+                        'fetched-gating-yaml', 'test-result-passed']
 
-                    f.assert_called_once_with(
+                    call = mock.call(
                         'http://localhost.localdomain/nethack/'
                         'c3c47a08a66451cb9686c49f040776ed35a0d1bb/gating.yaml'
                     )
+                    assert f.mock_calls == [call, call]
     finally:
         Config.REMOTE_RULE_POLICIES = config_remote_rules_backup
 
@@ -454,6 +448,7 @@ def test_remote_rule_policy_brew_build_group(tmpdir):
         id: "some-policy-from-a-random-packager"
         product_versions:
           - fedora-26
+        subject_type: brew-build-group
         decision_context: bodhi_update_push_stable_with_remoterule
         rules:
         - !PassingTestCaseRule {test_case_name: dist.upgradepath}
@@ -466,28 +461,24 @@ def test_remote_rule_policy_brew_build_group(tmpdir):
         with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
             f.return_value = remote_fragment
             policies = load_policies(tmpdir.strpath)
-            policy = policies[0]
 
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'dist.upgradepath')
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], RuleSatisfied)
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-passed']
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever()
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultMissing)
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-missing']
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultFailed)
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-failed']
             f.assert_called_with(
                 'https://git.example.com/devops/greenwave-policies/side-tags/raw/'
                 'master/0f41e56a1c32519e189ddbcb01d2551e861bd74e603d01769ef5f70d4b30a2dd.yaml'
@@ -532,14 +523,13 @@ def test_remote_rule_policy_with_no_remote_rule_policies_param_defined(tmpdir):
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = remote_fragment
                 policies = load_policies(tmpdir.strpath)
-                policy = policies[0]
 
                 # Ensure that presence of a result is success.
                 results = DummyResultsRetriever(subject, 'dist.upgradepath')
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 2
-                assert isinstance(decision[0], FetchedRemoteRuleYaml)
-                assert isinstance(decision[1], RuleSatisfied)
+                decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+                decision.check(subject, policies, results)
+                assert answer_types(decision.answers) == [
+                    'fetched-gating-yaml', 'test-result-passed']
                 f.assert_called_with(
                     'https://src.fedoraproject.org/rpms/nethack/raw/'
                     'c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml'
@@ -583,29 +573,25 @@ def test_remote_rule_policy_redhat_module(tmpdir, namespace):
         with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
             f.return_value = remote_fragment
             policies = load_policies(tmpdir.strpath)
-            policy = policies[0]
 
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'baseos-ci.redhat-module.tier0.functional')
-            decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], RuleSatisfied)
+            decision = Decision('osci_compose_gate', 'rhel-8')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-passed']
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever(subject)
-            decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultMissing)
+            decision = Decision('osci_compose_gate', 'rhel-8')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-missing']
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(
                 subject, 'baseos-ci.redhat-module.tier0.functional', 'FAILED')
-            decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultFailed)
+            decision = Decision('osci_compose_gate', 'rhel-8')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-failed']
 
 
 def test_remote_rule_policy_redhat_container_image(tmpdir):
@@ -644,30 +630,26 @@ def test_remote_rule_policy_redhat_container_image(tmpdir):
         with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
             f.return_value = remote_fragment
             policies = load_policies(tmpdir.strpath)
-            policy = policies[0]
 
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(
                 subject, 'baseos-ci.redhat-container-image.tier0.functional')
-            decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], RuleSatisfied)
+            decision = Decision('osci_compose_gate', 'rhel-8')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-passed']
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever(subject)
-            decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultMissing)
+            decision = Decision('osci_compose_gate', 'rhel-8')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-missing']
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(
                 subject, 'baseos-ci.redhat-container-image.tier0.functional', 'FAILED')
-            decision = policy.check('rhel-8', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultFailed)
+            decision = Decision('osci_compose_gate', 'rhel-8')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-failed']
 
 
 def test_get_sub_policies_multiple_urls(tmpdir):
@@ -703,14 +685,15 @@ def test_get_sub_policies_multiple_urls(tmpdir):
             with mock.patch('greenwave.resources.requests_session') as session:
                 response = mock.MagicMock()
                 response.status_code = 404
-                session.request.side_effect = [response, response]
+                session.request.return_value = response
 
                 policy = OnDemandPolicy.create_from_json(serverside_json)
                 assert isinstance(policy.rules[0], RemoteRule)
                 assert policy.rules[0].required
 
                 results = DummyResultsRetriever()
-                decision = policy.check('fedora-26', subject, results)
+                decision = Decision(None, 'fedora-26')
+                decision.check(subject, [policy], results)
                 expected_call1 = mock.call(
                     'HEAD', 'https://src1.fp.org/{0}/{1}/raw/{2}/f/gating.yaml'.format(
                         *scm.return_value
@@ -721,11 +704,12 @@ def test_get_sub_policies_multiple_urls(tmpdir):
                         *scm.return_value
                     )
                 )
-                assert session.request.mock_calls == [expected_call1, expected_call2]
-                assert len(decision) == 1
-                assert isinstance(decision[0], MissingRemoteRuleYaml)
-                assert not decision[0].is_satisfied
-                assert decision[0].subject.identifier == subject.identifier
+                assert session.request.mock_calls == [
+                    expected_call1, expected_call2,
+                    expected_call1, expected_call2]
+                assert answer_types(decision.answers) == ['missing-gating-yaml']
+                assert not decision.answers[0].is_satisfied
+                assert decision.answers[0].subject.identifier == subject.identifier
 
 
 def test_redhat_container_image_subject_type():
@@ -785,14 +769,12 @@ def test_remote_rule_policy_optional_id(tmpdir):
         with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
             f.return_value = remote_fragment
             policies = load_policies(tmpdir.strpath)
-            policy = policies[0]
 
             results = DummyResultsRetriever()
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultMissing)
-            assert decision[1].is_satisfied is False
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-missing']
+            assert decision.answers[1].is_satisfied is False
 
 
 def test_remote_rule_malformed_yaml(tmpdir):
@@ -838,15 +820,14 @@ def test_remote_rule_malformed_yaml(tmpdir):
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = remote_fragment
                 policies = load_policies(tmpdir.strpath)
-                policy = policies[0]
 
                 results = DummyResultsRetriever()
-                decision = policy.check('fedora-26', subject, results)
-                assert len(decision) == 2
-                assert isinstance(decision[0], FetchedRemoteRuleYaml)
-                assert isinstance(decision[1], InvalidRemoteRuleYaml)
-                assert decision[0].is_satisfied is True
-                assert decision[1].is_satisfied is False
+                decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+                decision.check(subject, policies, results)
+                assert answer_types(decision.answers) == [
+                    'fetched-gating-yaml', 'invalid-gating-yaml']
+                assert decision.answers[0].is_satisfied is True
+                assert decision.answers[1].is_satisfied is False
 
 
 def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
@@ -893,7 +874,6 @@ def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
             with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
                 f.return_value = remote_fragment
                 policies = load_policies(tmpdir.strpath)
-                policy = policies[0]
 
                 results = DummyResultsRetriever()
                 waivers = [{
@@ -906,10 +886,13 @@ def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
                     'comment': 'Waiving the invalid gating.yaml file',
                     'waived': True,
                 }]
-                decision = policy.check('fedora-26', subject, results)
-                decision = waive_answers(decision, waivers)
-                assert len(decision) == 1
-                assert isinstance(decision[0], FetchedRemoteRuleYaml)
+
+                decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-26')
+                decision.check(subject, policies, results)
+                answers = decision.answers
+                assert answer_types(answers) == ['fetched-gating-yaml', 'invalid-gating-yaml']
+                answers = waive_answers(answers, waivers)
+                assert answer_types(answers) == ['fetched-gating-yaml']
 
 
 def test_remote_rule_required():
@@ -928,13 +911,12 @@ def test_remote_rule_required():
                 rules:
                   - !RemoteRule {required: true}
             """))
-            policy = policies[0]
             results = DummyResultsRetriever()
-            decision = policy.check('fedora-rawhide', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], MissingRemoteRuleYaml)
-            assert not decision[0].is_satisfied
-            assert decision[0].subject.identifier == subject.identifier
+            decision = Decision('test', 'fedora-rawhide')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['missing-gating-yaml']
+            assert not decision.answers[0].is_satisfied
+            assert decision.answers[0].subject.identifier == subject.identifier
 
 
 def test_parse_policies_missing_tag():
@@ -1028,13 +1010,11 @@ def test_policy_with_arbitrary_subject_type(tmpdir):
           - !PassingTestCaseRule {test_case_name: sometest}
         """))
     policies = load_policies(tmpdir.strpath)
-    policy = policies[0]
-
     subject = create_subject('kind-of-magic', 'nethack-1.2.3-1.el9000')
     results = DummyResultsRetriever(subject, 'sometest', 'PASSED')
-    decision = policy.check('rhel-9000', subject, results)
-    assert len(decision) == 1
-    assert isinstance(decision[0], TestResultPassed)
+    decision = Decision('bodhi_update_push_stable', 'rhel-9000')
+    decision.check(subject, policies, results)
+    assert answer_types(decision.answers) == ['test-result-passed']
 
 
 def test_policy_all_decision_contexts(tmpdir):
@@ -1070,12 +1050,12 @@ def test_policy_all_decision_contexts(tmpdir):
     assert policy.all_decision_contexts == ['test4']
 
 
-@pytest.mark.parametrize(('package', 'num_decisions'), [
-    ('nethack', 1),
-    ('net*', 1),
-    ('python-requests', 0),
+@pytest.mark.parametrize(('package', 'expected_answers'), [
+    ('nethack', ['test-result-passed']),
+    ('net*', ['test-result-passed']),
+    ('python-requests', []),
 ])
-def test_policy_with_packages_whitelist(tmpdir, package, num_decisions):
+def test_policy_with_packages_whitelist(tmpdir, package, expected_answers):
     p = tmpdir.join('temp.yaml')
     p.write(dedent("""
         --- !Policy
@@ -1090,14 +1070,11 @@ def test_policy_with_packages_whitelist(tmpdir, package, num_decisions):
           - !PassingTestCaseRule {{test_case_name: sometest}}
         """.format(package)))
     policies = load_policies(tmpdir.strpath)
-    policy = policies[0]
-
     subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
     results = DummyResultsRetriever(subject, 'sometest', 'PASSED')
-    decision = policy.check('rhel-9000', subject, results)
-    assert len(decision) == num_decisions
-    if num_decisions:
-        assert isinstance(decision[0], TestResultPassed)
+    decision = Decision('test', 'rhel-9000')
+    decision.check(subject, policies, results)
+    assert answer_types(decision.answers) == expected_answers
 
 
 def test_parse_policies_invalid_rule():
@@ -1301,11 +1278,10 @@ def test_policy_with_subject_type_component_version(tmpdir):
           - !PassingTestCaseRule {test_case_name: test_for_new_type}
         """))
     policies = load_policies(tmpdir.strpath)
-    policy = policies[0]
     results = DummyResultsRetriever(subject, 'test_for_new_type', 'PASSED')
-    decision = policy.check('fedora-29', subject, results)
-    assert len(decision) == 1
-    assert isinstance(decision[0], RuleSatisfied)
+    decision = Decision('decision_context_test_component_version', 'fedora-29')
+    decision.check(subject, policies, results)
+    assert answer_types(decision.answers) == ['test-result-passed']
 
 
 @pytest.mark.parametrize('subject_type', ["redhat-module", "redhat-container-image"])
@@ -1325,11 +1301,10 @@ def test_policy_with_subject_type_redhat_module(tmpdir, subject_type):
           - !PassingTestCaseRule {test_case_name: test_for_redhat_module_type}
         """ % subject_type))
     policies = load_policies(tmpdir.strpath)
-    policy = policies[0]
     results = DummyResultsRetriever(subject, 'test_for_redhat_module_type', 'PASSED')
-    decision = policy.check('fedora-29', subject, results)
-    assert len(decision) == 1
-    assert isinstance(decision[0], RuleSatisfied)
+    decision = Decision('decision_context_test_redhat_module', 'fedora-29')
+    decision.check(subject, policies, results)
+    assert answer_types(decision.answers) == ['test-result-passed']
 
 
 @pytest.mark.parametrize('namespace', ["rpms", ""])
@@ -1368,24 +1343,21 @@ def test_remote_rule_policy_on_demand_policy(namespace):
 
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'dist.upgradepath')
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], RuleSatisfied)
+            decision = Decision(None, 'fedora-26')
+            decision.check(subject, [policy], results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-passed']
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever()
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultMissing)
+            decision = Decision(None, 'fedora-26')
+            decision.check(subject, [policy], results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-missing']
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultFailed)
+            decision = Decision(None, 'fedora-26')
+            decision.check(subject, [policy], results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-failed']
 
 
 @pytest.mark.parametrize('two_rules', (True, False))
@@ -1424,10 +1396,10 @@ def test_on_demand_policy_match(two_rules, koji_proxy):
     results = DummyResultsRetriever(
         subject, 'fake.testcase.tier0.validation', 'PASSED'
     )
-    decision = policy.check('fedora-30', subject, results)
+    decision = Decision(None, 'fedora-30')
+    decision.check(subject, [policy], results)
     if two_rules:
-        assert len(decision) == 1
-        assert isinstance(decision[0], RuleSatisfied)
+        assert answer_types(decision.answers) == ['test-result-passed']
 
 
 def test_remote_rule_policy_on_demand_policy_required():
@@ -1460,11 +1432,11 @@ def test_remote_rule_policy_on_demand_policy_required():
             assert policy.rules[0].required
 
             results = DummyResultsRetriever()
-            decision = policy.check('fedora-26', subject, results)
-            assert len(decision) == 1
-            assert isinstance(decision[0], MissingRemoteRuleYaml)
-            assert not decision[0].is_satisfied
-            assert decision[0].subject.identifier == subject.identifier
+            decision = Decision(None, 'fedora-26')
+            decision.check(subject, [policy], results)
+            assert answer_types(decision.answers) == ['missing-gating-yaml']
+            assert not decision.answers[0].is_satisfied
+            assert decision.answers[0].subject.identifier == subject.identifier
 
 
 def test_two_rules_no_duplicate(tmpdir):
@@ -1500,28 +1472,24 @@ def test_two_rules_no_duplicate(tmpdir):
         with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
             f.return_value = remote_fragment
             policies = load_policies(tmpdir.strpath)
-            policy = policies[0]
 
             # Ensure that presence of a result is success.
             results = DummyResultsRetriever(subject, 'dist.upgradepath')
-            decision = policy.check('fedora-31', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], RuleSatisfied)
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-31')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-passed']
 
             # Ensure that absence of a result is failure.
             results = DummyResultsRetriever()
-            decision = policy.check('fedora-31', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultMissing)
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-31')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-missing']
 
             # And that a result with a failure, is a failure.
             results = DummyResultsRetriever(subject, 'dist.upgradepath', 'FAILED')
-            decision = policy.check('fedora-31', subject, results)
-            assert len(decision) == 2
-            assert isinstance(decision[0], FetchedRemoteRuleYaml)
-            assert isinstance(decision[1], TestResultFailed)
+            decision = Decision('bodhi_update_push_stable_with_remoterule', 'fedora-31')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-failed']
 
 
 def test_cache_all_results_temporarily():
