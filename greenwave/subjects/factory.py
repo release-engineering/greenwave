@@ -28,7 +28,7 @@ def create_subject_from_data(data):
     type_id = data.get("type")
 
     for type_ in subject_types():
-        if type_id and type_ != type_id:
+        if type_id and type_.id != type_id:
             continue
 
         if not type_.item_key:

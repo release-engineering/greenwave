@@ -477,6 +477,83 @@ def test_decision_change_for_modules(
             }
 
 
+@pytest.mark.parametrize("config,publish", parameters)
+def test_decision_change_for_composes(
+        koji_proxy,
+        mock_retrieve_results,
+        config,
+        publish):
+    """
+    Test publishing decision change message for a compose.
+    """
+    with mock.patch('greenwave.config.Config.MESSAGING', config):
+        with mock.patch(publish) as mock_fedmsg:
+            policies = dedent("""
+                --- !Policy
+                id: "osci_rhel8_development_nightly_compose_gate"
+                product_versions:
+                  - rhel-8
+                decision_context: osci_rhel8_development_nightly_compose_gate
+                subject_type: compose
+                rules:
+                  - !PassingTestCaseRule {test_case_name: rtt.installability.validation}
+                  - !PassingTestCaseRule {test_case_name: rtt.beaker-acceptance.validation}
+            """)
+
+            result_data = {
+                "item": ["RHEL-9000/unknown/x86_64"],
+                "productmd.compose.id": ["RHEL-9000"],
+                "type": ["compose"]
+            }
+            result = {
+                'id': 1,
+                'testcase': {'name': 'rtt.installability.validation'},
+                'outcome': 'PASSED',
+                'data': result_data,
+                "submit_time": "2021-02-15T13:31:35.000001"
+            }
+            mock_retrieve_results.return_value = [result]
+
+            koji_proxy.getBuild.return_value = None
+
+            message = {
+                'body': {
+                    'topic': 'resultsdb.result.new',
+                    'msg': result,
+                }
+            }
+            hub = mock.MagicMock()
+            hub.config = {
+                'environment': 'environment',
+                'topic_prefix': 'topic_prefix',
+            }
+            handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
+
+            handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
+            with handler.flask_app.app_context():
+                handler.consume(message)
+
+            assert len(mock_fedmsg.mock_calls) == 1
+
+            if config == "fedmsg":
+                mock_call = mock_fedmsg.mock_calls[0][2]
+                assert mock_call['topic'] == 'decision.update'
+                actual_msgs_sent = mock_call['msg']
+            else:
+                mock_call = mock_fedmsg.mock_calls[0][1][0]
+                assert mock_call.topic == 'greenwave.decision.update'
+                actual_msgs_sent = mock_call.body
+
+            assert actual_msgs_sent == {
+                'decision_context': 'osci_rhel8_development_nightly_compose_gate',
+                'product_version': 'rhel-8',
+                'subject': [{'productmd.compose.id': 'RHEL-9000'}],
+                'subject_type': 'compose',
+                'subject_identifier': 'RHEL-9000',
+                'previous': None,
+            }
+
+
 def test_real_fedora_messaging_msg(mock_retrieve_results):
     message = {
         'msg': {
