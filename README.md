@@ -10,10 +10,10 @@ gating points in a software delivery pipeline, based on test results stored in
 ## Documentation
 
 The latest version of Greenwave's documentation is available at:
-https://docs.pagure.org/greenwave/
+https://gating-greenwave.readthedocs.io/en/latest/
 
 To get started developing Greenwave, check out the
-[development guide](https://docs.pagure.org/greenwave/dev-guide.html).
+[development guide](https://gating-greenwave.readthedocs.io/en/latest/dev-guide.html).
 
 ## Copyright and license
 
