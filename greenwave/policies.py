@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import greenwave.resources
+import xmlrpc.client
 from werkzeug.exceptions import BadRequest, NotFound
 from flask import current_app
 from greenwave.safe_yaml import (
@@ -551,6 +552,10 @@ class RemoteRule(Rule):
                     break
         except NotFound:
             error = f'Koji build not found for {subject}'
+            return [], [FailedFetchRemoteRuleYaml(subject, remote_policies_urls, error)]
+        except xmlrpc.client.Fault as err:
+            logging.exception('Unexpected Koji XMLRPC fault with code: %s', err.faultCode)
+            error = f'Koji XMLRPC fault due to: \'{err.faultString}\''
             return [], [FailedFetchRemoteRuleYaml(subject, remote_policies_urls, error)]
         except Exception:
             logging.exception('Failed to retrieve policies for %r', subject)

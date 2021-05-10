@@ -11,6 +11,7 @@ from greenwave.policies import Policy, RemoteRule
 from greenwave.resources import NoSourceException
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.subjects.factory import create_subject
+import xmlrpc.client
 
 
 def test_match_passing_test_case_rule():
@@ -71,6 +72,29 @@ def test_match_remote_rule(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remot
         assert rule.matches(policy, subject=subject)
         assert rule.matches(policy, subject=subject, testcase='some_test_case')
         assert not rule.matches(policy, subject=subject, testcase='other_test_case')
+
+
+@mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
+@mock.patch('greenwave.resources.retrieve_scm_from_koji')
+def test_invalid_nvr_iden(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remote_rule):
+    policy_yaml = dedent("""
+        --- !Policy
+        id: "some_policy"
+        product_versions: [rhel-9000]
+        decision_context: bodhi_update_push_stable
+        subject_type: koji_build
+        rules:
+          - !RemoteRule {}
+    """)
+    nvr = 'nieco'
+    mock_retrieve_scm_from_koji.side_effect = xmlrpc.client.Fault(1000, nvr)
+
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        subject = create_subject('koji_build', nvr)
+        policies = Policy.safe_load_all(policy_yaml)
+        policy = policies[0]
+        assert 'Koji XMLRPC fault' in str(RemoteRule._get_sub_policies(None, policy, subject)[1][0])
 
 
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
