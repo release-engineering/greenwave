@@ -32,7 +32,7 @@ services:
   resultsdb:
     build:
       context: ../resultsdb
-      dockerfile: openshift/Dockerfile
+      dockerfile: Dockerfile
     working_dir: /code
     command: ["bash", "-c", "/start.sh"]
     volumes:
