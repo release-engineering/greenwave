@@ -2,6 +2,20 @@
 Release Notes
 =============
 
+Greenwave 1.8.0
+===============
+
+Released 24 May 2021
+
+* Remote rule file URLs are listed in the decision response
+* Improved performance of ResultsDB message consumer by caching passed results
+* Improved an error description when a Koji build identifier is an invalid format
+* Fixed publishing decision change for composes
+* Only one field ``decision_contexts`` (preferred) or ``decision_context`` (obsolete) can be set
+* Fixed returning multiple results for different scenarios and the same test case from the cache
+* Documentation has been updated and moved to readthedocs.org
+
+
 Greenwave 1.7.0
 ===============
 
