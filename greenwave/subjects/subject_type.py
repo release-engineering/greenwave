@@ -40,6 +40,14 @@ class SubjectType(SafeYAMLObject):
         # Omit responding with HTTP 404 if there is no applicable policy.
         'ignore_missing_policy': SafeYAMLBool(optional=True, default=False),
 
+        # List of dicts. Each dict must have:
+        # - 'match' field containing regular expression to match subject ID
+        # - 'product_version' field containing product version (can contain
+        #   '\1', '\2' etc, expanded to matched groups)
+        'product_version_match': SafeYAMLList(item_type=dict, optional=True),
+
+        # Fixed product version for the subject type used if
+        # product_version_match is undefined or does not match subject ID.
         'product_version': SafeYAMLString(optional=True),
 
         # Serialization dict for decision.

@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import re
+
 
 def _to_dict(format_dict, item):
     result = {}
@@ -61,6 +63,11 @@ class Subject:
 
     @property
     def product_version(self):
+        for pv_match in self._type.product_version_match:
+            pv = re.sub(pv_match['match'], pv_match['product_version'], self.item)
+            if pv and pv != self.item:
+                return pv.lower()
+
         return self._type.product_version
 
     @property

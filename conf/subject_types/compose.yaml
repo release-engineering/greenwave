@@ -4,3 +4,6 @@ item_key: "productmd.compose.id"
 item_dict:
   # {"productmd.compose.id": ITEM}
   item_key: "productmd.compose.id"
+product_version_match:
+  - match: '^(RHEL-\d*)\..*'
+    product_version: '\1'

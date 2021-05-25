@@ -65,3 +65,14 @@ def test_subject_to_repr(app):
 def test_subject_to_repr_generic(app):
     subject = create_subject('some_type', 'some_nvr')
     assert repr(subject) == "Subject(<GenericSubjectType 'some_type'>, 'some_nvr')"
+
+
+@pytest.mark.parametrize('compose, expected_product_version', (
+    ('RHEL-8.5.0-20210101.d.1', 'rhel-8'),
+    ('RHEL-9.0.0-20210101.d.2', 'rhel-9'),
+    ('FEDORA-2021-35759ad8d3', None),
+))
+def test_subject_product_version_match(compose, expected_product_version, app):
+    subject = create_subject('compose', compose)
+    assert subject._type.product_version_match
+    assert subject.product_version == expected_product_version, compose
