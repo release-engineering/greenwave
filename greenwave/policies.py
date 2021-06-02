@@ -365,6 +365,7 @@ class FetchedRemoteRuleYaml(RuleSatisfied):
     def to_json(self):
         return {
             'type': 'fetched-gating-yaml',
+            'testcase': 'fetched-gating-yaml',
             'subject_type': self.subject.type,
             'subject_identifier': self.subject.identifier,
             'source': self.source,

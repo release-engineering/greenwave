@@ -165,3 +165,19 @@ if a policy has ``excluded_packages`` attribute containing ``python2-*``.
         "type": "excluded",
         "subject_identifier": "python2-flask-1.0.2-1.rawhide",
     }
+
+Fetched remote rule
+-------------------
+
+If the requested policy contains a ``RemoteRule`` and the remote rule file is
+found and successfully retrieved, a satisfied requirement is created.
+
+.. code-block:: json
+
+    {
+        "type": "fetched-gating-yaml",
+        "testcase": "fetched-gating-yaml",
+        "source": "http://dist-git.example.com/cgit/rpms/bash/plain/gating.yaml?id=abcdef01234",
+        "subject_identifier": "bash-4.4.20-1.el8_4",
+        "subject_type": "koji_build"
+    }
