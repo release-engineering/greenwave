@@ -1,5 +1,5 @@
 flask
-sphinx
+sphinx < 4
 sphinxcontrib-httpdomain
 prometheus_client
 dogpile.cache
