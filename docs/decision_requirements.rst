@@ -12,11 +12,14 @@ type.
 Examples
 ========
 
+.. _passed_test_result:
+
 Passed test result
 ------------------
 
 This satisfied requirement is created if a required test result for a requested
-subject is found in ResultsDB and outcome is ``PASSED`` or ``INFO``.
+subject is found in ResultsDB and the outcome is ``PASSED`` or ``INFO`` (this
+can be overridden by ``OUTCOMES_PASSED`` Greenwave configuration).
 
 .. code-block:: json
 
@@ -28,12 +31,15 @@ subject is found in ResultsDB and outcome is ``PASSED`` or ``INFO``.
         "result_id": 1001
     }
 
+.. _missing_test_result:
+
 Missing test result
 -------------------
 
 This unsatisfied requirement is created if a required test result for a
-requested subject is **not** found in ResultsDB or outcome is ``QUEUED`` or
-``RUNNING``.
+requested subject is either **not** found in ResultsDB, or is found and the
+latest outcome is ``QUEUED`` or ``RUNNING`` (this can be overridden by
+``OUTCOMES_INCOMPLETE`` Greenwave configuration).
 
 .. code-block:: json
 
@@ -45,12 +51,15 @@ requested subject is **not** found in ResultsDB or outcome is ``QUEUED`` or
         "scenario": null
     }
 
+.. _failed_test_result:
+
 Failed test result
 ------------------
 
 This unsatisfied requirement is created if a required test result for a
-requested subject is found in ResultsDB and outcome is **not** ``PASSED`` or
-``INFO``.
+requested subject is found in ResultsDB and is not classified as
+:ref:`passed_test_result`, :ref:`missing_test_result` nor
+:ref:`error_test_result`.
 
 .. code-block:: json
 
@@ -65,11 +74,13 @@ requested subject is found in ResultsDB and outcome is **not** ``PASSED`` or
         "scenario": null
     }
 
+.. _error_test_result:
+
 Error test result
 -----------------
 
 This unsatisfied requirement is created if a required test result for a
-requested subject is found in ResultsDB and outcome is ``ERROR``.
+requested subject is found in ResultsDB and the latest outcome is ``ERROR``.
 
 This indicates that test case run was not finished properly.
 
