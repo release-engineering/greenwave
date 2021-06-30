@@ -24,6 +24,8 @@ def _guess_product_version(toparse, koji_build=False):
         product_version = 'epel-'
     elif toparse.startswith('el') and len(toparse) > 2 and toparse[2].isdigit():
         product_version = 'rhel-'
+    elif toparse.startswith('rhel-') and len(toparse) > 5 and toparse[5].isdigit():
+        product_version = 'rhel-'
     elif toparse.startswith('fc') or toparse.startswith('Fedora'):
         product_version = 'fedora-'
 
