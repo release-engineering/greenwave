@@ -162,6 +162,21 @@ Waived missing test result
         "scenario": null
     }
 
+Waived errored test result
+--------------------------
+
+.. code-block:: json
+
+    {
+        "type": "test-result-errored-waived",
+        "testcase": "example.test.case",
+        "subject_type": "koji-build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
+        "result_id": 1003,
+        "error_reason": "CI system out of memory",
+        "scenario": null
+    }
+
 Excluded package
 ----------------
 
