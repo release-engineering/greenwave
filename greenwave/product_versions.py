@@ -54,8 +54,13 @@ def _guess_koji_build_product_version(
             if not koji_task_id:
                 return None
 
-        target = retrieve_koji_task_request(koji_task_id, koji_base_url)[1]
-        return _guess_product_version(target, koji_build=True)
+        task_request = retrieve_koji_task_request(koji_task_id, koji_base_url)
+        if isinstance(task_request, list) and len(task_request) > 1:
+            target = task_request[1]
+            if isinstance(target, str):
+                return _guess_product_version(target, koji_build=True)
+
+        return None
     except (xmlrpc.client.ProtocolError, socket.error) as err:
         raise ConnectionError('Could not reach Koji: {}'.format(err))
     except xmlrpc.client.Fault:

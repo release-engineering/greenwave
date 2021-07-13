@@ -362,6 +362,23 @@ def test_guess_product_version_with_koji_without_task_id(koji_proxy, app):
     assert product_version is None
 
 
+@pytest.mark.parametrize('task_request', (
+    ['git://example.com/project', 7777, {}],
+    [],
+    None,
+))
+def test_guess_product_version_with_koji_and_unexpected_task_type(task_request, koji_proxy, app):
+    koji_proxy.getBuild.return_value = {'task_id': 666}
+    koji_proxy.getTaskRequest.return_value = task_request
+
+    subject = create_subject('container-build', 'fake_koji_build')
+    product_version = subject_product_version(subject, 'http://localhost:5006/kojihub')
+
+    koji_proxy.getBuild.assert_called_once_with('fake_koji_build')
+    koji_proxy.getTaskRequest.assert_called_once_with(666)
+    assert product_version is None
+
+
 @pytest.mark.parametrize('nvr', (
     'badnvr.elastic-1-228',
     'badnvr-1.2-1.elastic8',
