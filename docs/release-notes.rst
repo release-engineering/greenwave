@@ -2,6 +2,20 @@
 Release Notes
 =============
 
+Greenwave 1.9.0
+===============
+
+Released 19 July 2021
+
+* RHEL product versions in Brew/Koji build tasks are now recognized properly.
+* Internal subject type configuration can use regular expression to extract
+  short product version from artifact name.
+* Satisfied requirements with type "fetched-gating-yaml" now contain "testcase"
+  field so as not to break existing clients.
+* Unexpected or unsupported Koji task types are now ignored when guessing
+  product version for new test results allowing decision updates to be properly
+  published.
+
 Greenwave 1.8.0
 ===============
 
