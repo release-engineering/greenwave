@@ -8,6 +8,7 @@ $script = <<-'SCRIPT'
         git-core \
         postgresql-server \
         postgresql-contrib \
+        python3-dateutil \
         python3-gunicorn \
         python3-psycopg2 \
         python3-pylint \

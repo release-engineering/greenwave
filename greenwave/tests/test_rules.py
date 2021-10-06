@@ -229,3 +229,112 @@ def test_remote_rule_requiered_flag_bad(required_flag):
     error = 'Expected a boolean value, got: {}'.format(required_flag)
     with pytest.raises(SafeYAMLError, match=error):
         Policy.safe_load_all(policy_yaml)
+
+
+@pytest.mark.parametrize(('prop', 'value'), (
+    ('valid_since', False),
+    ('valid_since', ''),
+    ('valid_since', 'x'),
+))
+def test_remote_rule_valid_date_bad(prop, value):
+    policy_yaml = dedent("""
+        --- !Policy
+        id: test
+        product_versions: [fedora-rawhide]
+        decision_context: test
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: some_test_case, %s: %s}
+    """) % (prop, value)
+    error = 'Could not parse string as date/time, got: {}'.format(value)
+    with pytest.raises(SafeYAMLError, match=error):
+        Policy.safe_load_all(policy_yaml)
+
+
+@pytest.mark.parametrize(('properties', 'is_valid'), (
+    ('valid_since: 2021-10-06', True),
+    ('valid_since: 2021-10-07', False),
+    ('valid_until: 2021-10-07', True),
+    ('valid_until: 2021-10-06', False),
+    ('valid_since: 2021-10-06, valid_until: 2021-10-07', True),
+    ('valid_since: 2021-10-07, valid_until: 2021-10-08', False),
+    ('valid_since: 2021-10-05, valid_until: 2021-10-06', False),
+))
+def test_passing_test_case_rule_valid_times(koji_proxy, properties, is_valid):
+    policy_yaml = dedent("""
+        --- !Policy
+        id: "some_policy"
+        product_versions: [rhel-9000]
+        decision_context: bodhi_update_push_stable
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: some_test_case, %s}
+    """) % properties
+
+    nvr = 'nethack-1.2.3-1.el9000'
+
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        subject = create_subject('koji_build', nvr)
+        policies = Policy.safe_load_all(policy_yaml)
+        assert len(policies) == 1
+
+        policy = policies[0]
+        assert len(policy.rules) == 1
+
+        rule = policy.rules[0]
+
+        assert rule.matches(policy, subject=subject)
+        assert rule.matches(policy, subject=subject, testcase='some_test_case')
+
+        koji_proxy.getBuild.return_value = {
+            'creation_time': '2021-10-06 06:00:00.000000+00:00'}
+        decision = Decision('bodhi_update_push_stable', 'rhel-9000')
+
+        results_retriever = mock.MagicMock()
+        results_retriever.retrieve.return_value = []
+        decision.check(subject, policies, results_retriever=results_retriever)
+        answers = ['test-result-missing'] if is_valid else []
+        assert [x.to_json()['type'] for x in decision.answers] == answers
+
+
+@pytest.mark.parametrize(('creation_time', 'test_case_name'), (
+    ('2021-10-06 05:59:59.999999+00:00', 'old_test_case'),
+    ('2021-10-06 06:00:00.000000+00:00', 'new_test_case'),
+))
+def test_passing_test_case_rule_replace_using_valid_times(
+        koji_proxy, creation_time, test_case_name):
+    policy_yaml = dedent("""
+        --- !Policy
+        id: "some_policy"
+        product_versions: [rhel-9000]
+        decision_context: bodhi_update_push_stable
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule
+            valid_until: 2021-10-06 06:00:00.000000+00:00
+            test_case_name: old_test_case
+          - !PassingTestCaseRule
+            valid_since: 2021-10-06 06:00:00.000000+00:00
+            test_case_name: new_test_case
+    """)
+
+    nvr = 'nethack-1.2.3-1.el9000'
+
+    app = create_app('greenwave.config.TestingConfig')
+    with app.app_context():
+        subject = create_subject('koji_build', nvr)
+        policies = Policy.safe_load_all(policy_yaml)
+        assert len(policies) == 1
+
+        policy = policies[0]
+        assert len(policy.rules) == 2
+
+        koji_proxy.getBuild.return_value = {'creation_time': creation_time}
+        decision = Decision('bodhi_update_push_stable', 'rhel-9000')
+
+        results_retriever = mock.MagicMock()
+        results_retriever.retrieve.return_value = []
+        decision.check(subject, policies, results_retriever=results_retriever)
+        assert [x.to_json()['type'] for x in decision.answers] == ['test-result-missing']
+        assert decision.answers[0].test_case_name == test_case_name

@@ -6,10 +6,13 @@ waiverdb, etc..).
 
 """
 
+import datetime
 import logging
 import re
 import socket
 
+from dateutil import tz
+from dateutil.parser import parse
 from urllib.parse import urlparse
 import xmlrpc.client
 from flask import current_app
@@ -158,7 +161,7 @@ def retrieve_koji_build_target(nvr, koji_url):
 
 
 @cached
-def retrieve_koji_task_id_and_source(nvr, koji_url):
+def _retrieve_koji_build_attributes(nvr, koji_url):
     log.debug('Getting Koji build %r', nvr)
     proxy = get_server_proxy(koji_url, _requests_timeout())
     build = proxy.getBuild(nvr)
@@ -174,14 +177,40 @@ def retrieve_koji_task_id_and_source(nvr, koji_url):
     except (TypeError, KeyError, AttributeError):
         source = build.get("source")
 
-    return (task_id, source)
+    creation_time = build.get('creation_time')
+
+    return (task_id, source, creation_time)
+
+
+def retrieve_koji_build_task_id(nvr, koji_url):
+    return _retrieve_koji_build_attributes(nvr, koji_url)[0]
+
+
+def retrieve_koji_build_source(nvr, koji_url):
+    return _retrieve_koji_build_attributes(nvr, koji_url)[1]
+
+
+def retrieve_koji_build_creation_time(nvr, koji_url):
+    creation_time = _retrieve_koji_build_attributes(nvr, koji_url)[2]
+    try:
+        time = parse(str(creation_time))
+        if time.tzinfo is None:
+            time = time.replace(tzinfo=tz.tzutc())
+        return time
+    except ValueError:
+        log.warning(
+            'Could not parse Koji build creation_time %r for nvr %r',
+            creation_time, nvr
+        )
+
+    return datetime.datetime.now(tz.tzutc())
 
 
 def retrieve_scm_from_koji(nvr):
     """Retrieve cached rev and namespace from koji using the nvr"""
     koji_url = current_app.config["KOJI_BASE_URL"]
     try:
-        _, source = retrieve_koji_task_id_and_source(nvr, koji_url)
+        source = retrieve_koji_build_source(nvr, koji_url)
     except (xmlrpc.client.ProtocolError, socket.error) as err:
         raise ConnectionError("Could not reach Koji: {}".format(err))
     return retrieve_scm_from_koji_build(nvr, source, koji_url)

@@ -1,4 +1,5 @@
 flask
+python-dateutil
 sphinx < 4
 sphinxcontrib-httpdomain
 prometheus_client

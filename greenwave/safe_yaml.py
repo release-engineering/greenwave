@@ -2,6 +2,8 @@
 """
 Provides a way of defining type-safe YAML parsing.
 """
+from dateutil import tz
+from dateutil.parser import parse
 import yaml
 
 safe_yaml_tag_to_class = {}
@@ -108,6 +110,33 @@ class SafeYAMLString(SafeYAMLAttribute):
     @property
     def default_value(self):
         return self.default
+
+
+class SafeYAMLDateTime(SafeYAMLAttribute):
+    """
+    YAML object attribute representing a date/time value.
+    """
+    def from_yaml(self, loader, node):
+        value = loader.construct_scalar(node)
+        return self.from_value(value)
+
+    def from_value(self, value):
+        try:
+            time = parse(str(value))
+        except ValueError:
+            raise SafeYAMLError(
+                'Could not parse string as date/time, got: {}'.format(value))
+
+        if time.tzinfo is None:
+            time = time.replace(tzinfo=tz.tzutc())
+        return time
+
+    def to_json(self, value):
+        raise value
+
+    @property
+    def default_value(self):
+        return None
 
 
 class SafeYAMLList(SafeYAMLAttribute):

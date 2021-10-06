@@ -186,6 +186,48 @@ PassingTestCaseRule
    Optional ``scenario`` property can be specified to consider only results
    with a given scenario name.
 
+   Optional ``valid_since`` and ``valid_until`` properties declare a date/time
+   range for which the rule is applicable. The range is compared to subject's
+   build time from Koji if available or the current date/time. The default
+   value is ``null`` for both, indicating that the rule is always valid. The
+   comparison logic is following::
+
+      if valid_since != null and subject_time < valid_since then
+         rule is not applicable
+      else if valid_until != null and subject_time >= valid_until then
+         rule is not applicable
+      else
+         rule is applicable
+
+   Removing the rule is equivalent to setting ``valid_until`` to the current
+   date/time. This is preferable since it won't affect previous decisions.
+   Similarly, adding new rule with ``valid_since`` set to the current or a
+   future date/time does not affect previous decisions.
+
+   In the following example, on ``2021-10-02`` (if not specified, the time
+   defaults to 00:00 UTC), compose test results for test case
+   ``compose.autocloud`` start requiring scenario ``x86_64.uefi`` instead of
+   ``x86_64.64bit``.
+
+   .. code-block:: yaml
+      :linenos:
+
+      --- !Policy
+      id: "compose_required_tests"
+      product_versions:
+        - fedora-rawhide
+      decision_context: compose_required_tests
+      subject_type: compose
+      rules:
+        - !PassingTestCaseRule
+          valid_until: 2021-10-02
+          test_case_name: compose.autocloud
+          scenario: x86_64.64bit
+        - !PassingTestCaseRule
+          valid_since: 2021-10-02
+          test_case_name: compose.autocloud
+          scenario: x86_64.uefi
+
 .. _remote-rule:
 
 RemoteRule

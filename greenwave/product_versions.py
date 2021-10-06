@@ -11,8 +11,8 @@ import xmlrpc.client
 from werkzeug.exceptions import NotFound
 
 from greenwave.resources import (
-    retrieve_koji_task_id_and_source,
     retrieve_koji_build_target,
+    retrieve_koji_build_task_id,
 )
 
 log = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ def _guess_koji_build_product_version(
         if not koji_task_id:
             log.debug('Getting Koji task ID for build %r', subject_identifier)
             try:
-                koji_task_id, _ = retrieve_koji_task_id_and_source(
+                koji_task_id = retrieve_koji_build_task_id(
                     subject_identifier, koji_base_url
                 )
             except NotFound:

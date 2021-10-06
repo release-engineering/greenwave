@@ -11,6 +11,7 @@ from werkzeug.exceptions import BadRequest, NotFound
 from flask import current_app
 from greenwave.safe_yaml import (
     SafeYAMLBool,
+    SafeYAMLDateTime,
     SafeYAMLList,
     SafeYAMLObject,
     SafeYAMLString,
@@ -640,9 +641,20 @@ class PassingTestCaseRule(Rule):
     safe_yaml_attributes = {
         'test_case_name': SafeYAMLString(),
         'scenario': SafeYAMLString(optional=True),
+        'valid_since': SafeYAMLDateTime(optional=True),
+        'valid_until': SafeYAMLDateTime(optional=True),
     }
 
     def check(self, policy, rule_context):
+        if self.valid_since or self.valid_until:
+            koji_url = current_app.config["KOJI_BASE_URL"]
+            subject_creation_time = greenwave.resources.retrieve_koji_build_creation_time(
+                rule_context.subject, koji_url)
+            if self.valid_since and subject_creation_time < self.valid_since:
+                return []
+            if self.valid_until and self.valid_until <= subject_creation_time:
+                return []
+
         matching_results = rule_context.get_results(self.test_case_name)
 
         if self.scenario is not None:

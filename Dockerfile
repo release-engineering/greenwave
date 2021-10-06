@@ -8,6 +8,7 @@ LABEL \
 WORKDIR /src
 RUN dnf -y install \
     git-core \
+    python3-dateutil \
     python3-dogpile-cache \
     python3-fedmsg \
     python3-flask \
