@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import logging
+import logging.config
 
 from flask import Flask
 from greenwave.api_v1 import api

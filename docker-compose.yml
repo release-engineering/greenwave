@@ -3,6 +3,7 @@ version: '2.1'
 services:
   dev:
     build: .
+    image: greenwave_dev
     user: ${DEV_USER_ID:-1000}
     working_dir: /src
     env_file: ["docker/dev.env"]
@@ -19,23 +20,6 @@ services:
       - memcached
       - resultsdb
       - waiverdb
-
-  resultsdb-consumer:
-    build: .
-    user: ${DEV_USER_ID:-1000}
-    working_dir: /
-    env_file: docker/dev.env
-    command: ["fedmsg-hub"]
-    volumes:
-      - ./:/src:ro,z
-      - ./docker/home:/home/dev:rw,z
-      - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
-      - ./conf/policies/:/etc/greenwave/policies/:ro,z
-      - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
-      - ./docker/fedmsg.d:/etc/fedmsg.d:ro,z
-    depends_on:
-      - memcached
-      - umb
 
   resultsdb-db:
     image: postgres:9.5.2
@@ -95,6 +79,64 @@ services:
 
   memcached:
     image: "quay.io/factory2/memcached"
+
+  resultsdb-listener:
+    build: .
+    image: greenwave_dev
+    user: ${DEV_USER_ID:-1000}
+    working_dir: /
+    env_file: ["docker/dev.env"]
+    command:
+      - "gunicorn"
+      - "--reload"
+      - "--workers=2"
+      - "--threads=2"
+      - "--bind=0.0.0.0:8082"
+      - "--access-logfile=-"
+      - "--enable-stdio-inheritance"
+      - "greenwave.resultsdb_listener:app"
+    ports:
+      - 8082:8082
+    volumes:
+      - ./:/src:ro,z
+      - ./docker/home:/home/dev:rw,z
+      - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
+      - ./conf/policies/:/etc/greenwave/policies/:ro,z
+      - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
+    depends_on:
+      - memcached
+      - umb
+    deploy:
+      replicas: ${GREENWAVE_LISTENERS:-1}
+
+  waiverdb-listener:
+    build: .
+    image: greenwave_dev
+    user: ${DEV_USER_ID:-1000}
+    working_dir: /
+    env_file: ["docker/dev.env"]
+    command:
+      - "gunicorn"
+      - "--reload"
+      - "--workers=2"
+      - "--threads=2"
+      - "--bind=0.0.0.0:8083"
+      - "--access-logfile=-"
+      - "--enable-stdio-inheritance"
+      - "greenwave.waiverdb_listener:app"
+    ports:
+      - 8083:8083
+    volumes:
+      - ./:/src:ro,z
+      - ./docker/home:/home/dev:rw,z
+      - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
+      - ./conf/policies/:/etc/greenwave/policies/:ro,z
+      - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
+    depends_on:
+      - memcached
+      - umb
+    deploy:
+      replicas: ${GREENWAVE_LISTENERS:-1}
 
   umb:
     image: images.paas.redhat.com/exd-sp-guild-c3i/umb:latest

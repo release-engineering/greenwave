@@ -13,6 +13,7 @@ fi
 exec gunicorn \
   --reload \
   --workers=1 \
+  --threads=2 \
   --bind=0.0.0.0:8080 \
   --access-logfile=- \
   --enable-stdio-inheritance \

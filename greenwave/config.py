@@ -62,6 +62,33 @@ class Config(object):
         'system_variant',
     )
 
+    LISTENER_HOSTS = ""
+    LISTENER_RESULTSDB_QUEUE = (
+        "/queue/Consumer.client-greenwave.dev-resultsdb"
+        ".VirtualTopic.eng.resultsdb.result.new"
+    )
+    LISTENER_WAIVERDB_QUEUE = (
+        "/queue/Consumer.client-greenwave.dev-waiverdb"
+        ".VirtualTopic.eng.waiverdb.waiver.new"
+    )
+    LISTENER_DECISION_UPDATE_DESTINATION = (
+        "/topic/VirtualTopic.eng.greenwave.decision.update"
+    )
+    LISTENER_CONNECTION = {
+        "heartbeats": (10000, 20000),
+        "keepalive": True,
+        "timeout": 5000,
+        "reconnect_sleep_initial": 1.0,
+        "reconnect_sleep_increase": 1.0,
+        "reconnect_sleep_max": 60.0,
+        "reconnect_attempts_max": 10,
+    }
+    LISTENER_CONNECTION_SSL = {
+        "key_file": "/etc/pki/umb/umb-key",
+        "cert_file": "/etc/pki/umb/umb-crt",
+        "ca_certs": "/etc/pki/umb/umb-ca",
+    }
+
 
 class ProductionConfig(Config):
     DEBUG = False
