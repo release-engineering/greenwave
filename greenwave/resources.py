@@ -146,42 +146,48 @@ class NoSourceException(RuntimeError):
 
 
 @cached
-def retrieve_koji_task_request(nvr, koji_url):
+def retrieve_koji_build_target(nvr, koji_url):
     log.debug('Getting Koji task request ID %r', nvr)
     proxy = get_server_proxy(koji_url, _requests_timeout())
-    return proxy.getTaskRequest(nvr)
+    task_request = proxy.getTaskRequest(nvr)
+    if isinstance(task_request, list) and len(task_request) > 1:
+        target = task_request[1]
+        if isinstance(target, str):
+            return target
+    return None
 
 
 @cached
-def retrieve_koji_build(nvr, koji_url):
+def retrieve_koji_task_id_and_source(nvr, koji_url):
     log.debug('Getting Koji build %r', nvr)
     proxy = get_server_proxy(koji_url, _requests_timeout())
-    return proxy.getBuild(nvr)
+    build = proxy.getBuild(nvr)
+    if not build:
+        raise NotFound(
+            'Failed to find Koji build for "{}" at "{}"'.format(nvr, koji_url)
+        )
+
+    task_id = build.get("task_id")
+
+    try:
+        source = build["extra"]["source"]["original_url"]
+    except (TypeError, KeyError, AttributeError):
+        source = build.get("source")
+
+    return (task_id, source)
 
 
 def retrieve_scm_from_koji(nvr):
-    """ Retrieve cached rev and namespace from koji using the nvr """
-    koji_url = current_app.config['KOJI_BASE_URL']
+    """Retrieve cached rev and namespace from koji using the nvr"""
+    koji_url = current_app.config["KOJI_BASE_URL"]
     try:
-        build = retrieve_koji_build(nvr, koji_url)
+        _, source = retrieve_koji_task_id_and_source(nvr, koji_url)
     except (xmlrpc.client.ProtocolError, socket.error) as err:
-        raise ConnectionError('Could not reach Koji: {}'.format(err))
-    return retrieve_scm_from_koji_build(nvr, build, koji_url)
+        raise ConnectionError("Could not reach Koji: {}".format(err))
+    return retrieve_scm_from_koji_build(nvr, source, koji_url)
 
 
-def retrieve_scm_from_koji_build(nvr, build, koji_url):
-    if not build:
-        raise NotFound('Failed to find Koji build for "{}" at "{}"'.format(nvr, koji_url))
-
-    source = None
-    try:
-        source = build['extra']['source']['original_url']
-    except (TypeError, KeyError, AttributeError):
-        pass
-    finally:
-        if not source:
-            source = build.get('source')
-
+def retrieve_scm_from_koji_build(nvr, source, koji_url):
     if not source:
         raise NoSourceException(
             'Failed to retrieve SCM URL from Koji build "{}" at "{}" '

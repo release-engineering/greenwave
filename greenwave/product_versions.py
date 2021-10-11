@@ -8,7 +8,12 @@ import re
 import socket
 import xmlrpc.client
 
-from greenwave.resources import retrieve_koji_build, retrieve_koji_task_request
+from werkzeug.exceptions import NotFound
+
+from greenwave.resources import (
+    retrieve_koji_task_id_and_source,
+    retrieve_koji_build_target,
+)
 
 log = logging.getLogger(__name__)
 
@@ -49,16 +54,19 @@ def _guess_koji_build_product_version(
     try:
         if not koji_task_id:
             log.debug('Getting Koji task ID for build %r', subject_identifier)
-            build = retrieve_koji_build(subject_identifier, koji_base_url) or {}
-            koji_task_id = build.get('task_id')
+            try:
+                koji_task_id, _ = retrieve_koji_task_id_and_source(
+                    subject_identifier, koji_base_url
+                )
+            except NotFound:
+                koji_task_id = None
+
             if not koji_task_id:
                 return None
 
-        task_request = retrieve_koji_task_request(koji_task_id, koji_base_url)
-        if isinstance(task_request, list) and len(task_request) > 1:
-            target = task_request[1]
-            if isinstance(target, str):
-                return _guess_product_version(target, koji_build=True)
+        target = retrieve_koji_build_target(koji_task_id, koji_base_url)
+        if target:
+            return _guess_product_version(target, koji_build=True)
 
         return None
     except (xmlrpc.client.ProtocolError, socket.error) as err:
