@@ -1,3 +1,4 @@
+---
 version: '2.1'
 services:
   dev:
@@ -19,6 +20,23 @@ services:
       - resultsdb
       - waiverdb
 
+  resultsdb-consumer:
+    build: .
+    user: ${DEV_USER_ID:-1000}
+    working_dir: /
+    env_file: docker/dev.env
+    command: ["fedmsg-hub"]
+    volumes:
+      - ./:/src:ro,z
+      - ./docker/home:/home/dev:rw,z
+      - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
+      - ./conf/policies/:/etc/greenwave/policies/:ro,z
+      - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
+      - ./docker/fedmsg.d:/etc/fedmsg.d:ro,z
+    depends_on:
+      - memcached
+      - umb
+
   resultsdb-db:
     image: postgres:9.5.2
     restart: always
@@ -34,6 +52,8 @@ services:
       context: ../resultsdb
       dockerfile: Dockerfile
     working_dir: /code
+    environment:
+      - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
     volumes:
       - ../resultsdb:/code:ro,z
@@ -58,6 +78,8 @@ services:
       dockerfile: openshift/containers/waiverdb/Dockerfile
     working_dir: /code
     env_file: ["docker/waiverdb.env"]
+    environment:
+      - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
     volumes:
       - ../waiverdb:/code:ro,z
@@ -66,13 +88,29 @@ services:
       - ./docker/waiverdb-settings.py:/etc/waiverdb/settings.py:ro,z
       - ./docker/client_secrets.json:/etc/secret/client_secrets.json:ro,z
     ports:
-     - 5004:5004
+      - 5004:5004
     user: '0'
     depends_on:
       - waiverdb-db
 
   memcached:
     image: "quay.io/factory2/memcached"
+
+  umb:
+    image: images.paas.redhat.com/exd-sp-guild-c3i/umb:latest
+    restart: unless-stopped
+    command:
+      - "java"
+      - "-jar"
+      - "/usr/share/umb/umb.jar"
+      - "--spring.config.location=/etc/umb.yml"
+    volumes:
+      - ./docker/umb.yml:/etc/umb.yml:ro,z
+    ports:
+      - 5671:5671    # amqp
+      - 61612:61612  # stomp
+    deploy:
+      replicas: ${GREENWAVE_LISTENERS:-1}
 
 networks:
   default:

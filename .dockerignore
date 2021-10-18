@@ -1,9 +1,13 @@
 .env/
-.pytest_cache/
 .tox/
 .vscode/
+.venv/
+.*_cache/
+__pycache__/
 build/
 docker/home/
 dist/
 htmlcov/
+venv/
 *.egg-info/
+Dockerfile

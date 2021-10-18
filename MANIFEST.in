@@ -1,9 +1,0 @@
-global-exclude *.pyc *.pyo
-include COPYING README.md requirements.txt dev-requirements.txt
-include pytest.ini conftest.py
-include run-dev-server.py
-include tox.ini
-include fedmsg.d/*.py
-recursive-include conf *
-exclude conf/settings.py
-recursive-include docs *.py *.rst *.inv Makefile

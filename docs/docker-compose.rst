@@ -34,6 +34,13 @@ Start the containers:
 
   make up
 
+If there are any problems setting up the message bus, start the containers
+without messaging support:
+
+.. code-block:: console
+
+  GREENWAVE_LISTENERS=0 make up
+
 Verify that containers are running:
 
 .. code-block:: console
@@ -46,7 +53,7 @@ Check logs if needed:
 
   podman logs greenwave_dev_1
 
-Run tests and code linters:
+Run unit and functional tests:
 
 .. code-block:: console
 
