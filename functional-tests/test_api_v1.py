@@ -765,12 +765,13 @@ def test_make_a_decision_on_passed_result_with_scenario(
     """
     compose_id = testdatabuilder.unique_compose_id()
     testcase_name = 'compose.install_no_user'
-    for scenario in OPENQA_SCENARIOS:
-        testdatabuilder.create_compose_result(
-            compose_id=compose_id,
-            testcase_name=testcase_name,
-            scenario=scenario,
-            outcome='PASSED')
+    for outcome in ('QUEUED', 'PASSED'):
+        for scenario in OPENQA_SCENARIOS:
+            testdatabuilder.create_compose_result(
+                compose_id=compose_id,
+                testcase_name=testcase_name,
+                scenario=scenario,
+                outcome=outcome)
     data = {
         'decision_context': 'rawhide_compose_sync_to_mirrors',
         'product_version': 'fedora-rawhide',
@@ -794,18 +795,21 @@ def test_make_a_decision_on_failing_result_with_scenario(
 
     compose_id = testdatabuilder.unique_compose_id()
     testcase_name = 'compose.install_no_user'
-    # Scenario 1 passes..
-    testdatabuilder.create_compose_result(
-        compose_id=compose_id,
-        testcase_name=testcase_name,
-        scenario='scenario1',
-        outcome='PASSED')
-    # But scenario 2 fails!
-    result = testdatabuilder.create_compose_result(
-        compose_id=compose_id,
-        testcase_name=testcase_name,
-        scenario='scenario2',
-        outcome='FAILED')
+
+    outcomes = [
+        ('QUEUED', OPENQA_SCENARIOS[0]),
+        ('QUEUED', OPENQA_SCENARIOS[1]),
+        ('PASSED', OPENQA_SCENARIOS[0]),
+        ('FAILED', OPENQA_SCENARIOS[1]),
+    ]
+    results = [
+        testdatabuilder.create_compose_result(
+            compose_id=compose_id,
+            testcase_name=testcase_name,
+            scenario=scenario,
+            outcome=outcome)
+        for outcome, scenario in outcomes
+    ]
     data = {
         'decision_context': 'rawhide_compose_sync_to_mirrors',
         'product_version': 'fedora-rawhide',
@@ -821,7 +825,7 @@ def test_make_a_decision_on_failing_result_with_scenario(
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [{
         'item': {'productmd.compose.id': compose_id},
-        'result_id': result['id'],
+        'result_id': results[-1]['id'],
         'testcase': testcase_name,
         'type': 'test-result-failed',
         'scenario': 'scenario2',
