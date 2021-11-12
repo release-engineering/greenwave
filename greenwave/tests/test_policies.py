@@ -216,23 +216,6 @@ def test_load_policies():
                for policy in app.config['policies'] for rule in policy.rules)
 
 
-def test_misconfigured_policies(tmpdir):
-    p = tmpdir.join('fedora.yaml')
-    p.write(dedent("""
-        ---
-        id: "taskotron_release_critical_tasks"
-        product_versions:
-          - fedora-26
-        decision_context: bodhi_update_push_stable
-        subject_type: bodhi_update
-        rules:
-          - !PassingTestCaseRule {test_case_name: dist.abicheck}
-        """))
-    expected_error = "Missing !Policy tag"
-    with pytest.raises(SafeYAMLError, match=expected_error):
-        load_policies(tmpdir.strpath)
-
-
 def test_misconfigured_policy_rules(tmpdir):
     p = tmpdir.join('fedora.yaml')
     p.write(dedent("""
@@ -919,12 +902,6 @@ def test_remote_rule_required():
             assert decision.answers[0].subject.identifier == subject.identifier
 
 
-def test_parse_policies_missing_tag():
-    expected_error = "Missing !Policy tag"
-    with pytest.raises(SafeYAMLError, match=expected_error):
-        Policy.safe_load_all("""---""")
-
-
 def test_parse_policies_unexpected_type():
     policies = dedent("""
         --- !Policy
@@ -1093,12 +1070,6 @@ def test_parse_policies_invalid_rule():
         """))
 
 
-def test_parse_policies_remote_missing_tag():
-    expected_error = "Missing !Policy tag"
-    with pytest.raises(SafeYAMLError, match=expected_error):
-        RemotePolicy.safe_load_all("""---""")
-
-
 def test_parse_policies_remote_missing_id_is_ok():
     policies = RemotePolicy.safe_load_all(dedent("""
         --- !Policy
@@ -1197,24 +1168,15 @@ def test_parse_policies_remote_subject_types():
     assert policies[1].subject_type == 'redhat-module'
 
 
-def test_parse_policies_remote_multiple_missing_tag():
-    expected_error = "Missing !Policy tag"
-    with pytest.raises(SafeYAMLError, match=expected_error):
-        RemotePolicy.safe_load_all(dedent("""
-            --- !Policy
-            id: test1
-            product_versions: [fedora-rawhide]
-            decision_context: test
-            rules:
-              - !PassingTestCaseRule {test_case_name: test.case.name}
-
-            ---
-            id: test2
-            product_versions: [fedora-rawhide]
-            decision_context: test
-            rules:
-              - !PassingTestCaseRule {test_case_name: test.case.name}
-        """))
+def test_parse_policies_remote_minimal():
+    policies = RemotePolicy.safe_load_all(dedent("""
+        id: test1
+        decision_context: test
+        rules: []
+    """))
+    assert len(policies) == 1
+    assert policies[0].id == 'test1'
+    assert policies[0].rules == []
 
 
 def test_parse_policies_remote_missing_rule_attribute():

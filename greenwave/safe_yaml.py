@@ -210,7 +210,7 @@ class SafeYAMLObjectMetaclass(yaml.YAMLObjectMetaclass):
                     node = super().get_node()
 
                     if node.tag != root_yaml_tag:
-                        raise SafeYAMLError('Missing {} tag'.format(root_yaml_tag))
+                        node.tag = root_yaml_tag
 
                     if not isinstance(node, yaml.MappingNode):
                         raise SafeYAMLError(
