@@ -172,6 +172,8 @@ But these are common examples of types (just for reference):
 Rule types
 ==========
 
+.. _PassingTestCaseRule:
+
 PassingTestCaseRule
 -------------------
 
