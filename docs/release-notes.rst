@@ -2,6 +2,15 @@
 Release Notes
 =============
 
+Greenwave 1.10.0
+================
+
+Released 17 January 2021
+
+* ``!Policy`` tag is now optional in remote rule policies
+* Added a support for ``valid_since`` and ``valid_until``
+  to :ref:`PassingTestCaseRule`
+
 Greenwave 1.9.0
 ===============
 
