@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora:33
+FROM registry.fedoraproject.org/fedora:35
 LABEL \
     name="Greenwave application" \
     vendor="Greenwave developers" \
