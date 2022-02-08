@@ -144,12 +144,12 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
             fedora_messaging.api.publish(msg)
             self._inc(messaging_tx_sent_ok_counter)
         except fedora_messaging.exceptions.PublishReturned as e:
-            log.warning(
+            log.error(
                 'Fedora Messaging broker rejected message %s: %s',
                 msg.id, e)
             self._inc(messaging_tx_stopped_counter)
         except fedora_messaging.exceptions.ConnectionException as e:
-            log.warning('Error sending message %s: %s', msg.id, e)
+            log.error('Error sending message %s: %s', msg.id, e)
             self._inc(messaging_tx_failed_counter)
         except Exception:  # pylint: disable=broad-except
             log.exception('Error sending fedora-messaging message')
@@ -194,8 +194,6 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
         contexts_product_versions = applicable_decision_context_product_version_pairs(
             policies, **policy_attributes)
 
-        log.info('Getting greenwave info')
-
         for decision_context, product_version in sorted(contexts_product_versions):
             self._inc(messaging_tx_to_send_counter)
 
@@ -210,7 +208,7 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
                 continue
 
             if _is_decision_unchanged(old_decision, decision):
-                log.debug('Skipped emitting fedmsg, decision did not change: %s', decision)
+                log.debug('Decision unchanged: %s', decision)
                 self._inc(messaging_tx_stopped_counter)
                 continue
 
@@ -226,14 +224,10 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
             if publish_testcase:
                 decision['testcase'] = testcase
 
-            log.info(
-                'Emitting a message on the bus, %r, with the topic '
-                '"greenwave.decision.update"', decision)
+            log.info('Publishing a decision update message: %r', decision)
             if self.flask_app.config['MESSAGING'] == 'fedmsg':
-                log.debug('  - to fedmsg')
                 self._publish_decision_update_fedmsg(decision)
             elif self.flask_app.config['MESSAGING'] == 'fedora-messaging':
-                log.debug('  - to fedora-messaging')
                 self._publish_decision_update_fedora_messaging(decision)
 
             self._inc(messaging_tx_stopped_counter)
