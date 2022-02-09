@@ -11,7 +11,9 @@ import subprocess
 import socket
 import pytest
 import requests
+
 from contextlib import contextmanager
+from mock import patch
 from sqlalchemy import create_engine
 
 from greenwave.logger import init_logging
@@ -60,6 +62,7 @@ def wait_for_listen(port):
 @contextmanager
 def server_subprocess(
         name, port, start_server_arguments,
+        api_base='/api/v1.0',
         source_path=None,
         settings_content=None, tmpdir_factory=None,
         dbname=None, init_db_arguments=None):
@@ -72,8 +75,11 @@ def server_subprocess(
     # creating test process.
     test_url_env_var = env_var_prefix + '_TEST_URL'
     if test_url_env_var in os.environ:
-        yield os.environ[test_url_env_var]
-        return
+        url = os.environ[test_url_env_var]
+        config = f'greenwave.config.TestingConfig.{env_var_prefix}_API_URL'
+        with patch(config, url + api_base):
+            yield url
+            return
 
     if source_path is None:
         default_source_path = os.path.join('..', name)
@@ -131,6 +137,7 @@ def resultsdb_server(tmpdir_factory):
     with server_subprocess(
             name='resultsdb',
             port=5001,
+            api_base='/api/v2.0',
             dbname=dbname,
             settings_content=settings_content,
             init_db_arguments=init_db_arguments,

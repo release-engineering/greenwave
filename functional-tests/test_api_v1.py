@@ -1069,7 +1069,7 @@ def test_validate_gating_yaml_obsolete_rule(requests_session, greenwave_server):
     assert result.status_code == 400
 
 
-def test_validate_gating_yaml_missing_tag(requests_session, greenwave_server):
+def test_validate_gating_yaml_missing_optional_tag(requests_session, greenwave_server):
     gating_yaml = dedent("""
         ---
         id: "test"
@@ -1081,8 +1081,7 @@ def test_validate_gating_yaml_missing_tag(requests_session, greenwave_server):
     """)
     result = requests_session.post(
         greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
-    assert result.json().get('message') == "Missing !Policy tag"
-    assert result.status_code == 400
+    assert result.status_code == 200
 
 
 def test_validate_gating_yaml_missing_decision_context(requests_session, greenwave_server):
