@@ -74,9 +74,6 @@ class Decision:
             if subject.ignore_missing_policy:
                 return
 
-            log.error(
-                'Cannot find any applicable policies for %s subjects at gating point %s in %s',
-                subject.type, self.decision_context, self.product_version)
             raise NotFound(
                 'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
                     subject.type, self.decision_context, self.product_version))
@@ -132,7 +129,6 @@ def _decision_subject(data):
     try:
         subject = create_subject_from_data(data)
     except UnknownSubjectDataError:
-        log.info('Could not detect subject_identifier.')
         raise BadRequest('Could not detect subject_identifier.')
 
     return subject
@@ -152,17 +148,14 @@ def _decision_subjects_for_request(data):
         subjects = data['subject']
         if (not isinstance(subjects, list) or not subjects or
                 not all(isinstance(entry, dict) for entry in subjects)):
-            log.error('Invalid subject, must be a list of dicts')
             raise BadRequest('Invalid subject, must be a list of dicts')
 
         for subject in subjects:
             yield _decision_subject(subject)
     else:
         if 'subject_type' not in data:
-            log.error('Missing required "subject_type" parameter')
             raise BadRequest('Missing required "subject_type" parameter')
         if 'subject_identifier' not in data:
-            log.error('Missing required "subject_identifier" parameter')
             raise BadRequest('Missing required "subject_identifier" parameter')
 
         yield create_subject(data['subject_type'], data['subject_identifier'])
@@ -170,15 +163,12 @@ def _decision_subjects_for_request(data):
 
 def make_decision(data, config):
     if not data:
-        log.error('No JSON payload in request')
         raise UnsupportedMediaType('No JSON payload in request')
 
     if not data.get('product_version'):
-        log.error('Missing required product version')
         raise BadRequest('Missing required product version')
 
     if not data.get('decision_context') and not data.get('rules'):
-        log.error('Either decision_context or rules is required.')
         raise BadRequest('Either decision_context or rules is required.')
 
     log.debug('New decision request for data: %s', data)
@@ -187,7 +177,6 @@ def make_decision(data, config):
     decision_context = data.get('decision_context', None)
     rules = data.get('rules', [])
     if decision_context and rules:
-        log.error('Cannot have both decision_context and rules')
         raise BadRequest('Cannot have both decision_context and rules')
 
     on_demand_policies = []
@@ -201,7 +190,6 @@ def make_decision(data, config):
 
     verbose = data.get('verbose', False)
     if not isinstance(verbose, bool):
-        log.error('Invalid verbose flag, must be a bool')
         raise BadRequest('Invalid verbose flag, must be a bool')
     ignore_results = data.get('ignore_result', [])
     ignore_waivers = data.get('ignore_waiver', [])

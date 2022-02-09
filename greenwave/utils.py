@@ -26,16 +26,17 @@ def json_error(error):
     if isinstance(error, HTTPException):
         msg = error.description
         status_code = error.code
+        current_app.logger.info('HTTP request failed: %s', error)
     elif isinstance(error, (ConnectionError, requests.ConnectionError)):
-        current_app.logger.exception('Connection error: {}'.format(error))
+        current_app.logger.exception('Connection error: %s', error)
         msg = 'Error connecting to upstream server: {}'.format(error)
         status_code = 502
     elif isinstance(error, requests.Timeout):
-        current_app.logger.exception('Timeout error: {}'.format(error))
+        current_app.logger.exception('Timeout error: %s', error)
         msg = 'Timeout connecting to upstream server: {}'.format(error)
         status_code = 504
     else:
-        current_app.logger.exception('Unexpected server error: {}'.format(error))
+        current_app.logger.exception('Unexpected server error: %s', error)
         msg = 'Server encountered unexpected error'
         status_code = 500
 

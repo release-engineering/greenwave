@@ -407,11 +407,9 @@ def validate_gating_yaml_post():
     try:
         policies = RemotePolicy.safe_load_all(content)
     except SafeYAMLError as e:
-        log.error(str(e))
         raise BadRequest(str(e))
 
     if not policies:
-        log.error('No policies defined')
         raise BadRequest('No policies defined')
 
     missing_decision_contexts = _missing_decision_contexts_in_parent_policies(policies)

@@ -248,7 +248,7 @@ def retrieve_yaml_remote_rule(url):
     """ Retrieve a remote rule file content from the git web UI. """
     response = requests_session.request('HEAD', url)
     if response.status_code == 404:
-        log.debug(f'Server returned 404 for {url}.')
+        log.debug('Remote rule not found: %s', url)
         return None
 
     if response.status_code != 200:

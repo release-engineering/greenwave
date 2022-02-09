@@ -65,7 +65,7 @@ def _remote_urls(subject):
                     subject.identifier
                 )
             except greenwave.resources.NoSourceException as e:
-                log.error(e)
+                log.warning(e)
                 continue
 
             # if the element is actually a container and not a pkg there will be a "-container"
