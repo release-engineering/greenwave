@@ -14,10 +14,10 @@ class Config(object):
     DEBUG = True
     # We configure logging explicitly, turn off the Flask-supplied log handler.
     LOGGER_HANDLER_POLICY = 'never'
-    HOST = '0.0.0.0'
+    HOST = '127.0.0.1'
     PORT = 5005
     PRODUCTION = False
-    SECRET_KEY = 'replace-me-with-something-random'
+    SECRET_KEY = 'replace-me-with-something-random'  # nosec
 
     RESULTSDB_API_URL = 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0'
     WAIVERDB_API_URL = 'https://waiverdb.fedoraproject.org/api/v1.0'

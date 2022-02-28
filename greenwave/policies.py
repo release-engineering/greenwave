@@ -450,7 +450,7 @@ def _summarize_answers_without_errored(answers):
     if all(answer.is_satisfied for answer in answers):
         return 'All required tests passed'
 
-    assert False, 'Unexpected unsatisfied result'
+    logging.error('Unexpected unsatisfied result')
     return 'inexplicable result'
 
 

@@ -223,15 +223,6 @@ def test_make_decision_with_missing_required_gating_yaml(mock_results, mock_waiv
             mock_waivers.assert_called_once()
 
 
-def test_life_decision(client):
-    data = {
-        'question': 'Where am I going to be in 5 years?'
-    }
-    response = client.get('/api/v1.0/life-decision', json=data)
-    assert response.status_code == 200
-    assert type(response.data.decode("utf-8")) == str
-
-
 def test_subject_types(client):
     response = client.get('/api/v1.0/subject_types')
     assert response.status_code == 200

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import logging
-import random
 from flask import Blueprint, request, current_app, jsonify, url_for, redirect, Response
 from werkzeug.exceptions import BadRequest
 from prometheus_client import generate_latest
@@ -430,38 +429,3 @@ def validate_gating_yaml_post():
 @api.route('/metrics', methods=['GET'])
 def metrics():
     return Response(generate_latest(registry))
-
-
-@api.route('/life-decision', methods=['GET'])
-@jsonp
-def life_decision():
-    # Ask a question and Greenwave gives you an advice for your
-    # life decisions.
-    data = request.args
-    if not data or not data.get('question'):
-        return 'You need to ask me a question. Use the "question" parameter to ask me something'
-    RESPONSES = [
-        'If you take a step on every stone you find, you\'ll never arrive in Rome.',
-        'Keep on doing what you do with passion, and you\'ll never regret it.',
-        'Look inside yourself and you\'ll find the answer that you are looking for.',
-        'A smile will gain you ten more years of life.',
-        'A bird does not sing because it has an answer. It sings because it has a song.',
-        'Be not afraid of growing slowly, be afraid only of standing still.',
-        'Patience is a bitter plant, but its fruit is sweet.',
-        'Whatever you\'ll decide to do, is going to be a success if it is your own decision.',
-        'Never regret your own decision, better to follow your heart, than follow a fool.',
-        'I see great things in your future.',
-        'Why are you asking me, if you already know the answer?',
-        'I know you already know the answer.',
-        'Whatever will happen, face it with a smile.',
-        'I will always be here, ready to reply when you\'ll need me.',
-        'Good things will happen to you.',
-        'If you fail, try again.',
-        'I don\'t understand this questions.',
-        'That\'s a good question. Are you really sure you should ask it to me?.',
-        'If you want to find out about the road ahead, then ask about it from those coming back.',
-        'Small people think they are small, great people never know they are great.',
-        'If you are patient in one moment of anger, you will escape a hundred days of sorrow.',
-        'Ask Jan Kaluza, he will know it.',
-    ]
-    return random.choice(RESPONSES)

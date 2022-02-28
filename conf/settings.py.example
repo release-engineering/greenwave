@@ -1,5 +1,5 @@
 # Copy this file to `conf/settings.py` to put it into effect. It overrides the values defined
 # in `greenwave/config.py`.
-SECRET_KEY = 'replace-me-with-something-random'
-HOST = '0.0.0.0'
+SECRET_KEY = 'replace-me-with-something-random'  # nosec
+HOST = '127.0.0.1'
 PORT = 5005

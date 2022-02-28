@@ -5,7 +5,7 @@ DATABASE_URI = 'postgresql+psycopg2://waiverdb:waiverdb@waiverdb-db:5433/waiverd
 if os.getenv('TEST') == 'true':
     DATABASE_URI += '_test'
 
-HOST = '0.0.0.0'
+HOST = '127.0.0.1'
 PORT = 5004
 #AUTH_METHOD = 'OIDC'
 AUTH_METHOD = 'dummy'

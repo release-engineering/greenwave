@@ -133,7 +133,7 @@ def sha1_mangle_key(key):
     Python 3 with str keys (which must be encoded to bytes before passing them
     to hashlib.sha1()).
     """
-    return hashlib.sha1(key.encode('utf-8')).hexdigest()
+    return hashlib.sha1(key.encode('utf-8')).hexdigest()  # nosec
 
 
 def add_to_timestamp(timestamp, **kwargs):

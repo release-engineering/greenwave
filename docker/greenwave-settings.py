@@ -1,5 +1,5 @@
 SECRET_KEY = 'greenwave'
-HOST = '0.0.0.0'
+HOST = '127.0.0.1'
 PORT = 8080
 DEBUG = True
 POLICIES_DIR = '/etc/greenwave/policies/'

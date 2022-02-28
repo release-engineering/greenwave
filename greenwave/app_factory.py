@@ -21,7 +21,7 @@ def create_app(config_obj=None):
     app = Flask(__name__)
 
     app.config.update(load_config(config_obj))
-    if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':
+    if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':  # nosec
         raise Warning("You need to change the app.secret_key value for production")
 
     logging_config = app.config.get('LOGGING')
