@@ -8,5 +8,5 @@ mock
 fedora-messaging
 
 # Documentation build requirements
-sphinx < 4
+sphinx < 5
 sphinxcontrib-httpdomain
