@@ -256,14 +256,14 @@ dev server whenever you make a change to the policies.
 Now, you can use :program:`curl` or your favourite HTTP client to ask
 Greenwave for a decision:
 
-.. code-block:: console
+.. code-block:: bash
 
-   $ curl http://localhost:5005/api/v1.0/decision \
-       --header 'Content-Type: application/json' \
-       --data '{"product_version": "fedora-27",
-   >       "decision_context": "bodhi_update_push_stable",
-   >       "subject": [{"item": "akonadi-calendar-tools-17.12.1-1.fc27",
-   >                    "type": "koji_build"}]}'
+   curl http://localhost:5005/api/v1.0/decision \
+     --header 'Content-Type: application/json' \
+     --data '{"product_version": "fedora-27",
+         "decision_context": "bodhi_update_push_stable",
+         "subject": [{"item": "akonadi-calendar-tools-17.12.1-1.fc27",
+                      "type": "koji_build"}]}'
 
 
 
@@ -299,7 +299,7 @@ You can:
 
 Here's an example of a RemoteRule:
 
-.. code-block:: console
+.. code-block:: yaml
 
    --- !Policy
    id: "test_remoterule"

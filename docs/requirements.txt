@@ -1,6 +1,6 @@
 flask
 python-dateutil
-sphinx < 4
+sphinx
 sphinxcontrib-httpdomain
 prometheus_client
 dogpile.cache
