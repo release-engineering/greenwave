@@ -660,7 +660,7 @@ class PassingTestCaseRule(Rule):
         if self.scenario is not None:
             matching_results = [
                 result for result in matching_results
-                if self.scenario in result['data']['scenario']]
+                if self.scenario in result['data'].get('scenario', [])]
 
         # Investigate the absence of result first.
         if not matching_results:

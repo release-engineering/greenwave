@@ -1637,3 +1637,45 @@ def test_installed_subject_types(requests_session, greenwave_server):
         'redhat-container-image',
         'redhat-module',
     ]
+
+def test_make_a_decision_on_passed_result_with_custom_scenario(
+        requests_session, greenwave_server, testdatabuilder):
+    item1_nvr = testdatabuilder.unique_nvr()
+    result1 = testdatabuilder.create_result(
+        item=item1_nvr,
+        testcase_name='test.testcase1',
+        outcome='FAILED'
+    )
+    result2 = testdatabuilder.create_result(
+        item=item1_nvr,
+        testcase_name='test.testcase1',
+        outcome='PASSED',
+        scenario='scenario1',
+    )
+    data = {
+        'product_version': 'fedora-26',
+        'subject_type': 'koji_build',
+        'subject_identifier': item1_nvr,
+        "rules": [
+            {
+                "type": "PassingTestCaseRule",
+                "test_case_name": "test.testcase1",
+                "scenario": "scenario1",
+            }
+        ]
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['policies_satisfied'] is True
+    assert res_data['summary'] == 'All required tests passed'
+    assert res_data['satisfied_requirements'] == [
+        {
+            'subject_identifier': item1_nvr,
+            'subject_type': 'koji_build',
+            'result_id': result2['id'],
+            'testcase': 'test.testcase1',
+            'source': None,
+            'type': 'test-result-passed'
+        }
+    ]
