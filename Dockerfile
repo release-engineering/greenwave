@@ -5,7 +5,6 @@ LABEL \
     license="GPLv2+" \
     build-date=""
 
-WORKDIR /src
 RUN dnf -y install \
     git-core \
     python3-dateutil \
@@ -25,19 +24,21 @@ RUN dnf -y install \
 RUN chmod 777 /etc/pki/tls/certs/ca-bundle.crt
 
 COPY . /tmp/code
+WORKDIR /tmp/code
 RUN set -ex \
-    && cd /tmp/code \
     && version=$(./get-version.sh) \
     && test -n "$version" \
     && sed --regexp-extended -i -e \
         "/^__version__ = /c\\__version__ = '$version'" greenwave/__init__.py \
-    && pip3 install . --no-deps \
-    && mkdir /src/docker \
+    && pip3 install . --no-cache-dir --no-deps \
+    && mkdir -p /src/docker \
     && cp -v docker/docker-entrypoint.sh /src/docker \
     && cp -vr conf /src \
     && rm -rf /tmp/* \
     # Quick test for the installed package and version
     && python3 -c "import greenwave; assert(greenwave.__version__ == '$version')"
+
+WORKDIR /src
 
 USER 1001
 EXPOSE 8080

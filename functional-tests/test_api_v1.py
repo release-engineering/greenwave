@@ -1638,10 +1638,11 @@ def test_installed_subject_types(requests_session, greenwave_server):
         'redhat-module',
     ]
 
+
 def test_make_a_decision_on_passed_result_with_custom_scenario(
         requests_session, greenwave_server, testdatabuilder):
     item1_nvr = testdatabuilder.unique_nvr()
-    result1 = testdatabuilder.create_result(
+    testdatabuilder.create_result(
         item=item1_nvr,
         testcase_name='test.testcase1',
         outcome='FAILED'
