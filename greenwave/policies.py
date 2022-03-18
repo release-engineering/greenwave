@@ -173,6 +173,43 @@ class TestResultMissing(RuleNotSatisfied):
         return TestResultWaived(self)
 
 
+class TestResultIncomplete(RuleNotSatisfied):
+    """
+    A required test case is incomplete (that is, we did not find any completed
+    result outcomes in ResultsDB with a matching item and test case name).
+    """
+
+    def __init__(self, subject, test_case_name, source, result_id, data):
+        self.subject = subject
+        self.test_case_name = test_case_name
+        self.source = source
+        self.result_id = result_id
+        self.data = data
+
+    @property
+    def scenario(self):
+        return self.data.get('scenario')
+
+    def to_json(self):
+        data = {
+            # Same type as TestResultMissing for backwards compatibility
+            'type': 'test-result-missing',
+            'testcase': self.test_case_name,
+            'subject_type': self.subject.type,
+            'subject_identifier': self.subject.identifier,
+            'source': self.source,
+            'result_id': self.result_id,
+
+            # For backwards compatibility only:
+            'item': self.subject.to_dict()
+        }
+        data.update(self.data)
+        return data
+
+    def to_waived(self):
+        return TestResultWaived(self)
+
+
 class TestResultWaived(RuleSatisfied):
     """
     A waived unsatisfied rule.
@@ -187,12 +224,7 @@ class TestResultWaived(RuleSatisfied):
         satisfied_rule = self.unsatisfied_rule.to_json()
         satisfied_rule['type'] += '-waived'
 
-        item = satisfied_rule.get('item')
-        if isinstance(item, dict) and 'item' in item and 'type' in item:
-            if 'subject_identifier' not in satisfied_rule:
-                satisfied_rule['subject_identifier'] = item['item']
-            if 'subject_type' not in satisfied_rule:
-                satisfied_rule['subject_type'] = item['type']
+        if 'item' in satisfied_rule:
             del satisfied_rule['item']
 
         return satisfied_rule
@@ -204,25 +236,33 @@ class TestResultFailed(RuleNotSatisfied):
     not passing).
     """
 
-    def __init__(self, subject, test_case_name, scenario, source, result_id):
+    def __init__(self, subject, test_case_name, source, result_id, data):
         self.subject = subject
         self.test_case_name = test_case_name
-        self.scenario = scenario
         self.source = source
         self.result_id = result_id
+        self.data = data
+
+    @property
+    def scenario(self):
+        return self.data.get('scenario')
 
     def to_json(self):
-        return {
+        data = {
             'type': 'test-result-failed',
             'testcase': self.test_case_name,
+            'subject_type': self.subject.type,
+            'subject_identifier': self.subject.identifier,
             'source': self.source,
             'result_id': self.result_id,
+
             # These are for backwards compatibility only
             # (the values are already visible in the result data itself, the
             # caller shouldn't need them repeated here):
             'item': self.subject.to_dict(),
-            'scenario': self.scenario,
         }
+        data.update(self.data)
+        return data
 
     def to_waived(self):
         return TestResultWaived(self)
@@ -239,31 +279,38 @@ class TestResultErrored(RuleNotSatisfied):
             self,
             subject,
             test_case_name,
-            scenario,
             source,
             result_id,
+            data,
             error_reason):
         self.subject = subject
         self.test_case_name = test_case_name
-        self.scenario = scenario
         self.source = source
         self.result_id = result_id
+        self.data = data
         self.error_reason = error_reason
 
+    @property
+    def scenario(self):
+        return self.data.get('scenario')
+
     def to_json(self):
-        return {
+        data = {
             'type': 'test-result-errored',
             'testcase': self.test_case_name,
+            'subject_type': self.subject.type,
+            'subject_identifier': self.subject.identifier,
+            'source': self.source,
             'result_id': self.result_id,
             'error_reason': self.error_reason,
-            'source': self.source,
 
             # These are for backwards compatibility only
             # (the values are already visible in the result data itself, the
             # caller shouldn't need them repeated here):
             'item': self.subject.to_dict(),
-            'scenario': self.scenario,
         }
+        data.update(self.data)
+        return data
 
     def to_waived(self):
         return TestResultWaived(self)
@@ -378,21 +425,24 @@ class TestResultPassed(RuleSatisfied):
     A required test case passed (that is, its outcome in ResultsDB was passing)
     or a corresponding waiver was found.
     """
-    def __init__(self, subject, test_case_name, source, result_id):
+    def __init__(self, subject, test_case_name, source, result_id, data):
         self.subject = subject
         self.test_case_name = test_case_name
         self.source = source
         self.result_id = result_id
+        self.data = data
 
     def to_json(self):
-        return {
+        data = {
             'type': 'test-result-passed',
             'testcase': self.test_case_name,
-            'result_id': self.result_id,
             'subject_type': self.subject.type,
             'subject_identifier': self.subject.identifier,
             'source': self.source,
+            'result_id': self.result_id,
         }
+        data.update(self.data)
+        return data
 
 
 class BlacklistedInPolicy(RuleSatisfied):
@@ -430,8 +480,14 @@ class ExcludedInPolicy(RuleSatisfied):
 
 
 def _summarize_answers_without_errored(answers):
-    failure_count = len([answer for answer in answers if isinstance(answer, RuleNotSatisfied)])
-    missing_count = len([answer for answer in answers if isinstance(answer, TestResultMissing)])
+    failure_count = sum(
+        1 for answer in answers
+        if isinstance(answer, RuleNotSatisfied)
+    )
+    missing_count = sum(
+        1 for answer in answers
+        if isinstance(answer, (TestResultIncomplete, TestResultMissing))
+    )
 
     # Missing results are also failures but we will distinguish between those
     # two in summary message.
@@ -691,17 +747,23 @@ class PassingTestCaseRule(Rule):
     def _answer_for_result(self, result, subject, source):
         outcome = result['outcome']
 
+        additional_keys = current_app.config['DISTINCT_LATEST_RESULTS_ON']
+        data = {
+            key: (result['data'].get(key) or [None])[0]
+            for key in additional_keys
+        }
+
         if outcome in current_app.config['OUTCOMES_PASSED']:
             log.debug('Test result passed for the result_id %s and testcase %s,'
                       ' because the outcome is %s', result['id'], self.test_case_name,
                       outcome)
-            return TestResultPassed(subject, self.test_case_name, source, result['id'])
+            return TestResultPassed(subject, self.test_case_name, source, result['id'], data)
 
         if outcome in current_app.config['OUTCOMES_INCOMPLETE']:
             log.debug('Test result MISSING for the %s and '
                       'testcase %s, because the outcome is %s', subject,
                       self.test_case_name, outcome)
-            return TestResultMissing(subject, self.test_case_name, self.scenario, source)
+            return TestResultIncomplete(subject, self.test_case_name, source, result['id'], data)
 
         if outcome in current_app.config['OUTCOMES_ERROR']:
             error_reason = result.get('error_reason')
@@ -709,13 +771,14 @@ class PassingTestCaseRule(Rule):
                       'testcase %s, because the outcome is %s; error reason: %s',
                       subject, self.test_case_name, outcome, error_reason)
             return TestResultErrored(
-                subject, self.test_case_name, self.scenario, source, result['id'],
+                subject, self.test_case_name, source, result['id'], data,
                 error_reason)
 
         log.debug('Test result failed for the %s and '
                   'testcase %s, because the outcome is %s and it didn\'t match any of the '
                   'previous cases', subject, self.test_case_name, outcome)
-        return TestResultFailed(subject, self.test_case_name, self.scenario, source, result['id'])
+
+        return TestResultFailed(subject, self.test_case_name, source, result['id'], data)
 
 
 class ObsoleteRule(Rule):

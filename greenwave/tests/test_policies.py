@@ -79,7 +79,7 @@ class DummyResultsRetriever(ResultsRetriever):
 def test_summarize_answers():
     testSubject = create_subject('koji_build', 'nvr')
     testResultPassed = RuleSatisfied()
-    testResultFailed = TestResultFailed(testSubject, 'test', None, None, 1)
+    testResultFailed = TestResultFailed(testSubject, 'test', None, 1, {})
     testResultMissing = TestResultMissing(testSubject, 'test', None, None)
 
     assert summarize_answers([testResultPassed]) == \

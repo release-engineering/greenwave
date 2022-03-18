@@ -56,6 +56,12 @@ class Config(object):
     OUTCOMES_ERROR = ('ERROR',)
     OUTCOMES_INCOMPLETE = ('QUEUED', 'RUNNING')
 
+    DISTINCT_LATEST_RESULTS_ON = (
+        'scenario',
+        'system_architecture',
+        'system_variant',
+    )
+
 
 class ProductionConfig(Config):
     DEBUG = False

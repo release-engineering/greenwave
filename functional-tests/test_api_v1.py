@@ -261,6 +261,9 @@ def test_make_a_decision_with_verbose_flag(requests_session, greenwave_server, t
             'subject_type': 'koji_build',
             'subject_identifier': nvr,
             'source': None,
+            'scenario': None,
+            'system_architecture': None,
+            'system_variant': None,
         } for result in results
     ]
     assert res_data['satisfied_requirements'] == expected_satisfied_requirements
@@ -380,9 +383,13 @@ def test_make_a_decision_on_failed_result(requests_session, greenwave_server, te
     expected_unsatisfied_requirements = [
         {
             'item': {'item': nvr, 'type': 'koji_build'},
+            'subject_type': 'koji_build',
+            'subject_identifier': nvr,
             'result_id': result['id'],
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
             'scenario': None,
+            'system_architecture': None,
+            'system_variant': None,
             'source': None,
             'type': 'test-result-failed'
         },
@@ -425,7 +432,10 @@ def test_make_a_decision_on_queued_result(requests_session, greenwave_server, te
             'subject_identifier': result['data']['item'][0],
             'subject_type': result['data']['type'][0],
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
+            'result_id': result['id'],
             'scenario': None,
+            'system_architecture': None,
+            'system_variant': None,
             'source': None,
             'type': 'test-result-missing'
         },
@@ -468,7 +478,10 @@ def test_make_a_decision_on_running_result(requests_session, greenwave_server, t
             'subject_identifier': result['data']['item'][0],
             'subject_type': result['data']['type'][0],
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
+            'result_id': result['id'],
             'scenario': None,
+            'system_architecture': None,
+            'system_variant': None,
             'source': None,
             'type': 'test-result-missing'
         },
@@ -550,18 +563,26 @@ def test_make_a_decision_on_redhat_cont_image(requests_session, greenwave_server
     expected_unsatisfied_requirements = [
         {
             'item': {'item': item1_nvr, 'type': 'redhat-container-image'},
+            'subject_identifier': result1['data']['item'][0],
+            'subject_type': 'redhat-container-image',
             'result_id': result1['id'],
             'testcase': 'test.testcase1',
             'scenario': None,
+            'system_architecture': None,
+            'system_variant': None,
             'source': None,
             'type': 'test-result-failed'
         },
         {
             'item': {'item': item1_nvr, 'type': 'redhat-container-image'},
+            'subject_identifier': result2['data']['item'][0],
+            'subject_type': 'redhat-container-image',
             'result_id': result2['id'],
             'testcase': 'test.testcase2',
             'type': 'test-result-failed',
             'scenario': None,
+            'system_architecture': None,
+            'system_variant': None,
             'source': None,
         }
     ]
@@ -693,10 +714,14 @@ def test_multiple_results_in_a_subject(
     expected_unsatisfied_requirements = [
         {
             'item': {'item': nvr, 'type': 'koji_build'},
+            'subject_identifier': nvr,
+            'subject_type': 'koji_build',
             'result_id': result['id'],
             'testcase': 'dist.abicheck',
             'type': 'test-result-failed',
             'scenario': None,
+            'system_architecture': None,
+            'system_variant': None,
             'source': None,
         },
     ]
@@ -825,10 +850,14 @@ def test_make_a_decision_on_failing_result_with_scenario(
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [{
         'item': {'productmd.compose.id': compose_id},
+        'subject_identifier': compose_id,
+        'subject_type': 'compose',
         'result_id': results[-1]['id'],
         'testcase': testcase_name,
         'type': 'test-result-failed',
         'scenario': 'scenario2',
+        'system_architecture': None,
+        'system_variant': None,
         'source': None,
     }]
     assert res_data['unsatisfied_requirements'] == expected_unsatisfied_requirements
@@ -871,10 +900,14 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
     expected_unsatisfied_requirements = [
         {
             'item': {'item': nvr, 'type': 'koji_build'},
+            'subject_identifier': nvr,
+            'subject_type': 'koji_build',
             'result_id': result['id'],
             'testcase': TASKTRON_RELEASE_CRITICAL_TASKS[0],
             'type': 'test-result-failed',
             'scenario': None,
+            'system_architecture': None,
+            'system_variant': None,
             'source': None,
         },
     ]
@@ -1148,9 +1181,13 @@ def test_make_a_decision_about_compose_all_variants_architectures(
     assert not res_data['policies_satisfied']
     assert res_data['unsatisfied_requirements'] == [{
         'item': {'productmd.compose.id': compose_id},
+        'subject_identifier': compose_id,
+        'subject_type': 'compose',
         'result_id': failed_results['id'],
         'scenario': None,
         'source': None,
+        'system_architecture': variant1['architecture'],
+        'system_variant': variant1['variant'],
         'testcase': 'rtt.acceptance.validation',
         'type': 'test-result-failed'
     }]
@@ -1676,6 +1713,9 @@ def test_make_a_decision_on_passed_result_with_custom_scenario(
             'subject_type': 'koji_build',
             'result_id': result2['id'],
             'testcase': 'test.testcase1',
+            'scenario': 'scenario1',
+            'system_architecture': None,
+            'system_variant': None,
             'source': None,
             'type': 'test-result-passed'
         }

@@ -5,6 +5,7 @@ from greenwave.policies import (
     TestResultErrored,
     TestResultFailed,
     TestResultMissing,
+    TestResultIncomplete,
     TestResultWaived,
     InvalidRemoteRuleYaml,
 )
@@ -16,9 +17,11 @@ from greenwave.subjects.subject_type import GenericSubjectType
 testSubject = Subject(GenericSubjectType('koji_build'), 'nethack-1.2.3-1.el9000')
 testResultPassed = RuleSatisfied()
 testResultErrored = TestResultErrored(
-    testSubject, 'test', None, None, 1, 'some error')
+    testSubject, 'test', None, 1, {}, 'some error')
 testResultFailed = TestResultFailed(
-    testSubject, 'test', None, None, 1)
+    testSubject, 'test', None, 1, {})
+testResultIncomplete = TestResultIncomplete(
+    testSubject, 'test', None, 1, {})
 testResultMissing = TestResultMissing(
     testSubject, 'test', None, None)
 testInvalidGatingYaml = InvalidRemoteRuleYaml(
@@ -42,6 +45,13 @@ def test_summary_failed():
         testResultFailed,
     ]
     assert summarize_answers(answers) == '1 of 1 required tests failed'
+
+
+def test_summary_incomplete():
+    answers = [
+        testResultIncomplete,
+    ]
+    assert summarize_answers(answers) == '1 of 1 required test results missing'
 
 
 def test_summary_missing():

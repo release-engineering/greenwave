@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0+
-
 from greenwave.policies import (
     InvalidRemoteRuleYaml,
-    TestResultMissing,
+    TestResultErrored,
     TestResultFailed,
+    TestResultIncomplete,
+    TestResultMissing,
 )
 from greenwave.subjects.subject import Subject
 from greenwave.subjects.subject_type import GenericSubjectType
@@ -19,9 +20,9 @@ def test_waive_failed_result():
         TestResultFailed(
             subject=test_subject(),
             test_case_name='test1',
-            scenario='scenario1',
             source='https://greenwave_tests.example.com',
             result_id=99,
+            data={'scenario': 'scenario1'},
         )
     ]
 
@@ -84,6 +85,80 @@ def test_waive_missing_result():
     assert expected_json == waived[0].to_json()
 
 
+def test_waive_incomplete_result():
+    answers = [
+        TestResultIncomplete(
+            subject=test_subject(),
+            test_case_name='test1',
+            source='https://greenwave_tests.example.com',
+            result_id=99,
+            data={'scenario': 'scenario1'},
+        )
+    ]
+
+    waived = waive_answers(answers, [])
+    assert answers == waived
+
+    waivers = [
+        dict(
+            subject_type='koji_build',
+            subject_identifier='nethack-1.2.3-1.rawhide',
+            product_version='rawhide',
+            testcase='test1',
+        )
+    ]
+    waived = waive_answers(answers, waivers)
+    expected_json = dict(
+        type='test-result-missing-waived',
+        testcase='test1',
+        subject_type='koji_build',
+        subject_identifier='nethack-1.2.3-1.rawhide',
+        result_id=99,
+        scenario='scenario1',
+        source='https://greenwave_tests.example.com',
+    )
+    assert 1 == len(waived)
+    assert expected_json == waived[0].to_json()
+
+
+def test_waive_errored_result():
+    answers = [
+        TestResultErrored(
+            subject=test_subject(),
+            test_case_name='test1',
+            source='https://greenwave_tests.example.com',
+            result_id=99,
+            data={'scenario': 'scenario1'},
+            error_reason='Failed',
+        )
+    ]
+
+    waived = waive_answers(answers, [])
+    assert answers == waived
+
+    waivers = [
+        dict(
+            subject_type='koji_build',
+            subject_identifier='nethack-1.2.3-1.rawhide',
+            product_version='rawhide',
+            testcase='test1',
+        )
+    ]
+    waived = waive_answers(answers, waivers)
+    expected_json = dict(
+        type='test-result-errored-waived',
+        testcase='test1',
+        subject_type='koji_build',
+        subject_identifier='nethack-1.2.3-1.rawhide',
+        result_id=99,
+        scenario='scenario1',
+        source='https://greenwave_tests.example.com',
+        error_reason='Failed',
+    )
+    assert 1 == len(waived)
+    assert expected_json == waived[0].to_json()
+
+
 def test_waive_invalid_gatin_yaml():
     answers = [
         InvalidRemoteRuleYaml(
@@ -114,9 +189,9 @@ def test_waive_scenario():
         TestResultFailed(
             subject=test_subject(),
             test_case_name='test1',
-            scenario='scenario1',
             source='https://greenwave_tests.example.com',
             result_id=99,
+            data={'scenario': 'scenario1'},
         )
     ]
 

@@ -61,6 +61,8 @@ class ResultsRetriever(BaseRetriever):
 
     def __init__(self, **args):
         super().__init__(**args)
+        self._distinct_on = ','.join(
+            current_app.config['DISTINCT_LATEST_RESULTS_ON'])
         self.cache = {}
 
     def _retrieve_all(self, subject, testcase=None):
@@ -81,7 +83,7 @@ class ResultsRetriever(BaseRetriever):
                 return results
 
         params = {
-            '_distinct_on': 'scenario,system_architecture,system_variant'
+            '_distinct_on': self._distinct_on
         }
         if self.since:
             params.update({'since': self.since})

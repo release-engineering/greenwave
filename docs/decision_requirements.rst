@@ -26,6 +26,10 @@ requirement.
 Unsatisfied requirements containing ``testcase`` property can be waived (using
 this value in a new waiver).
 
+Requirements related to an existing result contain ``result_id`` attribute that
+refers to the result ID in ResultsDB, and also ``scenario``,
+``system_architecture`` and ``system_variant`` from the result data.
+
 See :ref:`decision_requirements_examples` to get an idea about the data of
 various requirements.
 
@@ -74,6 +78,22 @@ latest outcome is ``QUEUED`` or ``RUNNING`` (this can be overridden by
         "subject_type": "koji-build",
         "subject_identifier": "nethack-1.2.3-1.rawhide",
         "scenario": null
+    }
+
+Unsatisfied requirement for an incomplete result would be indicated by
+additional attributes from the queued/running result data:
+
+.. code-block:: json
+
+    {
+        "type": "test-result-missing",
+        "testcase": "example.test.case",
+        "subject_type": "koji-build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
+        "result_id": 1004,
+        "scenario": null,
+        "system_architecture": null,
+        "system_variant": null
     }
 
 .. _failed_test_result:
