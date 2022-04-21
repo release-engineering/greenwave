@@ -13,6 +13,7 @@ from time import sleep
 log = logging.getLogger(__name__)
 
 RETRY_ON_EXCEPTIONS = (
+    http.client.CannotSendRequest,
     http.client.ResponseNotReady,
 )
 MAX_RETRIES = 3
@@ -31,7 +32,8 @@ class XmlRpcServerProxy:
         else:
             transport = Transport(timeout=self.timeout)
 
-        self.proxy = xmlrpc.client.ServerProxy(self.uri, transport=transport)
+        self.proxy = xmlrpc.client.ServerProxy(
+            self.uri, transport=transport, allow_none=True)
 
     def __getattr__(self, name):
         return XmlRpcMethod(self, name)
