@@ -31,7 +31,8 @@ class XmlRpcServerProxy:
         else:
             transport = Transport(timeout=self.timeout)
 
-        self.proxy = xmlrpc.client.ServerProxy(self.uri, transport=transport)
+        self.proxy = xmlrpc.client.ServerProxy(
+            self.uri, transport=transport, allow_none=True)
 
     def __getattr__(self, name):
         return XmlRpcMethod(self, name)
