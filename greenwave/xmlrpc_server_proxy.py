@@ -13,6 +13,7 @@ from time import sleep
 log = logging.getLogger(__name__)
 
 RETRY_ON_EXCEPTIONS = (
+    http.client.CannotSendRequest,
     http.client.ResponseNotReady,
 )
 MAX_RETRIES = 3
