@@ -15,7 +15,7 @@ jobs:
         python-version: ["3.10"]
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -99,3 +99,41 @@ jobs:
           # * DL3041 - Specify version with dnf install -y <package>-<version>
           ignore: DL3041
           failure-threshold: warning
+
+  image-build:
+    name: Container Image Build
+    needs: hadolint
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: greenwave
+      REGISTRY: quay.io/factory2
+      GH_REGISTRY: ghcr.io/${{ github.actor }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build Image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: >-
+            ${{ github.ref == 'refs/heads/master' && 'latest' || '' }}
+            ${{ github.sha }}
+          containerfiles: Dockerfile
+
+      - name: Log in to the image registry
+        if: github.event_name == 'push'
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ${{ secrets.REGISTRY_USER && env.REGISTRY || env.GH_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER || github.actor }}
+          password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+
+      - name: Push Image
+        if: github.event_name == 'push'
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: ${{ secrets.REGISTRY_USER && env.REGISTRY || env.GH_REGISTRY }}
