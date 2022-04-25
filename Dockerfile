@@ -1,11 +1,11 @@
-FROM registry.fedoraproject.org/fedora:35
+FROM registry.fedoraproject.org/fedora-minimal:35
 LABEL \
     name="Greenwave application" \
     vendor="Greenwave developers" \
     license="GPLv2+" \
     build-date=""
 
-RUN dnf -y install \
+RUN microdnf install -y --nodocs --setopt install_weak_deps=0 \
     git-core \
     python3-dateutil \
     python3-dogpile-cache \
@@ -17,7 +17,7 @@ RUN dnf -y install \
     python3-prometheus_client \
     python3-PyYAML \
     python3-requests \
-    && dnf -y clean all \
+    && microdnf -y clean all \
     && rm -rf /tmp/*
 
 # This will allow a non-root user to install a custom root CA at run-time
