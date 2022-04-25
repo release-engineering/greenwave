@@ -10,6 +10,7 @@ import datetime
 import logging
 import re
 import socket
+import threading
 
 from dateutil import tz
 from dateutil.parser import parse
@@ -24,7 +25,20 @@ from greenwave.xmlrpc_server_proxy import get_server_proxy
 
 log = logging.getLogger(__name__)
 
-requests_session = get_requests_session()
+requests_session = threading.local().requests_session = get_requests_session()
+
+
+def _koji(uri):
+    """
+    Returns per-thread cached XMLRPC server proxy object for Koji.
+    """
+    data = threading.local()
+    try:
+        return data.koji_server_proxy_cache
+    except AttributeError:
+        proxy = get_server_proxy(uri, _requests_timeout())
+        data.koji_server_proxy_cache = proxy
+        return proxy
 
 
 def _requests_timeout():
@@ -153,7 +167,7 @@ class NoSourceException(RuntimeError):
 @cached
 def retrieve_koji_build_target(nvr, koji_url):
     log.debug('Getting Koji task request ID %r', nvr)
-    proxy = get_server_proxy(koji_url, _requests_timeout())
+    proxy = _koji(koji_url)
     task_request = proxy.getTaskRequest(nvr)
     if isinstance(task_request, list) and len(task_request) > 1:
         target = task_request[1]
@@ -165,7 +179,7 @@ def retrieve_koji_build_target(nvr, koji_url):
 @cached
 def _retrieve_koji_build_attributes(nvr, koji_url):
     log.debug('Getting Koji build %r', nvr)
-    proxy = get_server_proxy(koji_url, _requests_timeout())
+    proxy = _koji(koji_url)
     build = proxy.getBuild(nvr)
     if not build:
         raise NotFound(
