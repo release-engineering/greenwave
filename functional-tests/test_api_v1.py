@@ -23,6 +23,19 @@ OPENQA_SCENARIOS = [
 ]
 
 
+def drop_href(obj):
+    if isinstance(obj, dict):
+        return {
+            k: drop_href(v) for k, v in obj.items()
+            if k != "href"
+        }
+    return obj
+
+
+def drop_hrefs(results):
+    return [drop_href(result) for result in results]
+
+
 @pytest.mark.smoke
 def test_any_policies_loaded(requests_session, greenwave_server):
     r = requests_session.get(greenwave_server + 'api/v1.0/policies',
@@ -249,7 +262,7 @@ def test_make_a_decision_with_verbose_flag(requests_session, greenwave_server, t
     res_data = r.json()
 
     assert len(res_data['results']) == len(TASKTRON_RELEASE_CRITICAL_TASKS)
-    assert res_data['results'] == list(reversed(results))
+    assert drop_hrefs(res_data['results']) == drop_hrefs(list(reversed(results)))
     expected_waivers = []
     assert res_data['waivers'] == expected_waivers
 
@@ -294,7 +307,7 @@ def test_make_a_decision_with_verbose_flag_and_multiple_nvrs_with_results(
     res_data = r.json()
 
     assert len(res_data['results']) == len(TASKTRON_RELEASE_CRITICAL_TASKS) * len(build_nvrs)
-    assert res_data['results'] == list(reversed(results))
+    assert drop_hrefs(res_data['results']) == drop_hrefs(list(reversed(results)))
 
 
 def test_make_a_decision_with_verbose_flag_and_multiple_nvrs_with_waivers(
@@ -1278,7 +1291,7 @@ def test_make_a_decision_for_bodhi_with_verbose_flag(
     res_data = r.json()
 
     assert len(res_data['results']) == len(TASKTRON_RELEASE_CRITICAL_TASKS) * len(nvrs)
-    assert res_data['results'] == list(reversed(results))
+    assert drop_hrefs(res_data['results']) == drop_hrefs(list(reversed(results)))
     assert res_data['waivers'] == []
     assert res_data['satisfied_requirements'] == []
 
@@ -1403,7 +1416,7 @@ def test_make_a_decision_with_verbose_flag_all_results_returned(
     res_data = r.json()
 
     assert len(res_data['results']) == len(results)
-    assert res_data['results'] == list(reversed(results))
+    assert drop_hrefs(res_data['results']) == drop_hrefs(list(reversed(results)))
     assert len(res_data['waivers']) == len(expected_waivers)
     assert res_data['waivers'] == expected_waivers
 
@@ -1481,7 +1494,7 @@ def test_api_with_when(requests_session, greenwave_server, testdatabuilder):
     res_data = r.json()
 
     assert len(res_data['results']) == 1
-    assert res_data['results'] == [results[0]]
+    assert drop_hrefs(res_data['results']) == drop_hrefs([results[0]])
 
     del data['when']
     r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
@@ -1606,7 +1619,7 @@ def test_make_a_decision_with_verbose_flag_on_demand_policy(
     res_data = r.json()
 
     assert len(res_data['results']) == len(results)
-    assert res_data['results'] == list(reversed(results))
+    assert drop_hrefs(res_data['results']) == drop_hrefs(list(reversed(results)))
     assert len(res_data['waivers']) == len(expected_waivers)
     assert res_data['waivers'] == expected_waivers
     assert len(res_data['satisfied_requirements']) == len(results)

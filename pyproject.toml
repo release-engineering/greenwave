@@ -35,18 +35,34 @@ fedmsg = {extras = ["consumers"], version = "^1.1.2"}
 python-dateutil = "^2.8.2"
 stomper = "^0.4.3"
 
-[tool.poetry.dev-dependencies]
-# Testing requirements
-flake8 = "^3.9.2"
-pytest = "^6.2.5"
-pytest-cov = "^3.0.0"
-SQLAlchemy = "^1.4.25"
-mock = "^4.0.3"
-fedora-messaging = "^2.1.0"
+flake8 = {version = "^3.9.2", optional = true}
+pytest = {version = "^6.2.5", optional = true}
+pytest-cov = {version = "^3.0.0", optional = true}
+mock = {version = "^4.0.3", optional = true}
 
-# Documentation build requirements
-sphinx = "^4.0.2"
-sphinxcontrib-httpdomain = "^1.8.0"
+SQLAlchemy = {version = "^1.4.25", optional = true}
+fedora-messaging = {version = "^2.1.0", optional = true}
+psycopg2-binary = {version = "^2.9.3", optional = true}
+
+sphinx = {version = "^4.0.2", optional = true}
+sphinxcontrib-httpdomain = {version = "^1.8.0", optional = true}
+
+[tool.poetry.extras]
+test = [
+    "flake8",
+    "pytest",
+    "pytest-cov",
+    "mock",
+    "fedora-messaging",
+]
+functional-test = [
+    "SQLAlchemy",
+    "psycopg2-binary",
+]
+docs = [
+    "sphinx",
+    "sphinxcontrib-httpdomain",
+]
 
 [tool.poetry.plugins."moksha.consumer"]
 resultsdb = "greenwave.consumers.resultsdb:ResultsDBHandler"
