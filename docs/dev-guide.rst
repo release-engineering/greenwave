@@ -23,7 +23,7 @@ Install development dependencies:
 
 .. code-block:: console
 
-   $ pip install -r dev-requirements.txt -r requirements.txt
+   $ poetry install --no-root
 
 Create a local configuration file:
 
@@ -35,7 +35,7 @@ Run the server:
 
 .. code-block:: console
 
-   $ DEV=true python3 run-dev-server.py
+   $ DEV=true poetry run python3 run-dev-server.py
 
 The server is now running at <http://localhost:5005> and API calls can be sent to
 <http://localhost:5005/api/v1.0>.
@@ -49,7 +49,7 @@ the following command:
 
 .. code-block:: console
 
-   $ python3 -m pytest greenwave
+   $ poetry run pytest greenwave
 
 There are also functional tests in the :file:`functional-tests` directory. The
 functional tests will start their own copy of the `ResultsDB`_, `WaiverDB`_,
@@ -59,7 +59,7 @@ You can run the functional tests like this:
 
 .. code-block:: console
 
-   $ python3 -m pytest functional-tests
+   $ poetry run pytest functional-tests
 
 The functional tests assume you have ResultsDB and WaiverDB git checkouts in
 :file:`../resultsdb` and :file:`../waiverdb` respectively. You can tell it to
@@ -73,8 +73,8 @@ development virtualenv with:
 
    $ git clone https://pagure.io/waiverdb.git ../waiverdb/
    $ git clone https://pagure.io/taskotron/resultsdb.git ../resultsdb/
-   $ pip install -r ../waiverdb/requirements.txt
-   $ pip install -r ../resultsdb/requirements.txt
+   $ poetry run pip install -r ../waiverdb/requirements.txt
+   $ poetry run pip install -r ../resultsdb/requirements.txt
 
 If you'd rather not install all the dependencies necessary to run the functional
 tests, you may use Vagrant to provision a throw-away virtual machine to run
@@ -125,7 +125,7 @@ using flake8:
 
 .. code-block:: console
 
-   $ flake8
+   $ poetry run flake8
 
 Additionally, we follow the `"Google style" for docstrings
 <http://www.sphinx-doc.org/en/latest/ext/example_google.html>`_.

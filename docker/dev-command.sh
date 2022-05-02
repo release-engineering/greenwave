@@ -10,8 +10,9 @@ if [[ ($real_dev_id == 0 && $UID == 0) || ($real_dev_id != 0 && $real_dev_id != 
     exit 1
 fi
 
-exec /usr/bin/gunicorn-3 \
+exec gunicorn \
   --reload \
+  --workers=1 \
   --bind=0.0.0.0:8080 \
   --access-logfile=- \
   --enable-stdio-inheritance \

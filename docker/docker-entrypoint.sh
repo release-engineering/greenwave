@@ -42,4 +42,5 @@ if [ -z "$GREENWAVE_POLICIES_DIR"]; then
     fi
 fi
 
+. /venv/bin/activate
 exec "$@"

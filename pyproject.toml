@@ -1,0 +1,57 @@
+[tool.poetry]
+name = "greenwave"
+version = "1.10.0"
+description = "Decision-making service for gating in a software delivery pipeline"
+authors = [
+  "Red Hat, Inc. and others"
+]
+license = "GPL-2.0-or-later"
+readme = "README.md"
+repository = "https://github.com/release-engineering/greenwave"
+homepage = "https://gating-greenwave.readthedocs.io/"
+
+include = [
+    "COPYING",
+    "README.md",
+    "pytest.ini",
+    "conftest.py",
+    "run-dev-server.py",
+    "tox.ini",
+    "fedmsg.d/*.py",
+    "conf/*",
+    "docs/*",
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+PyYAML = "^6.0"
+"dogpile.cache" = "^1.1.4"
+flask = "^2.0.2"
+gunicorn = "^20.1.0"
+python-memcached = "^1.59"
+prometheus-client = "^0.11.0"
+requests = "^2.26.0"
+fedmsg = {extras = ["consumers"], version = "^1.1.2"}
+python-dateutil = "^2.8.2"
+stomper = "^0.4.3"
+
+[tool.poetry.dev-dependencies]
+# Testing requirements
+flake8 = "^3.9.2"
+pytest = "^6.2.5"
+pytest-cov = "^3.0.0"
+SQLAlchemy = "^1.4.25"
+mock = "^4.0.3"
+fedora-messaging = "^2.1.0"
+
+# Documentation build requirements
+sphinx = "^4.0.2"
+sphinxcontrib-httpdomain = "^1.8.0"
+
+[tool.poetry.plugins."moksha.consumer"]
+resultsdb = "greenwave.consumers.resultsdb:ResultsDBHandler"
+waiverdb = "greenwave.consumers.waiverdb:WaiverDBHandler"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
