@@ -63,7 +63,7 @@ Run a specific test:
 
 .. code-block:: console
 
-  make pytest ARGS="-vv -x greenwave/tests/test_rules.py -k test_remote_rule
+  make test ARGS="-vv -x greenwave/tests/test_rules.py -k test_remote_rule
 
 Stop the containers:
 
