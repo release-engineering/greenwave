@@ -230,7 +230,7 @@ crypto_ng = ["cryptography (>=1.6)", "pyOpenSSL (>=16.1.0)"]
 
 [[package]]
 name = "fedora-messaging"
-version = "2.1.0"
+version = "3.0.0"
 description = "A set of tools for using Fedora's messaging infrastructure"
 category = "main"
 optional = true
@@ -245,7 +245,6 @@ pika = ">=1.0.1"
 PyOpenSSL = "*"
 pytz = "*"
 service-identity = "*"
-six = "*"
 toml = "*"
 Twisted = "*"
 
@@ -1108,7 +1107,7 @@ test = ["flake8", "pytest", "pytest-cov", "mock", "fedora-messaging"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "77063a30c8ca46a27490b335c8f01ecf23fab75ab2b6434dc1ede80f8bab3ff8"
+content-hash = "7d4be5174032aa595c19842f4ba868cb950b65026175be0919956a3a6cdadde3"
 
 [metadata.files]
 alabaster = [
@@ -1295,8 +1294,8 @@ fedmsg = [
     {file = "fedmsg-1.1.2.tar.gz", hash = "sha256:bddb68b536b9c6d95025ac1fefdd2f50f77247b2de416b0988363c86f5867c20"},
 ]
 fedora-messaging = [
-    {file = "fedora_messaging-2.1.0-py2.py3-none-any.whl", hash = "sha256:9292d64fbd4ec5b0233fcea6a098ae97a4d985000653b775ddb223ef571d9889"},
-    {file = "fedora_messaging-2.1.0.tar.gz", hash = "sha256:3a66252f08720202fbd5cf69d1df611b3b7bb37a802094131d605facc6d05f32"},
+    {file = "fedora_messaging-3.0.0-py2.py3-none-any.whl", hash = "sha256:f52b2d5b5f4408e8ca4ef64d8685de38ec66fb179a690b4566d937e3b2ec382e"},
+    {file = "fedora_messaging-3.0.0.tar.gz", hash = "sha256:62f5641ea776f3475657210bf76e8f69841a1149bb53e611c9cc3c837fcbf36a"},
 ]
 flake8 = [
     {file = "flake8-4.0.1-py2.py3-none-any.whl", hash = "sha256:479b1304f72536a55948cb40a32dce8bb0ffe3501e26eaf292c7e60eb5e0428d"},
