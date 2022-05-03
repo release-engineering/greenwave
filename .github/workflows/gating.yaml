@@ -131,7 +131,7 @@ jobs:
           password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
 
       - name: Push Image
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.actor != 'dependabot[bot]'
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ steps.build-image.outputs.image }}
