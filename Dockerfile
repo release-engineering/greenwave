@@ -1,10 +1,5 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.5 as base
 
-RUN microdnf install -y --nodocs --setopt install_weak_deps=0 \
-        python39 \
-        python39-pip \
-    && microdnf clean -y all
-
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
     PYTHONUNBUFFERED=1 \
@@ -13,7 +8,10 @@ ENV PYTHONFAULTHANDLER=1 \
 # --- Build stage
 FROM base as builder
 
-RUN microdnf install -y --nodocs --setopt install_weak_deps=0 git-core
+RUN microdnf install -y --nodocs --setopt install_weak_deps=0 \
+        git-core \
+        python39 \
+        python39-pip
 
 ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -49,10 +47,10 @@ WORKDIR /src
 COPY --from=builder /src .
 COPY --from=builder /venv /venv
 RUN set -ex \
+    && microdnf install -y --nodocs --setopt install_weak_deps=0 python39 \
+    && microdnf clean -y all \
     && /venv/bin/pip install --no-cache-dir dist/*.whl \
     && rm -r dist \
-    && microdnf remove -y python39-pip \
-    && microdnf clean -y all \
     # This will allow a non-root user to install a custom root CA at run-time
     && chmod 777 /etc/pki/tls/certs/ca-bundle.crt
 
