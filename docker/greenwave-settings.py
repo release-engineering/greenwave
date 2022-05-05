@@ -2,10 +2,20 @@ SECRET_KEY = 'greenwave'
 HOST = '127.0.0.1'
 PORT = 8080
 DEBUG = True
-POLICIES_DIR = '/etc/greenwave/policies/'
-WAIVERDB_API_URL = 'http://waiverdb:5004/api/v1.0'
-RESULTSDB_API_URL = 'http://resultsdb:5001/api/v2.0'
-GREENWAVE_API_URL = 'http://dev:8080/api/v1.0'
+POLICIES_DIR = "/etc/greenwave/policies/"
+WAIVERDB_API_URL = "http://waiverdb:5004/api/v1.0"
+RESULTSDB_API_URL = "http://resultsdb:5001/api/v2.0"
+LISTENER_HOSTS = "umb:61612"
+LISTENER_CONNECTION_SSL = None
+LISTENER_CONNECTION = {
+    "heartbeats": (10000, 20000),
+    "keepalive": True,
+    "timeout": 5000,
+    "reconnect_sleep_initial": 1.0,
+    "reconnect_sleep_increase": 1.0,
+    "reconnect_sleep_max": 10.0,
+    "reconnect_attempts_max": 5,
+}
 CACHE = {
     # 'backend': "dogpile.cache.null",
     'backend': "dogpile.cache.memcached",
@@ -25,6 +35,9 @@ LOGGING = {
         },
         'dogpile.cache': {
             'level': 'DEBUG',
+        },
+        "stomp.py": {
+            "level": "DEBUG",
         },
     },
     'handlers': {

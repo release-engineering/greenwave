@@ -4,11 +4,13 @@ include =
     greenwave/*
 
 [report]
-fail_under = 50
+fail_under = 80
 exclude_lines =
     pragma: no cover
     if __name__ == .__main__.:
 omit =
     greenwave/tests/*
     greenwave/logger.py
+    greenwave/resultsdb_listener.py
+    greenwave/waiverdb_listener.py
     greenwave/wsgi.py

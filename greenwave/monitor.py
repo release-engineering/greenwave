@@ -33,6 +33,7 @@ messaging_rx_counter = Counter(
 messaging_rx_ignored_counter = Counter(
     'messaging_rx_ignored',
     'Number of received messages, which were ignored',
+    labelnames=['handler'],
     registry=registry)
 messaging_rx_processed_ok_counter = Counter(
     'messaging_rx_processed_ok',
