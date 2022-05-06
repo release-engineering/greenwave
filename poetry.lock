@@ -161,7 +161,7 @@ name = "cryptography"
 version = "36.0.2"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -626,7 +626,7 @@ name = "pyopenssl"
 version = "22.0.0"
 description = "Python wrapper module around the OpenSSL library"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -1130,7 +1130,7 @@ test = ["flake8", "pytest", "pytest-cov", "mock", "fedora-messaging"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "67827491dfde6b1872aab02e233b5648398f9442ade97743e6ff4689065e2737"
+content-hash = "b73a666495feb246f981b7159f2f7d92a317f680f514b27dd4c440ebd44c6f0a"
 
 [metadata.files]
 alabaster = [
