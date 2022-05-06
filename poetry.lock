@@ -956,7 +956,7 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "stomp.py"
-version = "8.0.1"
+version = "7.0.0"
 description = "Python STOMP client, supporting versions 1.0, 1.1 and 1.2 of the protocol"
 category = "main"
 optional = false
@@ -964,9 +964,6 @@ python-versions = ">=3.6,<4.0"
 
 [package.dependencies]
 docopt = ">=0.6.2,<0.7.0"
-
-[package.extras]
-cryptography = ["cryptography (>=37.0.1,<38.0.0)"]
 
 [[package]]
 name = "stomper"
@@ -1130,7 +1127,7 @@ test = ["flake8", "pytest", "pytest-cov", "mock", "fedora-messaging"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "b73a666495feb246f981b7159f2f7d92a317f680f514b27dd4c440ebd44c6f0a"
+content-hash = "5eaaebb85970b48afbe1a4d198288c314f6f1c1ace67fc6085cf837d472c8ea5"
 
 [metadata.files]
 alabaster = [
@@ -1878,8 +1875,8 @@ stevedore = [
     {file = "stevedore-3.5.0.tar.gz", hash = "sha256:f40253887d8712eaa2bb0ea3830374416736dc8ec0e22f5a65092c1174c44335"},
 ]
 "stomp.py" = [
-    {file = "stomp.py-8.0.1-py3-none-any.whl", hash = "sha256:69eb189f89a0e843d23d27b030ffb654007bbc57e899ac32183b401c0e0a4623"},
-    {file = "stomp.py-8.0.1.tar.gz", hash = "sha256:d2bc55b4596604feb51d56895d93431ff8ee159b31b28d9038a2310777bbd3fa"},
+    {file = "stomp.py-7.0.0-py3-none-any.whl", hash = "sha256:6e1d93f2b2a7c63301f3e09e7ffa82ea80affec59164cd8c9b7807af4fe0e732"},
+    {file = "stomp.py-7.0.0.tar.gz", hash = "sha256:fb301f338292b1b95089c6f1d3a38a9dd8353a5ff3f921e389dfa5f9413b5a8a"},
 ]
 stomper = [
     {file = "stomper-0.4.3-py3-none-any.whl", hash = "sha256:e0d157db9bc1d5e2d0356bcd322fa9010d9d02cf403ca97618e8454d2697f0a9"},
