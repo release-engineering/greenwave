@@ -9,24 +9,28 @@ ENV PYTHONFAULTHANDLER=1 \
 FROM base as builder
 
 RUN microdnf install -y --nodocs --setopt install_weak_deps=0 \
-        git-core \
         python39 \
         python39-pip
 
+ARG GITHUB_REF
+ARG GITHUB_SHA
+
 ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    GITHUB_REF=$GITHUB_REF \
+    GITHUB_SHA=$GITHUB_SHA
 
 WORKDIR /build
 COPY . .
 # hadolint ignore=SC1091
 RUN set -ex \
-    && version=$(./get-version.sh) \
-    && test -n "$version" \
     && pip3 install --no-cache-dir -r requirements-builder.txt \
     && python3 -m venv /venv \
     && . /venv/bin/activate \
     && pip install --no-cache-dir -r requirements-builder2.txt \
+    && version=$(./get-version.sh) \
+    && test -n "$version" \
     && poetry version "$version" \
     && poetry install --no-dev --no-root \
     && poetry build \
@@ -37,10 +41,13 @@ RUN set -ex \
 
 # --- Final image
 FROM base as greenwave
+ARG GITHUB_SHA
 LABEL \
     name="Greenwave application" \
     vendor="Greenwave developers" \
     license="GPLv2+" \
+    vcs-type="git" \
+    vcs-ref=$GITHUB_SHA \
     build-date=""
 
 WORKDIR /src

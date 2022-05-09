@@ -7,6 +7,17 @@
 set -e
 
 name=greenwave
+
+if [[ -n "$GITHUB_SHA" ]]; then
+    if [[ $GITHUB_REF =~ ^ref/tags/$name- ]]; then
+        echo "${GITHUB_REF#refs/tags/$name-}"
+    else
+        last_version=$(poetry version --short)
+        echo "$last_version+git.${GITHUB_SHA:0:7}"
+    fi
+    exit
+fi
+
 if [ "$(git tag | wc -l)" -eq 0 ] ; then
     # never been tagged since the project is just starting out
     lastversion="0.0"
