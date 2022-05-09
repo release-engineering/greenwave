@@ -1,25 +1,34 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.5 as base
+FROM registry.access.redhat.com/ubi8/ubi:8.5 as builder
 
-ENV PYTHONFAULTHANDLER=1 \
-    PYTHONHASHSEED=random \
-    PYTHONUNBUFFERED=1 \
-    WEB_CONCURRENCY=8
-
-# --- Build stage
-FROM base as builder
-
-RUN microdnf install -y --nodocs --setopt install_weak_deps=0 \
+# hadolint ignore=DL3033
+RUN set -ex \
+    && mkdir -p /mnt/rootfs \
+    && yum install -y \
+        --setopt install_weak_deps=false \
+        --nodocs \
         python39 \
-        python39-pip
+        python39-pip \
+    && yum install -y \
+        --installroot=/mnt/rootfs \
+        --releasever=8 \
+        --setopt install_weak_deps=false \
+        --nodocs \
+        python39 \
+    && yum --installroot=/mnt/rootfs clean all \
+    && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum.*
 
 ARG GITHUB_REF
 ARG GITHUB_SHA
 
-ENV PIP_DEFAULT_TIMEOUT=100 \
+ENV \
+    GITHUB_REF=$GITHUB_REF \
+    GITHUB_SHA=$GITHUB_SHA \
+    PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
-    GITHUB_REF=$GITHUB_REF \
-    GITHUB_SHA=$GITHUB_SHA
+    PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    PYTHONUNBUFFERED=1
 
 WORKDIR /build
 COPY . .
@@ -32,34 +41,38 @@ RUN set -ex \
     && version=$(./get-version.sh) \
     && test -n "$version" \
     && poetry version "$version" \
-    && poetry install --no-dev --no-root \
     && poetry build \
-    && mkdir -p /src/docker \
-    && cp -v docker/docker-entrypoint.sh /src/docker \
-    && cp -vr conf /src \
-    && cp -vr dist /src
+    && pip install --no-cache-dir dist/greenwave-"$version"-py3*.whl \
+    && deactivate \
+    && mv /venv /mnt/rootfs \
+    && mkdir -p /mnt/rootfs/src/docker \
+    && cp -v docker/docker-entrypoint.sh /mnt/rootfs/src/docker \
+    && cp -vr conf /mnt/rootfs/src \
+    # This will allow a non-root user to install a custom root CA at run-time
+    && chmod 777 /mnt/rootfs/etc/pki/tls/certs/ca-bundle.crt
 
 # --- Final image
-FROM base as greenwave
+FROM scratch
 ARG GITHUB_SHA
 LABEL \
-    name="Greenwave application" \
-    vendor="Greenwave developers" \
+    summary="Greenwave application" \
+    description="Decision-making service for gating in a software delivery pipeline." \
+    maintainer="Red Hat, Inc." \
     license="GPLv2+" \
+    url="https://github.com/release-engineering/greenwave" \
     vcs-type="git" \
     vcs-ref=$GITHUB_SHA \
-    build-date=""
+    io.k8s.display-name="Greenwave"
 
+ENV \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    PYTHONUNBUFFERED=1 \
+    WEB_CONCURRENCY=8
+
+COPY --from=builder /mnt/rootfs/ /
+COPY --from=builder /etc/yum.repos.d/ubi.repo /etc/yum.repos.d/ubi.repo
 WORKDIR /src
-COPY --from=builder /src .
-COPY --from=builder /venv /venv
-RUN set -ex \
-    && microdnf install -y --nodocs --setopt install_weak_deps=0 python39 \
-    && microdnf clean -y all \
-    && /venv/bin/pip install --no-cache-dir dist/*.whl \
-    && rm -r dist \
-    # This will allow a non-root user to install a custom root CA at run-time
-    && chmod 777 /etc/pki/tls/certs/ca-bundle.crt
 
 USER 1001
 EXPOSE 8080
