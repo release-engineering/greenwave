@@ -14,6 +14,8 @@ RUN set -ex \
         --setopt install_weak_deps=false \
         --nodocs \
         curl \
+        # required by fedmsg (zmq)
+        libstdc++ \
         python39 \
     && yum --installroot=/mnt/rootfs clean all \
     && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum.*
