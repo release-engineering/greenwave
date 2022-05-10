@@ -13,6 +13,7 @@ RUN set -ex \
         --releasever=8 \
         --setopt install_weak_deps=false \
         --nodocs \
+        curl \
         python39 \
     && yum --installroot=/mnt/rootfs clean all \
     && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum.*
@@ -47,9 +48,7 @@ RUN set -ex \
     && mv /venv /mnt/rootfs \
     && mkdir -p /mnt/rootfs/src/docker \
     && cp -v docker/docker-entrypoint.sh /mnt/rootfs/src/docker \
-    && cp -vr conf /mnt/rootfs/src \
-    # This will allow a non-root user to install a custom root CA at run-time
-    && chmod 777 /mnt/rootfs/etc/pki/tls/certs/ca-bundle.crt
+    && cp -vr conf /mnt/rootfs/src
 
 # --- Final image
 FROM scratch
@@ -73,6 +72,9 @@ ENV \
 COPY --from=builder /mnt/rootfs/ /
 COPY --from=builder /etc/yum.repos.d/ubi.repo /etc/yum.repos.d/ubi.repo
 WORKDIR /src
+
+# This will allow a non-root user to install a custom root CA at run-time
+RUN chmod 777 /etc/pki/tls/certs/ca-bundle.crt
 
 USER 1001
 EXPOSE 8080
