@@ -119,8 +119,12 @@ jobs:
           image: ${{ env.IMAGE_NAME }}
           tags: >-
             ${{ github.ref == 'refs/heads/master' && 'latest' || '' }}
+            ${{ github.ref_name }}
             ${{ github.sha }}
           containerfiles: Dockerfile
+          build-args: |
+            GITHUB_SHA=${{ github.sha }}
+            GITHUB_REF=${{ github.ref }}
 
       - name: Log in to the image registry
         if: github.event_name == 'push' && github.actor != 'dependabot[bot]'
