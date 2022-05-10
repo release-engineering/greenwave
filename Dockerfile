@@ -13,7 +13,6 @@ RUN set -ex \
         --releasever=8 \
         --setopt install_weak_deps=false \
         --nodocs \
-        curl \
         # required by fedmsg (zmq)
         libstdc++ \
         python39 \
@@ -74,9 +73,6 @@ ENV \
 COPY --from=builder /mnt/rootfs/ /
 COPY --from=builder /etc/yum.repos.d/ubi.repo /etc/yum.repos.d/ubi.repo
 WORKDIR /src
-
-# This will allow a non-root user to install a custom root CA at run-time
-RUN chmod 777 /etc/pki/tls/certs/ca-bundle.crt
 
 USER 1001
 EXPOSE 8080
