@@ -14,15 +14,7 @@ Install ``podman-compose`` either using ``pip`` or from a package:
 Makefile and ``make`` commands are used here to simplify setting up the
 development containers.
 
-Clone dependencies first (these should be in the same parent directory as
-Greenwave):
-
-.. code-block:: console
-
-  git clone https://pagure.io/waiverdb.git ../waiverdb/
-  git clone https://pagure.io/taskotron/resultsdb.git ../resultsdb/
-
-Build container images:
+Build the container image:
 
 .. code-block:: console
 

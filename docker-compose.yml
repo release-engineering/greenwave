@@ -1,9 +1,9 @@
 ---
-version: '2.1'
+version: '3'
 services:
   dev:
     build: .
-    image: greenwave_dev
+    image: greenwave
     user: ${DEV_USER_ID:-1000}
     working_dir: /src
     env_file: ["docker/dev.env"]
@@ -16,6 +16,11 @@ services:
       - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
     ports:
       - 8080:8080
+    healthcheck:
+      test: "curl -f http://localhost:8080/api/v1.0/about || exit 1"
+      interval: 1s
+      timeout: 30s
+      retries: 15
     depends_on:
       - memcached
       - resultsdb
@@ -26,30 +31,30 @@ services:
     restart: always
     env_file: ["docker/resultsdb-db.env"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: "pg_isready -U postgres || exit 1"
+      interval: 1s
       timeout: 30s
-      retries: 3
+      retries: 15
 
   resultsdb:
-    build:
-      context: ../resultsdb
-      dockerfile: Dockerfile
-    working_dir: /code
+    image: quay.io/factory2/resultsdb
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
     volumes:
-      - ../resultsdb:/code:ro,z
       - ./docker/home:/home/dev:rw,z
       - ./docker/resultsdb-command.sh:/start.sh:ro,z
       - ./docker/resultsdb-settings.py:/etc/resultsdb/settings.py:ro,z
       - ./docker/resultsdb.conf:/etc/httpd/conf.d/resultsdb.conf:ro,z
     ports:
       - 5001:5001
+    healthcheck:
+      test: "curl -f http://localhost:5001 || exit 1"
+      interval: 1s
+      timeout: 30s
+      retries: 15
     depends_on:
-      resultsdb-db:
-        condition: service_healthy
+      - resultsdb-db
 
   waiverdb-db:
     image: postgres:9.5.2
@@ -57,16 +62,12 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    build:
-      context: ../waiverdb
-      dockerfile: openshift/containers/waiverdb/Dockerfile
-    working_dir: /code
+    image: quay.io/factory2/waiverdb
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
     volumes:
-      - ../waiverdb:/code:ro,z
       - ./docker/home:/home/dev:rw,z
       - ./docker/waiverdb-command.sh:/start.sh:ro,z
       - ./docker/waiverdb-settings.py:/etc/waiverdb/settings.py:ro,z
@@ -74,6 +75,11 @@ services:
     ports:
       - 5004:5004
     user: '0'
+    healthcheck:
+      test: "curl -f http://localhost:5004/api/v1.0/about || exit 1"
+      interval: 1s
+      timeout: 30s
+      retries: 15
     depends_on:
       - waiverdb-db
 
@@ -81,8 +87,7 @@ services:
     image: "quay.io/factory2/memcached"
 
   resultsdb-listener:
-    build: .
-    image: greenwave_dev
+    image: greenwave
     user: ${DEV_USER_ID:-1000}
     working_dir: /
     env_file: ["docker/dev.env"]
@@ -103,6 +108,11 @@ services:
       - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
       - ./conf/policies/:/etc/greenwave/policies/:ro,z
       - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
+    healthcheck:
+      test: "curl -f http://localhost:8082/api/v1.0/about || exit 1"
+      interval: 1s
+      timeout: 30s
+      retries: 15
     depends_on:
       - memcached
       - umb
@@ -110,8 +120,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   waiverdb-listener:
-    build: .
-    image: greenwave_dev
+    image: greenwave
     user: ${DEV_USER_ID:-1000}
     working_dir: /
     env_file: ["docker/dev.env"]
@@ -132,6 +141,11 @@ services:
       - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
       - ./conf/policies/:/etc/greenwave/policies/:ro,z
       - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
+    healthcheck:
+      test: "curl -f http://localhost:8083/api/v1.0/about || exit 1"
+      interval: 1s
+      timeout: 30s
+      retries: 15
     depends_on:
       - memcached
       - umb

@@ -16,7 +16,7 @@ help:
 	@echo
 	@echo '  make down - stops containers in docker-compose environment'
 	@echo
-	@echo '  make build - builds container images for docker-compose environment'
+	@echo '  make build - builds container image for docker-compose environment'
 	@echo
 	@echo '  make recreate - recreates containers for docker-compose environment'
 	@echo
