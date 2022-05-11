@@ -17,4 +17,5 @@ exec gunicorn \
   --bind=0.0.0.0:8080 \
   --access-logfile=- \
   --enable-stdio-inheritance \
+  --statsd-host=statsd:9125 \
   greenwave.wsgi:app

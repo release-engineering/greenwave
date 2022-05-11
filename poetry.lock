@@ -533,17 +533,6 @@ dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
-name = "prometheus-client"
-version = "0.14.1"
-description = "Python client for the Prometheus monitoring system."
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.extras]
-twisted = ["twisted"]
-
-[[package]]
 name = "psutil"
 version = "5.9.0"
 description = "Cross-platform lib for process and system monitoring in Python."
@@ -944,6 +933,14 @@ pymysql = ["pymysql (<1)", "pymysql"]
 sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
+name = "statsd"
+version = "3.3.0"
+description = "A simple statsd client."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "stevedore"
 version = "3.5.0"
 description = "Manage dynamic plugins for Python applications"
@@ -1127,7 +1124,7 @@ test = ["flake8", "pytest", "pytest-cov", "mock"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "10e9bd914c7c063c60971b31d24ed3dedf20971e66a225e1cecff9368c68488f"
+content-hash = "6521fdd36a1f447221a4e3820f4bcb8ac35c8b3ebd446ea16d0df09199c45f20"
 
 [metadata.files]
 alabaster = [
@@ -1505,10 +1502,6 @@ pluggy = [
     {file = "pluggy-1.0.0-py2.py3-none-any.whl", hash = "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"},
     {file = "pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},
 ]
-prometheus-client = [
-    {file = "prometheus_client-0.14.1-py3-none-any.whl", hash = "sha256:522fded625282822a89e2773452f42df14b5a8e84a86433e3f8a189c1d54dc01"},
-    {file = "prometheus_client-0.14.1.tar.gz", hash = "sha256:5459c427624961076277fdc6dc50540e2bacb98eebde99886e59ec55ed92093a"},
-]
 psutil = [
     {file = "psutil-5.9.0-cp27-cp27m-manylinux2010_i686.whl", hash = "sha256:55ce319452e3d139e25d6c3f85a1acf12d1607ddedea5e35fb47a552c051161b"},
     {file = "psutil-5.9.0-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:7336292a13a80eb93c21f36bde4328aa748a04b68c13d01dfddd67fc13fd0618"},
@@ -1871,6 +1864,10 @@ sqlalchemy = [
     {file = "SQLAlchemy-1.4.36-cp39-cp39-win32.whl", hash = "sha256:e12532c4d3f614678623da5d852f038ace1f01869b89f003ed6fe8c793f0c6a3"},
     {file = "SQLAlchemy-1.4.36-cp39-cp39-win_amd64.whl", hash = "sha256:cb441ca461bf97d00877b607f132772644b623518b39ced54da433215adce691"},
     {file = "SQLAlchemy-1.4.36.tar.gz", hash = "sha256:64678ac321d64a45901ef2e24725ec5e783f1f4a588305e196431447e7ace243"},
+]
+statsd = [
+    {file = "statsd-3.3.0-py2.py3-none-any.whl", hash = "sha256:c610fb80347fca0ef62666d241bce64184bd7cc1efe582f9690e045c25535eaa"},
+    {file = "statsd-3.3.0.tar.gz", hash = "sha256:e3e6db4c246f7c59003e51c9720a51a7f39a396541cb9b147ff4b14d15b5dd1f"},
 ]
 stevedore = [
     {file = "stevedore-3.5.0-py3-none-any.whl", hash = "sha256:a547de73308fd7e90075bb4d301405bebf705292fa90a90fc3bcf9133f58616c"},
