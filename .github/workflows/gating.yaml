@@ -108,9 +108,25 @@ jobs:
       IMAGE_NAME: greenwave
       REGISTRY: quay.io/factory2
       GH_REGISTRY: ghcr.io/${{ github.actor }}
+    strategy:
+      matrix:
+        python-version: ["3.9"]
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry tox tox-gh-actions podman-compose
+
+      - name: Update the Application Version
+        run: poetry version "$(./get-version.sh)"
 
       - name: Build Image
         id: build-image
@@ -124,7 +140,6 @@ jobs:
           containerfiles: Dockerfile
           build-args: |
             GITHUB_SHA=${{ github.sha }}
-            GITHUB_REF=${{ github.ref }}
 
       - name: Log in to the image registry
         if: github.event_name == 'push' && github.actor != 'dependabot[bot]'
@@ -141,3 +156,20 @@ jobs:
           image: ${{ steps.build-image.outputs.image }}
           tags: ${{ steps.build-image.outputs.tags }}
           registry: ${{ secrets.REGISTRY_USER && env.REGISTRY || env.GH_REGISTRY }}
+
+      - name: Install docker-compose
+        run: |
+          echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_20.04/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list &&
+          curl -L "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_20.04/Release.key" | sudo apt-key add - &&
+          sudo apt-get -y update &&
+          sudo apt-get -y install podman
+
+      - name: Test Image
+        env:
+          GREENWAVE_LISTENERS: '0'
+        run: |
+          podman-compose up -d &&
+          podman-compose ps &&
+          podman-compose logs &&
+          tox -e functional -- --no-cov functional-tests &&
+          podman-compose down

@@ -23,12 +23,7 @@ RUN set -exo pipefail \
     && curl -sSL https://install.python-poetry.org | python3 - \
     && python3 -m venv /venv
 
-ARG GITHUB_REF
-ARG GITHUB_SHA
-
 ENV \
-    GITHUB_REF=$GITHUB_REF \
-    GITHUB_SHA=$GITHUB_SHA \
     PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -42,11 +37,9 @@ COPY . .
 RUN set -ex \
     && export PATH=/root/.local/bin:$PATH \
     && . /venv/bin/activate \
-    && version=$(./get-version.sh) \
-    && test -n "$version" \
-    && poetry version "$version" \
     && pip install --no-cache-dir -r requirements.txt \
     && poetry build --format=wheel \
+    && version=$(poetry version --short) \
     && pip install --no-cache-dir dist/greenwave-"$version"-py3*.whl \
     && deactivate \
     && mv /venv /mnt/rootfs \
