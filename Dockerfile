@@ -1,13 +1,14 @@
 FROM registry.access.redhat.com/ubi8/ubi:8.5 as builder
 
-# hadolint ignore=DL3033
-RUN set -ex \
+# hadolint ignore=DL3033,DL4006,SC3040
+RUN set -exo pipefail \
     && mkdir -p /mnt/rootfs \
+    # install builder dependencies
     && yum install -y \
         --setopt install_weak_deps=false \
         --nodocs \
         python39 \
-        python39-pip \
+    # install runtime dependencies
     && yum install -y \
         --installroot=/mnt/rootfs \
         --releasever=8 \
@@ -17,7 +18,10 @@ RUN set -ex \
         libstdc++ \
         python39 \
     && yum --installroot=/mnt/rootfs clean all \
-    && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum.*
+    && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum.* \
+    # https://python-poetry.org/docs/master/#installing-with-the-official-installer
+    && curl -sSL https://install.python-poetry.org | python3 - \
+    && python3 -m venv /venv
 
 ARG GITHUB_REF
 ARG GITHUB_SHA
@@ -36,14 +40,13 @@ WORKDIR /build
 COPY . .
 # hadolint ignore=SC1091
 RUN set -ex \
-    && pip3 install --no-cache-dir -r requirements-builder.txt \
-    && python3 -m venv /venv \
+    && export PATH=/root/.local/bin:$PATH \
     && . /venv/bin/activate \
-    && pip install --no-cache-dir -r requirements-builder2.txt \
     && version=$(./get-version.sh) \
     && test -n "$version" \
     && poetry version "$version" \
-    && poetry build \
+    && pip install --no-cache-dir -r requirements.txt \
+    && poetry build --format=wheel \
     && pip install --no-cache-dir dist/greenwave-"$version"-py3*.whl \
     && deactivate \
     && mv /venv /mnt/rootfs \

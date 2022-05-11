@@ -1,0 +1,3 @@
+wheel==0.37.1
+pip==22.0.4
+setuptools==62.2.0

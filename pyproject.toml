@@ -32,7 +32,7 @@ python-memcached = "^1.59"
 prometheus-client = "^0.14.1"
 requests = "^2.26.0"
 python-dateutil = "^2.8.2"
-cryptography = {version = "^37.0.2", optional = true}
+fedora-messaging = "^2.1.0"
 
 # latest versions of stomp.py 8.0.0 and 8.0.1 are causing connection issues
 "stomp.py" = "7.0.0"
@@ -47,7 +47,6 @@ pytest-cov = {version = "^3.0.0", optional = true}
 mock = {version = "^4.0.3", optional = true}
 
 SQLAlchemy = {version = "^1.4.36", optional = true}
-fedora-messaging = {version = "^2.1.0", optional = true}
 psycopg2-binary = {version = "^2.9.3", optional = true}
 
 sphinx = {version = "^4.0.2", optional = true}
@@ -59,7 +58,6 @@ test = [
     "pytest",
     "pytest-cov",
     "mock",
-    "fedora-messaging",
 ]
 functional-test = [
     "SQLAlchemy",
