@@ -77,10 +77,10 @@ class Config(object):
     LISTENER_CONNECTION = {
         "heartbeats": (10000, 20000),
         "keepalive": True,
-        "timeout": 5000,
+        "timeout": 10,
         "reconnect_sleep_initial": 1.0,
         "reconnect_sleep_increase": 1.0,
-        "reconnect_sleep_max": 60.0,
+        "reconnect_sleep_max": 30.0,
         "reconnect_attempts_max": 10,
     }
     LISTENER_CONNECTION_SSL = {
