@@ -1,6 +1,6 @@
 FROM registry.access.redhat.com/ubi8/ubi:8.5 as builder
 
-# hadolint ignore=DL3033,DL4006,SC3040
+# hadolint ignore=DL3033,DL4006,SC2039,SC3040
 RUN set -exo pipefail \
     && mkdir -p /mnt/rootfs \
     # install builder dependencies
