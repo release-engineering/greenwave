@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import logging
-from flask import Blueprint, request, current_app, jsonify, url_for, redirect, Response
+from flask import Blueprint, request, current_app, jsonify, url_for, redirect
 from werkzeug.exceptions import BadRequest
-from prometheus_client import generate_latest
 from greenwave import __version__
 from greenwave.policies import (
     RemotePolicy,
@@ -12,7 +11,6 @@ from greenwave.policies import (
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
 from greenwave.monitor import (
-    registry,
     decision_exception_counter,
     decision_request_duration_seconds,
 )
@@ -424,8 +422,3 @@ def validate_gating_yaml_post():
         msg = {'message': 'All OK'}
 
     return jsonify(msg)
-
-
-@api.route('/metrics', methods=['GET'])
-def metrics():
-    return Response(generate_latest(registry))
