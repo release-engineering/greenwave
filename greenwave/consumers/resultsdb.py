@@ -54,7 +54,7 @@ class ResultsDBHandler(Consumer):
     config_key = 'resultsdb_handler'
     hub_config_prefix = 'resultsdb_'
     default_topic = 'taskotron.result.new'
-    monitor_labels = {'handler': 'resultsdb'}
+    monitor_labels = {'handler': 'resultsdb_consumer'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

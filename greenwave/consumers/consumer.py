@@ -9,9 +9,12 @@ import greenwave.app_factory
 import greenwave.decision
 
 from greenwave.monitor import (
-    publish_decision_exceptions_result_counter,
-    messaging_tx_to_send_counter, messaging_tx_stopped_counter,
-    messaging_tx_sent_ok_counter, messaging_tx_failed_counter)
+    decision_changed_counter,
+    decision_failed_counter,
+    decision_unchanged_counter,
+    messaging_tx_sent_ok_counter,
+    messaging_tx_failed_counter,
+)
 from greenwave.policies import applicable_decision_context_product_version_pairs
 from greenwave.utils import right_before_this_time
 
@@ -147,7 +150,6 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
             log.error(
                 'Fedora Messaging broker rejected message %s: %s',
                 msg.id, e)
-            self._inc(messaging_tx_stopped_counter)
         except fedora_messaging.exceptions.ConnectionException as e:
             log.error('Error sending message %s: %s', msg.id, e)
             self._inc(messaging_tx_failed_counter)
@@ -168,12 +170,10 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
             log.debug('old decision: %s', old_decision)
         except requests.exceptions.HTTPError as e:
             log.exception('Failed to retrieve decision for data=%s, error: %s', request_data, e)
-            self._inc(messaging_tx_stopped_counter)
             return None, None
 
         return old_decision, decision
 
-    @publish_decision_exceptions_result_counter.count_exceptions()
     def _publish_decision_change(
             self,
             submit_time,
@@ -195,8 +195,6 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
             policies, **policy_attributes)
 
         for decision_context, product_version in sorted(contexts_product_versions):
-            self._inc(messaging_tx_to_send_counter)
-
             old_decision, decision = self._old_and_new_decisions(
                 submit_time,
                 decision_context=decision_context,
@@ -205,12 +203,15 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
                 subject_identifier=subject.identifier,
             )
             if decision is None:
+                self._inc(decision_failed_counter.labels(decision_context=decision_context))
                 continue
 
             if _is_decision_unchanged(old_decision, decision):
                 log.debug('Decision unchanged: %s', decision)
-                self._inc(messaging_tx_stopped_counter)
+                self._inc(decision_unchanged_counter.labels(decision_context=decision_context))
                 continue
+
+            self._inc(decision_changed_counter.labels(decision_context=decision_context))
 
             decision.update({
                 'subject_type': subject.type,
@@ -229,5 +230,3 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
                 self._publish_decision_update_fedmsg(decision)
             elif self.flask_app.config['MESSAGING'] == 'fedora-messaging':
                 self._publish_decision_update_fedora_messaging(decision)
-
-            self._inc(messaging_tx_stopped_counter)

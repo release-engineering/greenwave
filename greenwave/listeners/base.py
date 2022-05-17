@@ -12,15 +12,15 @@ from requests.exceptions import HTTPError
 import greenwave.app_factory
 from greenwave.logger import init_logging, log_to_stdout
 from greenwave.monitor import (
+    decision_changed_counter,
+    decision_failed_counter,
+    decision_unchanged_counter,
     messaging_rx_counter,
     messaging_rx_failed_counter,
     messaging_rx_ignored_counter,
     messaging_rx_processed_ok_counter,
     messaging_tx_failed_counter,
     messaging_tx_sent_ok_counter,
-    messaging_tx_stopped_counter,
-    messaging_tx_to_send_counter,
-    publish_decision_exceptions_result_counter,
 )
 from greenwave.policies import applicable_decision_context_product_version_pairs
 from greenwave.utils import right_before_this_time
@@ -65,7 +65,7 @@ def _send_nack(listener, headers):
 
 
 class BaseListener(stomp.ConnectionListener):
-    monitor_labels = {"handler": "greenwave_consumer"}
+    monitor_labels = {"handler": "greenwave_listener"}
 
     def __init__(self, uid_suffix, config_obj=None):
         super().__init__()
@@ -237,12 +237,10 @@ class BaseListener(stomp.ConnectionListener):
             self.app.logger.exception(
                 "Failed to retrieve decision for data=%s, error: %s", request_data, e
             )
-            self._inc(messaging_tx_stopped_counter)
             return None, None
 
         return old_decision, decision
 
-    @publish_decision_exceptions_result_counter.count_exceptions()
     def _publish_decision_change(
         self, submit_time, subject, testcase, product_version, publish_testcase
     ):
@@ -263,8 +261,6 @@ class BaseListener(stomp.ConnectionListener):
         self.app.logger.info("Getting greenwave info")
 
         for decision_context, product_version in sorted(contexts_product_versions):
-            self._inc(messaging_tx_to_send_counter)
-
             old_decision, decision = self._old_and_new_decisions(
                 submit_time,
                 decision_context=decision_context,
@@ -273,14 +269,17 @@ class BaseListener(stomp.ConnectionListener):
                 subject_identifier=subject.identifier,
             )
             if decision is None:
+                self._inc(decision_failed_counter.labels(decision_context=decision_context))
                 continue
 
             if _is_decision_unchanged(old_decision, decision):
                 self.app.logger.debug(
                     "Skipped emitting fedmsg, decision did not change: %s", decision
                 )
-                self._inc(messaging_tx_stopped_counter)
+                self._inc(decision_unchanged_counter.labels(decision_context=decision_context))
                 continue
+
+            self._inc(decision_changed_counter.labels(decision_context=decision_context))
 
             decision.update(
                 {
@@ -298,4 +297,3 @@ class BaseListener(stomp.ConnectionListener):
 
             self.app.logger.info("Publishing decision change message: %r", decision)
             self._publish_decision_update(decision)
-            self._inc(messaging_tx_stopped_counter)
