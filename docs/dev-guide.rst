@@ -71,8 +71,8 @@ development virtualenv with:
 
 .. code-block:: console
 
-   $ git clone https://pagure.io/waiverdb.git ../waiverdb/
-   $ git clone https://pagure.io/taskotron/resultsdb.git ../resultsdb/
+   $ git clone https://github.com/release-engineering/waiverdb.git ../waiverdb/
+   $ git clone https://github.com/release-engineering/resultsdb.git ../resultsdb/
    $ poetry run pip install -r ../waiverdb/requirements.txt
    $ poetry run pip install -r ../resultsdb/requirements.txt
 
@@ -132,6 +132,6 @@ Additionally, we follow the `"Google style" for docstrings
 
 
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _ResultsDB: https://pagure.io/taskotron/resultsdb
-.. _WaiverDB: https://pagure.io/waiverdb
+.. _ResultsDB: https://github.com/release-engineering/resultsdb
+.. _WaiverDB: https://github.com/release-engineering/waiverdb
 .. _Sphinx: http://www.sphinx-doc.org/

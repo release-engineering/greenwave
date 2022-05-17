@@ -63,9 +63,9 @@ decision API (policies_satisfied == False and summary == misconfigured
 gating.yaml file) and it will not be possible to ship the build.
 
 To skip this problem, it is possible to submit a waiver with the tool
-`waiverdb-cli <https://pagure.io/docs/waiverdb/>`_. This waiver must have
-``testcase`` equal to ``invalid-gating-yaml``. It is not necessary to have
-a result in Resultsdb for this testcase.
+`waiverdb-cli <https://waiverdb.readthedocs.io/en/latest/waiverdb-cli.html>`_.
+This waiver must have ``testcase`` equal to ``invalid-gating-yaml``. It is not
+necessary to have a result in Resultsdb for this testcase.
 
 The side effect is that all the policies defined in the remote rule
 file will be completely ignored by Greenwave.
