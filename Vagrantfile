@@ -35,8 +35,8 @@ $script = <<-'SCRIPT'
     psql -U postgres -c "ALTER ROLE vagrant WITH Superuser;"
 
     # Clone ResultsDB and WaiverDB for the functional tests
-    git clone https://pagure.io/taskotron/resultsdb.git /opt/resultsdb
-    git clone https://pagure.io/waiverdb.git /opt/waiverdb
+    git clone https://github.com/release-engineering/resultsdb.git /opt/resultsdb
+    git clone https://github.com/release-engineering/waiverdb.git /opt/waiverdb
     dnf -y builddep /opt/resultsdb/resultsdb.spec
     dnf -y builddep /opt/waiverdb/waiverdb.spec
 

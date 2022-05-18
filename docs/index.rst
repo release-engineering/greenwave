@@ -32,6 +32,6 @@ Indices and tables
 * :ref:`search`
 
 
-.. _Greenwave: https://pagure.io/greenwave
-.. _ResultsDB: https://pagure.io/taskotron/resultsdb
-.. _WaiverDB: https://pagure.io/waiverdb
+.. _Greenwave: https://github.com/release-engineering/greenwave
+.. _ResultsDB: https://github.com/release-engineering/resultsdb
+.. _WaiverDB: https://github.com/release-engineering/waiverdb
