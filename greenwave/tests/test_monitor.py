@@ -13,6 +13,9 @@ def test_counter_to_str_with_labels():
     counter = Counter('total_decisions').labels(handler='test')
     assert str(counter) == 'total_decisions[handler=test]'
 
+    counter2 = counter.labels(decision_context='context')
+    assert str(counter2) == 'total_decisions[handler=test,decision_context=context]'
+
 
 def test_counter_no_host_set(monkeypatch):
     with patch('greenwave.monitor.StatsClient') as client:

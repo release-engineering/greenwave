@@ -44,7 +44,9 @@ class Counter(Stat):
             client.incr(str(self))
 
     def labels(self, **labeldict):
-        return Counter(self.name, labeldict=labeldict)
+        new_labeldict = dict(self.labeldict)
+        new_labeldict.update(labeldict)
+        return Counter(self.name, labeldict=new_labeldict)
 
     def count_exceptions(self):
         """Returns function decorator to increase counter on exception."""
