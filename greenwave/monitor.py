@@ -84,10 +84,6 @@ messaging_rx_processed_ok_counter = Counter('messaging_rx_processed_ok')
 # Number of received messages, which failed during processing
 messaging_rx_failed_counter = Counter('messaging_rx_failed')
 
-# Total number of messages to send
-messaging_tx_to_send_counter = Counter('messaging_tx_to_send')
-# Number of messages, which were eventually stopped before sending
-messaging_tx_stopped_counter = Counter('messaging_tx_stopped')
 # Number of messages, which were sent successfully
 messaging_tx_sent_ok_counter = Counter('messaging_tx_sent_ok')
 # Number of messages, for which the sender failed
@@ -97,7 +93,9 @@ messaging_tx_failed_counter = Counter('messaging_tx_failed')
 decision_exception_counter = Counter('total_decision_exceptions')
 # Decision latency
 decision_request_duration_seconds = Histogram('decision_request_duration_seconds')
-# All exceptions occurred in publishing a message after a new waiver
-publish_decision_exceptions_waiver_counter = Counter('publish_decision_exceptions_new_waiver')
-# All exceptions occurred in publishing a message after a new result
-publish_decision_exceptions_result_counter = Counter('publish_decision_exceptions_new_result')
+# New result/waiver caused specific decision to change
+decision_changed_counter = Counter('decision_changed')
+# New result/waiver did not cause specific decision to change
+decision_unchanged_counter = Counter('decision_unchanged')
+# Failed to retrieve decision for a new result/waiver
+decision_failed_counter = Counter('decision_failed')

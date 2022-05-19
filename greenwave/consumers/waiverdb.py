@@ -24,7 +24,7 @@ class WaiverDBHandler(Consumer):
     config_key = 'waiverdb_handler'
     hub_config_prefix = 'waiverdb_'
     default_topic = 'waiver.new'
-    monitor_labels = {'handler': 'waiverdb'}
+    monitor_labels = {'handler': 'waiverdb_consumer'}
 
     def _consume_message(self, message):
         msg = message['msg']
