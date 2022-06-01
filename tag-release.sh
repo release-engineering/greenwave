@@ -7,9 +7,7 @@ set -e
 version="$1"
 prerelease="$2"
 name=Greenwave
-short=greenwave
 
-init_file=$short/__init__.py
 release_notes_file=docs/release-notes.rst
 
 if [ -z "$version" ] ; then
@@ -29,8 +27,8 @@ if ! grep -q --fixed-strings "$name ${version%.*}" "$release_notes_file"; then
     exit 1
 fi
 
-sed -i -e "/^__version__ = /c\\__version__ = '$version$prerelease'" "$init_file"
+poetry version "$version$prerelease"
 
-git add "$init_file"
+git add "pyproject.toml"
 git commit -m "Automatic commit of release $version$prerelease"
 git tag -s "greenwave-$version$prerelease" -m "Tagging release $version$prerelease"
