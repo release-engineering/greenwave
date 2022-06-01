@@ -258,8 +258,6 @@ class BaseListener(stomp.ConnectionListener):
             policies, **policy_attributes
         )
 
-        self.app.logger.info("Getting greenwave info")
-
         for decision_context, product_version in sorted(contexts_product_versions):
             old_decision, decision = self._old_and_new_decisions(
                 submit_time,

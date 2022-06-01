@@ -45,7 +45,7 @@ def _guess_product_version(toparse, koji_build=False):
             except ValueError:
                 pass
 
-    log.error("It wasn't possible to guess the product version")
+    log.warning("Failed to guess the product version for %s", toparse)
     return None
 
 
@@ -53,7 +53,6 @@ def _guess_koji_build_product_version(
         subject_identifier, koji_base_url, koji_task_id=None):
     try:
         if not koji_task_id:
-            log.debug('Getting Koji task ID for build %r', subject_identifier)
             try:
                 koji_task_id = retrieve_koji_build_task_id(
                     subject_identifier, koji_base_url
