@@ -128,14 +128,20 @@ jobs:
       - name: Update the Application Version
         run: poetry version "$(./get-version.sh)"
 
+      - name: Get image tag from git branch
+        id: get-image-tag
+        run: |
+          export TAG=$(sed 's/[^0-9a-zA-Z\-_.]/__/g' <<< "$GITHUB_REF_NAME") &&
+          echo "::set-output name=tag::$TAG"
+
       - name: Build Image
         id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: >-
+            ${{ steps.get-image-tag.outputs.tag }}
             ${{ github.ref == 'refs/heads/master' && 'latest' || '' }}
-            ${{ github.ref_name }}
             ${{ github.sha }}
           containerfiles: Dockerfile
           build-args: |
