@@ -2,6 +2,34 @@
 Release Notes
 =============
 
+Greenwave 2.0.0
+===============
+
+Released 1 June 2022
+
+* Prometheus metrics endpoint ``/api/v1.0/metrics`` has been **removed**
+  because it did not work correctly with multiple Gunicorn web workers and
+  threads. Use separate **statsd** service and set ``GREENWAVE_STATSD_HOST``
+  environment variable (format is ``<STATSD_SERVER>:<STATSD_PORT>``). If the
+  variable is empty or unset, metrics will not be sent. Statsd data are sent
+  using non-blocking UDP so any connection issues are nonfatal.
+* Multi-threaded workers in Gunicorn can be now enabled (smaller memory
+  footprint).
+* Added new STOMP message consumers. This **deprecates the old fedmsg
+  consumers**.
+* Application container image is much smaller (based on Red Hat Universal Base
+  Image 8.5) containing more up-to-date dependencies from PyPI. **Virtual
+  environment** under ``/venv`` **has to be activated** before running the
+  application. This is handled automatically by the **entrypoint** script
+  (``/src/docker/docker-entrypoint.sh``).
+* **Poetry** now manages the dependencies.
+* Project has been **moved to GitHub**.
+* GitHub Actions now run all tests including functional, linters, security
+  scans and build/push container images.
+* CA bundle file override support through ``CA_URL`` environment variable has
+  been dropped due to potential security issues. OpenShift supports mounting
+  the file to replace the system CA bundle.
+
 Greenwave 1.10.0
 ================
 
