@@ -24,7 +24,7 @@ def stats_client():
 @dataclass
 class Stat:
     name: str
-    labeldict: dict[str, str] = field(default_factory=dict)
+    labeldict: dict = field(default_factory=dict)
 
     def __str__(self):
         if not self.labeldict:
