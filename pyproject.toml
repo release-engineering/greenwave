@@ -23,7 +23,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.8,<3.10"
 PyYAML = "^6.0"
 "dogpile.cache" = "^1.1.4"
 flask = "^2.1.2"

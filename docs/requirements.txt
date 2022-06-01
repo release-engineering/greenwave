@@ -1,7 +1,0 @@
-flask
-python-dateutil
-sphinx
-sphinxcontrib-httpdomain
-prometheus_client
-dogpile.cache
-PyYAML
