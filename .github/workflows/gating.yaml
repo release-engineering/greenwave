@@ -62,6 +62,7 @@ jobs:
         tox_env:
           - bandit
           - lint
+          - docs
 
     runs-on: ubuntu-latest
 
