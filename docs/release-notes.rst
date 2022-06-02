@@ -33,7 +33,7 @@ Released 1 June 2022
 Greenwave 1.10.0
 ================
 
-Released 18 January 2021
+Released 18 January 2022
 
 * ``!Policy`` tag is now optional in remote rule policies
 * Added a support for ``valid_since`` and ``valid_until``
