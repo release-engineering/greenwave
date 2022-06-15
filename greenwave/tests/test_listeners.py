@@ -352,7 +352,8 @@ def test_decision_changes(
         "previous": old_decision,
     }
     expected_message.update(new_decision)
-    assert json.loads(mock_call["body"]) == {"msg": expected_message}
+    expected_body = {"msg": expected_message, "topic": DECISION_UPDATE_TOPIC}
+    assert json.loads(mock_call["body"]) == expected_body
 
 
 @pytest.mark.parametrize(
@@ -492,7 +493,9 @@ def test_remote_rule_decision_change(
             "subject_identifier": DUMMY_NVR,
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
-        }
+        },
+        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        "topic": DECISION_UPDATE_TOPIC,
     }
 
 
@@ -690,7 +693,9 @@ def test_decision_change_for_modules(
             "subject_identifier": nsvc,
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
-        }
+        },
+        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        "topic": DECISION_UPDATE_TOPIC,
     }
 
 
@@ -753,7 +758,9 @@ def test_decision_change_for_composes(
             "subject_identifier": "RHEL-9000",
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
-        }
+        },
+        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        "topic": DECISION_UPDATE_TOPIC,
     }
 
 
@@ -843,7 +850,9 @@ def test_fake_fedora_messaging_msg(mock_retrieve_results, mock_connection):
             "subject_identifier": "FEDORA-2019-9244c8b209",
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
-        }
+        },
+        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        "topic": DECISION_UPDATE_TOPIC,
     }
 
 
@@ -910,7 +919,9 @@ def test_container_brew_build(mock_retrieve_results, koji_proxy, mock_connection
             "subject_identifier": "example-container",
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
-        }
+        },
+        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        "topic": DECISION_UPDATE_TOPIC,
     }
 
 
@@ -957,7 +968,9 @@ def test_waiverdb_message(mock_connection):
             "testcase": "example_test",
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
-        }
+        },
+        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        "topic": DECISION_UPDATE_TOPIC,
     }
 
 
