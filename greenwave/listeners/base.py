@@ -205,7 +205,7 @@ class BaseListener(stomp.ConnectionListener):
         messaging_counter.labels(**self.monitor_labels).inc()
 
     def _publish_decision_update(self, decision):
-        message = {"msg": decision}
+        message = {"msg": decision, "topic": self.destination}
         body = json.dumps(message)
         while True:
             try:
