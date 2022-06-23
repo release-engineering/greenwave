@@ -18,7 +18,8 @@ class WaiverDBHandler(Consumer):
     Handle a new waiver.
 
     Attributes:
-        topic (list): A list of strings that indicate which fedmsg topics this consumer listens to.
+        topic (list): A list of strings that indicate which fedora message topics
+        this consumer listens to.
     """
 
     config_key = 'waiverdb_handler'

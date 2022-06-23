@@ -18,9 +18,9 @@ def create_resultdb_handler(greenwave_server, cache_config=None):
         cache_config)
 
 
-@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedora_messaging.api.publish')
 def test_consume_new_result(
-        mock_fedmsg, requests_session, greenwave_server,
+        mock_fedora_messaging, requests_session, greenwave_server,
         testdatabuilder):
     nvr = testdatabuilder.unique_nvr(product_version='fc26')
     result = testdatabuilder.create_result(item=nvr,
@@ -46,9 +46,12 @@ def test_consume_new_result(
     handler = create_resultdb_handler(greenwave_server)
     handler.consume(message)
 
-    assert len(mock_fedmsg.mock_calls) == 2
-    assert all(call[2]['topic'] == 'decision.update' for call in mock_fedmsg.mock_calls)
-    actual_msgs_sent = [call[2]['msg'] for call in mock_fedmsg.mock_calls]
+    assert len(mock_fedora_messaging.mock_calls) == 2
+    assert all(
+        call[1][0].topic == "greenwave.decision.update"
+        for call in mock_fedora_messaging.mock_calls
+    )
+    actual_msgs_sent = [call[1][0].body for call in mock_fedora_messaging.mock_calls]
     assert actual_msgs_sent[0] == {
         'policies_satisfied': False,
         'decision_context': 'bodhi_update_push_stable',
@@ -176,9 +179,9 @@ def test_consume_new_result(
     }
 
 
-@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedora_messaging.api.publish')
 def test_consume_unchanged_result(
-        mock_fedmsg, requests_session, greenwave_server,
+        mock_fedora_messaging, requests_session, greenwave_server,
         testdatabuilder):
     nvr = testdatabuilder.unique_nvr(product_version='fc26')
 
@@ -207,12 +210,12 @@ def test_consume_unchanged_result(
     handler = create_resultdb_handler(greenwave_server)
     handler.consume(message)
 
-    assert len(mock_fedmsg.mock_calls) == 0
+    assert len(mock_fedora_messaging.mock_calls) == 0
 
 
-@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedora_messaging.api.publish')
 def test_consume_compose_id_result(
-        mock_fedmsg, requests_session, greenwave_server,
+        mock_fedora_messaging, requests_session, greenwave_server,
         testdatabuilder):
     compose_id = testdatabuilder.unique_compose_id()
     result = testdatabuilder.create_compose_result(
@@ -281,12 +284,18 @@ def test_consume_compose_id_result(
         ]
     }
 
-    mock_fedmsg.assert_called_once_with(topic='decision.update', msg=msg)
+    assert len(mock_fedora_messaging.mock_calls) == 1
+    assert all(
+        call[1][0].topic == "greenwave.decision.update"
+        for call in mock_fedora_messaging.mock_calls
+    )
+    actual_msgs_sent = [call[1][0].body for call in mock_fedora_messaging.mock_calls]
+    assert actual_msgs_sent[0] == msg
 
 
-@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedora_messaging.api.publish')
 def test_consume_legacy_result(
-        mock_fedmsg, requests_session, greenwave_server,
+        mock_fedora_messaging, requests_session, greenwave_server,
         testdatabuilder):
     """ Test that we can still handle the old legacy "taskotron" format.
 
@@ -384,7 +393,14 @@ def test_consume_legacy_result(
                                 'taskotron_release_critical_tasks'],
         'previous': old_decision,
     }
-    mock_fedmsg.assert_any_call(topic='decision.update', msg=first_msg)
+
+    assert all(
+        call[1][0].topic == "greenwave.decision.update"
+        for call in mock_fedora_messaging.mock_calls
+    )
+    actual_msgs_sent = [call[1][0].body for call in mock_fedora_messaging.mock_calls]
+    assert actual_msgs_sent[0] == first_msg
+
     # get the old decision for the second policy
     data = {
         'decision_context': 'bodhi_update_push_testing',
@@ -423,12 +439,18 @@ def test_consume_legacy_result(
         'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
         'previous': old_decision,
     }
-    mock_fedmsg.assert_any_call(topic='decision.update', msg=second_msg)
+
+    assert all(
+        call[1][0].topic == "greenwave.decision.update"
+        for call in mock_fedora_messaging.mock_calls
+    )
+    actual_msgs_sent = [call[1][0].body for call in mock_fedora_messaging.mock_calls]
+    assert actual_msgs_sent[1] == second_msg
 
 
-@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedora_messaging.api.publish')
 def test_no_message_for_nonapplicable_policies(
-        mock_fedmsg, requests_session, greenwave_server,
+        mock_fedora_messaging, requests_session, greenwave_server,
         testdatabuilder):
     nvr = testdatabuilder.unique_nvr()
     # One result gets the decision in a certain state.
@@ -461,12 +483,12 @@ def test_no_message_for_nonapplicable_policies(
     handler.consume(message)
     # No message should be published as the decision is unchanged since we
     # are still missing the required tests.
-    mock_fedmsg.assert_not_called()
+    mock_fedora_messaging.assert_not_called()
 
 
-@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedora_messaging.api.publish')
 def test_consume_new_result_container_image(
-        mock_fedmsg, requests_session, greenwave_server,
+        mock_fedora_messaging, requests_session, greenwave_server,
         testdatabuilder):
     unique_id = str(time.time()).encode('utf-8')
     sha256 = hashlib.sha256(unique_id).hexdigest()
@@ -597,7 +619,8 @@ def test_consume_new_result_container_image(
     assert r.status_code == 200
     old_decision = r.json()
 
-    msg = {
+    actual_msgs_sent = [call[1][0].body for call in mock_fedora_messaging.mock_calls]
+    assert actual_msgs_sent[0] == {
         'applicable_policies': ['container-image-policy'],
         'decision_context': 'container-image-test',
         'policies_satisfied': True,
@@ -620,4 +643,3 @@ def test_consume_new_result_container_image(
         }],
         'unsatisfied_requirements': []
     }
-    mock_fedmsg.assert_called_once_with(topic='decision.update', msg=msg)

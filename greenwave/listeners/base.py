@@ -272,7 +272,7 @@ class BaseListener(stomp.ConnectionListener):
 
             if _is_decision_unchanged(old_decision, decision):
                 self.app.logger.debug(
-                    "Skipped emitting fedmsg, decision did not change: %s", decision
+                    "Skipped emitting fedora message, decision did not change: %s", decision
                 )
                 self._inc(decision_unchanged_counter.labels(decision_context=decision_context))
                 continue

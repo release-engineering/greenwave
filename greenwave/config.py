@@ -45,8 +45,6 @@ class Config(object):
     POLICIES_DIR = '/etc/greenwave/policies'
     SUBJECT_TYPES_DIR = '/etc/greenwave/subject_types'
 
-    MESSAGING = 'fedmsg'
-
     # By default, don't cache anything.
     CACHE = {'backend': 'dogpile.cache.null'}
     # Greenwave API url

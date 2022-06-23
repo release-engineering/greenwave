@@ -5,8 +5,8 @@ The fedora-messaging consumer.
 
 This module is responsible consuming messages sent to the fedora message bus via
 fedora-messaging.
-It will get all the messages and pass them onto their appropriate fedmsg
-consumers to re-use the same code path.
+It will get all the messages and pass them onto their appropriate base consumers
+to re-use the same code path.
 """
 
 import logging
@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 
 class Dummy(object):
     """ Dummy object only storing a dictionary named "config" that can be passed
-    onto the fedmsg consumer.
+    onto the base consumer.
     """
 
     def __init__(self, config):
@@ -35,8 +35,8 @@ class Dummy(object):
 def fedora_messaging_callback(message):
     """
     Callback called when messages from fedora-messaging are received.
-    It then passes them onto their appropriate fedmsg handler for code
-    portability.
+    It then passes them onto their appropriate resultdb and waiverdb
+    handler for code portability.
 
     Args:
         message (fedora_messaging.message.Message): The message we received

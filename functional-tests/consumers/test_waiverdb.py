@@ -23,9 +23,9 @@ def create_waiverdb_handler(greenwave_server):
 
 
 @pytest.mark.parametrize('subject_type', ('koji_build', 'brew-build'))
-@mock.patch('greenwave.consumers.consumer.fedmsg.publish')
+@mock.patch('greenwave.consumers.consumer.fedora_messaging.api.publish')
 def test_consume_new_waiver(
-        mock_fedmsg, requests_session, greenwave_server, testdatabuilder,
+        mock_fedora_messaging, requests_session, greenwave_server, testdatabuilder,
         subject_type):
     nvr = testdatabuilder.unique_nvr()
 
@@ -62,9 +62,12 @@ def test_consume_new_waiver(
     handler = create_waiverdb_handler(greenwave_server)
     handler.consume(message)
 
-    assert len(mock_fedmsg.mock_calls) == 1
-    assert all(call[2]['topic'] == 'decision.update' for call in mock_fedmsg.mock_calls)
-    actual_msgs_sent = [call[2]['msg'] for call in mock_fedmsg.mock_calls]
+    assert len(mock_fedora_messaging.mock_calls) == 1
+    assert all(
+        call[1][0].topic == "greenwave.decision.update"
+        for call in mock_fedora_messaging.mock_calls
+    )
+    actual_msgs_sent = [call[1][0].body for call in mock_fedora_messaging.mock_calls]
     assert actual_msgs_sent[0] == {
         'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
                                 'taskotron_release_critical_tasks'],
