@@ -48,7 +48,8 @@ class ResultsDBHandler(Consumer):
     Handle a new result.
 
     Attributes:
-        topic (list): A list of strings that indicate which fedmsg topics this consumer listens to.
+        topic (list): A list of strings that indicate which fedora-messaging topics
+        this consumer listens to.
     """
 
     config_key = 'resultsdb_handler'
@@ -67,7 +68,7 @@ class ResultsDBHandler(Consumer):
         consideration from the message.
 
         Args:
-            message (munch.Munch): A fedmsg about a new result.
+            message (fedora_messaging.message.Message): A fedora messaging about a new result.
         """
 
         try:

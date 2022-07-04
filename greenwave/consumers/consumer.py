@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0+
-import fedmsg
 import logging
 import requests
 
-import fedmsg.consumers
+import fedora_messaging.api
+import fedora_messaging.exceptions
 
 import greenwave.app_factory
 import greenwave.decision
@@ -17,12 +17,6 @@ from greenwave.monitor import (
 )
 from greenwave.policies import applicable_decision_context_product_version_pairs
 from greenwave.utils import right_before_this_time
-
-try:
-    import fedora_messaging.api
-    import fedora_messaging.exceptions
-except ImportError:
-    pass
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +53,7 @@ def _is_decision_unchanged(old_decision, decision):
     return True
 
 
-class Consumer(fedmsg.consumers.FedmsgConsumer):
+class Consumer:
     """
     Base class for consumers.
     """
@@ -81,36 +75,19 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
         env = hub.config.get('environment')
         suffix = hub.config.get(f'{self.hub_config_prefix}topic_suffix', self.default_topic)
         self.topic = ['.'.join([prefix, env, suffix])]
-        self.fedmsg_config = fedmsg.config.load_config()
 
         config = kwargs.pop('config', None)
-
-        super().__init__(hub, *args, **kwargs)
 
         self.flask_app = greenwave.app_factory.create_app(config)
         self.greenwave_api_url = self.flask_app.config['GREENWAVE_API_URL']
         log.info('Greenwave handler listening on: %s', self.topic)
-
-    def validate(self, message):
-        """
-        Wraps fedmsg.consumers.FedmsgConsumer.validate() to avoid propagating
-        unexpected exceptions which would cause fedmsg-hub to get stuck (stops
-        processing messages but doesn't quit).
-        """
-        try:
-            return super(Consumer, self).validate(message)
-        except RuntimeWarning:  # pylint: disable=try-except-raise
-            raise
-        except Exception:
-            log.exception('Failed to validate message: %s', message)
-            raise RuntimeWarning('Unexpected exception during message validation')
 
     def consume(self, message):
         """
         Process the given message and take action.
 
         Args:
-            message (munch.Munch): A fedmsg about a new item.
+            message (fedora_messaging.message.Message): A fedora message about a new item.
         """
         try:
             message = message.get('body', message)
@@ -128,15 +105,6 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
     def _inc(self, messaging_counter):
         """Helper method to increase monitoring counter."""
         messaging_counter.labels(**self.monitor_labels).inc()
-
-    def _publish_decision_update_fedmsg(self, decision):
-        try:
-            fedmsg.publish(topic='decision.update', msg=decision)
-            self._inc(messaging_tx_sent_ok_counter)
-        except Exception:
-            log.exception('Error sending fedmsg message')
-            self._inc(messaging_tx_failed_counter)
-            raise
 
     def _publish_decision_update_fedora_messaging(self, decision):
         try:
@@ -226,7 +194,4 @@ class Consumer(fedmsg.consumers.FedmsgConsumer):
                 decision['testcase'] = testcase
 
             log.info('Publishing a decision update message: %r', decision)
-            if self.flask_app.config['MESSAGING'] == 'fedmsg':
-                self._publish_decision_update_fedmsg(decision)
-            elif self.flask_app.config['MESSAGING'] == 'fedora-messaging':
-                self._publish_decision_update_fedora_messaging(decision)
+            self._publish_decision_update_fedora_messaging(decision)

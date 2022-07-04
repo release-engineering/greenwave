@@ -211,7 +211,7 @@ def test_announcement_subjects_for_new_compose_message():
     as this has caused a lot of confusion in the past. The only
     reliable way to make a compose decision is by looking for the key
     productmd.compose.id with value of the compose ID. This is only
-    possible with new-style 'resultsdb' fedmsgs, like this one.
+    possible with new-style 'resultsdb' message, like this one.
     """
     message = {
         "data": {
@@ -238,7 +238,7 @@ def test_announcement_subjects_for_new_compose_message():
 
 
 def test_no_announcement_subjects_for_old_compose_message():
-    """With an old-style 'taskotron' fedmsg like this one, it is not
+    """With an old-style 'taskotron' message like this one, it is not
     possible to reliably make a compose decision - see
     https://pagure.io/greenwave/issue/122 etc. So we should NOT
     produce any subjects for this kind of message.
@@ -494,7 +494,7 @@ def test_remote_rule_decision_change(
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
         },
-        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
     }
 
@@ -694,7 +694,7 @@ def test_decision_change_for_modules(
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
         },
-        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
     }
 
@@ -759,7 +759,7 @@ def test_decision_change_for_composes(
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
         },
-        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
     }
 
@@ -851,7 +851,7 @@ def test_fake_fedora_messaging_msg(mock_retrieve_results, mock_connection):
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
         },
-        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
     }
 
@@ -920,7 +920,7 @@ def test_container_brew_build(mock_retrieve_results, koji_proxy, mock_connection
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
         },
-        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
     }
 
@@ -969,7 +969,7 @@ def test_waiverdb_message(mock_connection):
             "policies_satisfied": True,
             "previous": {"policies_satisfied": False},
         },
-        # Duplication of the topic in the body for datanommer, for fedmsg backwards compat
+        # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
     }
 
