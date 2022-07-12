@@ -73,7 +73,9 @@ class Config(object):
         "/topic/VirtualTopic.eng.greenwave.decision.update"
     )
     LISTENER_CONNECTION = {
-        "heartbeats": (10000, 20000),
+        # Use large heartbeat timeout so that long decision making does not
+        # cause the timeout.
+        "heartbeats": (5 * 60 * 1000, 5 * 60 * 1000),
         "keepalive": True,
         "timeout": 30.0,
         "reconnect_sleep_initial": 1.0,
