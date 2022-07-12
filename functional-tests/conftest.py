@@ -196,7 +196,7 @@ def cache_config(tmpdir_factory):
     if 'GREENWAVE_TEST_URL' in os.environ:
         # This should point to the same cache as the Greenwave server used by tests.
         return {
-            'backend': "dogpile.cache.memcached",
+            'backend': 'dogpile.cache.pymemcache',
             'expiration_time': 300,
             'arguments': {
                 'url': 'memcached:11211',

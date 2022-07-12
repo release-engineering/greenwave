@@ -17,8 +17,8 @@ LISTENER_CONNECTION = {
     "reconnect_attempts_max": 5,
 }
 CACHE = {
-    # 'backend': "dogpile.cache.null",
-    'backend': "dogpile.cache.memcached",
+    # 'backend': 'dogpile.cache.null',
+    'backend': 'dogpile.cache.pymemcache',
     'expiration_time': 1,  # 1 is 1 second, keep to see that memcached
                            # service is working
     'arguments': {

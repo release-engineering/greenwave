@@ -92,6 +92,8 @@ services:
 
   memcached:
     image: "quay.io/factory2/memcached"
+    ports:
+      - 11211:11211
 
   resultsdb-listener:
     image: greenwave
