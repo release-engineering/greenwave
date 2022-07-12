@@ -17,7 +17,6 @@ include = [
     "conftest.py",
     "run-dev-server.py",
     "tox.ini",
-    "fedmsg.d/*.py",
     "conf/*",
     "docs/*",
 ]
@@ -35,10 +34,6 @@ fedora-messaging = "^2.1.0"
 
 # latest versions of stomp.py 8.0.0 and 8.0.1 are causing connection issues
 "stomp.py" = "7.0.0"
-
-fedmsg = {extras = ["consumers"], version = "^1.1.2"}
-stomper = "^0.4.3"
-pyOpenSSL = "^22.0.0"
 
 flake8 = {version = "^4.0.1", optional = true}
 pytest = {version = "^7.1.2", optional = true}
@@ -67,10 +62,6 @@ docs = [
     "sphinx",
     "sphinxcontrib-httpdomain",
 ]
-
-[tool.poetry.plugins."moksha.consumer"]
-resultsdb = "greenwave.consumers.resultsdb:ResultsDBHandler"
-waiverdb = "greenwave.consumers.waiverdb:WaiverDBHandler"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
