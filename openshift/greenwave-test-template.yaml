@@ -103,8 +103,8 @@ objects:
       WAIVERDB_API_URL = 'http://waiverdb-test-${TEST_ID}-web:8080/api/v1.0'
       RESULTSDB_API_URL = 'http://resultsdb-test-${TEST_ID}-internal-api:5001/api/v2.0'
       CACHE = {
-          #'backend': "dogpile.cache.null",
-          'backend': "dogpile.cache.memcached",
+          #'backend': 'dogpile.cache.null',
+          'backend': 'dogpile.cache.pymemcache',
           'expiration_time': 1, # 1 is 1 second, keep to see that memcached
                                 # service is working
           'arguments': {
