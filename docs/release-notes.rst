@@ -2,6 +2,18 @@
 Release Notes
 =============
 
+Greenwave 2.1.0
+===============
+
+Released 18 July 2022
+
+* Fixes timeouts in new ResultsDB and WaiverDB message listeners (increases
+  heartbeat so that long decision making won't cause the timeout).
+* Fixes decision update messages for legacy fedmsg-based consumers (includes
+  `topic` to message body).
+* Replaces old unmaintained python-memcached library with pymemcache.
+* Removes old unused fedmsg code, obsolete `Jenkinsfile` and `Vagrantfile`.
+
 Greenwave 2.0.0
 ===============
 
