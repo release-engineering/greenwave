@@ -121,7 +121,7 @@ python-versions = "*"
 
 [[package]]
 name = "coverage"
-version = "6.4.1"
+version = "6.4.2"
 description = "Code coverage measurement for Python"
 category = "main"
 optional = true
@@ -1005,7 +1005,7 @@ test = ["flake8", "pytest", "pytest-cov", "mock"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.10"
-content-hash = "6ae50be7dc85af7cfada7e250456e7f0b1b830eb3664d25d770095b107c10e38"
+content-hash = "2941e6977f9f9481c4cc51a690d5dd23bd2e16e4ce14cda12ea33a5848bfb6c4"
 
 [metadata.files]
 alabaster = [
