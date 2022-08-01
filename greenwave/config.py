@@ -77,7 +77,6 @@ class Config(object):
         # cause the timeout.
         "heartbeats": (5 * 60 * 1000, 5 * 60 * 1000),
         "keepalive": True,
-        "timeout": 30.0,
         "reconnect_sleep_initial": 1.0,
         "reconnect_sleep_increase": 1.0,
         "reconnect_sleep_max": 30.0,

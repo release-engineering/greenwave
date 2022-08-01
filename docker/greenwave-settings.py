@@ -10,7 +10,6 @@ LISTENER_CONNECTION_SSL = None
 LISTENER_CONNECTION = {
     "heartbeats": (10000, 20000),
     "keepalive": True,
-    "timeout": 5000,
     "reconnect_sleep_initial": 1.0,
     "reconnect_sleep_increase": 1.0,
     "reconnect_sleep_max": 10.0,
