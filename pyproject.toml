@@ -45,7 +45,7 @@ psycopg2-binary = {version = "^2.9.3", optional = true}
 sphinx = {version = "^5.1.1", optional = true}
 sphinxcontrib-httpdomain = {version = "^1.8.0", optional = true}
 # https://github.com/sphinx-contrib/httpdomain/issues/60
-Werkzeug = {version = "<2.2", optional = true, extras = ["docs"]}
+Werkzeug = {version = "<2.3", optional = true, extras = ["docs"]}
 
 statsd = "^3.3.0"
 pymemcache = "^3.5.2"
