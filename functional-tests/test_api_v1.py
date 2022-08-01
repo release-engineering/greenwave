@@ -787,7 +787,7 @@ def test_ignore_result(requests_session, greenwave_server, testdatabuilder):
 
     # repeating the test for "when" parameter instead of "ignore_result"
     # ...we should get the same behaviour.
-    del(data['ignore_result'])
+    del data['ignore_result']
     data['when'] = right_before_this_time(result['submit_time'])
     r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r.status_code == 200
@@ -929,7 +929,7 @@ def test_ignore_waiver(requests_session, greenwave_server, testdatabuilder):
 
     # repeating the test for "when" parameter instead of "ignore_waiver"
     # ...we should get the same behaviour.
-    del(data['ignore_waiver'])
+    del data['ignore_waiver']
     data['when'] = right_before_this_time(waiver['timestamp'])
     r_ = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r_.status_code == 200
