@@ -228,3 +228,54 @@ def test_waive_scenario():
     )
     assert 1 == len(waived)
     assert expected_json == waived[0].to_json()
+
+
+def test_waive_scenarios_all():
+    answers = [
+        TestResultFailed(
+            subject=test_subject(),
+            test_case_name='test1',
+            source='https://greenwave_tests.example.com',
+            result_id=98,
+            data={'scenario': 'scenario1'},
+        ),
+        TestResultFailed(
+            subject=test_subject(),
+            test_case_name='test1',
+            source='https://greenwave_tests.example.com',
+            result_id=99,
+            data={'scenario': 'scenario2'},
+        )
+    ]
+
+    waivers = [
+        dict(
+            subject_type='koji_build',
+            subject_identifier='nethack-1.2.3-1.rawhide',
+            product_version='rawhide',
+            testcase='test1',
+            scenario=None
+        )
+    ]
+    waived = waive_answers(answers, waivers)
+    expected_json = [
+        dict(
+            type='test-result-failed-waived',
+            testcase='test1',
+            subject_type='koji_build',
+            subject_identifier='nethack-1.2.3-1.rawhide',
+            result_id=98,
+            scenario='scenario1',
+            source='https://greenwave_tests.example.com',
+        ),
+        dict(
+            type='test-result-failed-waived',
+            testcase='test1',
+            subject_type='koji_build',
+            subject_identifier='nethack-1.2.3-1.rawhide',
+            result_id=99,
+            scenario='scenario2',
+            source='https://greenwave_tests.example.com',
+        ),
+    ]
+    assert expected_json == [w.to_json() for w in waived]

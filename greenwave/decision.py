@@ -97,13 +97,14 @@ class Decision:
         if not self.verbose:
             for answer in self.answers:
                 if not answer.is_satisfied:
-                    self.waiver_filters.append(dict(
-                        subject_type=answer.subject.type,
-                        subject_identifier=answer.subject.identifier,
-                        product_version=self.product_version,
-                        testcase=answer.test_case_name,
-                        scenario=answer.scenario
-                    ))
+                    waiver = {
+                        "subject_type": answer.subject.type,
+                        "subject_identifier": answer.subject.identifier,
+                        "product_version": self.product_version,
+                        "testcase": answer.test_case_name,
+                    }
+                    if waiver not in self.waiver_filters:
+                        self.waiver_filters.append(waiver)
 
         if self.waiver_filters:
             self.waivers = waivers_retriever.retrieve(self.waiver_filters)
