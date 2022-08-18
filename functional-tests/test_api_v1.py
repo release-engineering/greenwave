@@ -1733,3 +1733,56 @@ def test_make_a_decision_on_passed_result_with_custom_scenario(
             'type': 'test-result-passed'
         }
     ]
+
+
+def test_make_a_decision_all_scenarios_waived(
+        requests_session, greenwave_server, testdatabuilder):
+    nvr = testdatabuilder.unique_nvr()
+    scenarios = ('scenario1', 'scenario2')
+
+    results = [
+        testdatabuilder.create_result(
+            item=nvr,
+            testcase_name='test1',
+            outcome='FAILED',
+            scenario=scenario,
+        )
+        for scenario in scenarios
+    ]
+
+    testdatabuilder.create_waiver(
+        nvr=nvr,
+        product_version='fedora-26',
+        testcase_name='test1',
+        comment='This is fine',
+    )
+
+    data = {
+        'rules': [
+            {"type": "PassingTestCaseRule", "test_case_name": "test1", "scenario": scenario}
+            for scenario in scenarios
+        ],
+        'product_version': 'fedora-26',
+        'subject_type': 'koji_build',
+        'subject_identifier': nvr,
+    }
+    r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
+    assert r.status_code == 200
+    res_data = r.json()
+    assert res_data['unsatisfied_requirements'] == []
+    assert res_data['satisfied_requirements'] == [
+        {
+            'subject_identifier': nvr,
+            'subject_type': 'koji_build',
+            'result_id': result['id'],
+            'testcase': 'test1',
+            'scenario': result['data']['scenario'][0],
+            'system_architecture': None,
+            'system_variant': None,
+            'source': None,
+            'type': 'test-result-failed-waived'
+        }
+        for result in results
+    ]
+    assert res_data['policies_satisfied'] is True
+    assert res_data['summary'] == 'All required tests passed'
