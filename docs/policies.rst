@@ -115,14 +115,8 @@ The document is a map (dictionary) with the following keys:
    A list of binary RPM package names this policy applies to.
 
    ``packages`` only takes effect when Greenwave is making a decision about
-   subjects with ``"item": "koji_build"``. ``blacklist`` and
-   ``excluded_packages`` both have a higher priority than ``packages``.
-
-``blacklist`` (**deprecated**) (optional)
-   A list of binary RPM package names which are exempted from this policy.
-
-   The blacklist only takes effect when Greenwave is making a decision about
    subjects with ``"item": "koji_build"``.
+   ``excluded_packages`` has a higher priority than ``packages``.
 
 ``excluded_packages`` (optional)
    A list of binary RPM package names which are exempted from this policy.

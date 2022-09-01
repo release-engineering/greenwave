@@ -320,7 +320,6 @@ Waived requirements have type ending with "-waived":
 Other satisfied requirements types:
 
 - ``fetched-gating-yaml``
-- ``blacklisted`` (from ``blacklist`` in a policy)
 - ``excluded`` (from ``excluded_packages`` in a policy)
 - other types (can be extended in the future)
 

@@ -445,23 +445,6 @@ class TestResultPassed(RuleSatisfied):
         return data
 
 
-class BlacklistedInPolicy(RuleSatisfied):
-    """
-    Package was blacklisted in policy.
-    """
-    def __init__(self, subject_identifier, policy):
-        self.subject_identifier = subject_identifier
-        self.policy = policy
-
-    def to_json(self):
-        return {
-            'type': 'blacklisted',
-            'subject_identifier': self.subject_identifier,
-            'policy': self.policy.id,
-            'source': self.policy.source,
-        }
-
-
 class ExcludedInPolicy(RuleSatisfied):
     """
     Package was excluded in policy.
@@ -799,7 +782,7 @@ class ObsoleteRule(Rule):
 
 class PackageSpecificBuild(ObsoleteRule):
     yaml_tag = '!PackageSpecificBuild'
-    advice = 'Please use the "packages" whitelist instead.'
+    advice = 'Please use the "packages" allowlist instead.'
 
 
 class FedoraAtomicCi(PackageSpecificBuild):
@@ -816,7 +799,6 @@ class Policy(SafeYAMLObject):
         'decision_contexts': SafeYAMLList(str, optional=True, default=list()),
         'subject_type': SafeYAMLString(),
         'rules': SafeYAMLList(Rule),
-        'blacklist': SafeYAMLList(str, optional=True),
         'excluded_packages': SafeYAMLList(str, optional=True),
         'packages': SafeYAMLList(str, optional=True),
         'relevance_key': SafeYAMLString(optional=True),
@@ -865,17 +847,14 @@ class Policy(SafeYAMLObject):
         return set(sub_policy.all_decision_contexts).intersection(self.all_decision_contexts)
 
     def check(self, rule_context):
-        # If an item is about a package and it is in the blacklist, return RuleSatisfied()
         name = rule_context.subject.package_name
         if name:
-            if name in self.blacklist:
-                return [BlacklistedInPolicy(rule_context.subject.identifier, self)]
             for exclude in self.excluded_packages:
                 if fnmatch(name, exclude):
                     return [ExcludedInPolicy(rule_context.subject.identifier, self)]
             if self.packages and not any(fnmatch(name, package) for package in self.packages):
-                # If the `packages` whitelist is set and this package isn't in the
-                # `packages` whitelist, then the policy doesn't apply to it
+                # If the `packages` allowlist is set and this package isn't in the
+                # `packages` allowlist, then the policy doesn't apply to it
                 return []
 
         answers = []
@@ -934,7 +913,6 @@ class RemotePolicy(Policy):
         'decision_context': SafeYAMLString(optional=True),
         'decision_contexts': SafeYAMLList(str, optional=True),
         'rules': SafeYAMLList(Rule),
-        'blacklist': SafeYAMLList(str, optional=True),
         'excluded_packages': SafeYAMLList(str, optional=True),
         'packages': SafeYAMLList(str, optional=True),
     }

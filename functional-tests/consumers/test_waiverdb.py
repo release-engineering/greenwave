@@ -69,12 +69,12 @@ def test_consume_new_waiver(
     )
     actual_msgs_sent = [call[1][0].body for call in mock_fedora_messaging.mock_calls]
     assert actual_msgs_sent[0] == {
-        'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
+        'applicable_policies': ['taskotron_release_critical_tasks_with_blocklist',
                                 'taskotron_release_critical_tasks'],
         'policies_satisfied': True,
         'decision_context': 'bodhi_update_push_stable',
         'previous': {
-            'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
+            'applicable_policies': ['taskotron_release_critical_tasks_with_blocklist',
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
             'summary': '1 of 3 required tests failed',

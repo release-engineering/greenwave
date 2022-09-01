@@ -410,10 +410,7 @@ def validate_gating_yaml_post():
         raise BadRequest('No policies defined')
 
     missing_decision_contexts = _missing_decision_contexts_in_parent_policies(policies)
-    if any(True for policy in policies if policy.blacklist):
-        msg = {'message': ('The gating.yaml file is valid but it is using the deprecated '
-                           '"blacklist" key. Please use "excluded_packages" instead.')}
-    elif missing_decision_contexts:
+    if missing_decision_contexts:
         msg = {'message': ('Greenwave could not find a parent policy(ies) for following decision'
                            ' context(s): {}. Please change your policy so that it will match a '
                            'decision context in the parent policies.'.format(
