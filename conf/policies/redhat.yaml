@@ -5,7 +5,6 @@ product_versions:
 - rhel-something
 decision_context: osci_compose_gate
 subject_type: koji_build
-blacklist: []
 excluded_packages:
 - module-build*
 packages:
@@ -25,7 +24,6 @@ product_versions:
   - rhel-8
 decision_context: osci_compose_gate_modules
 subject_type: redhat-module
-blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier0.functional}
 --- !Policy
@@ -34,6 +32,5 @@ product_versions:
   - rhel-something
 decision_context: rtt_compose_gate
 subject_type: compose
-blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: rtt.acceptance.validation}

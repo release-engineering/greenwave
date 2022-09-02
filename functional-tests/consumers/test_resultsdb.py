@@ -95,10 +95,10 @@ def test_consume_new_result(
         ],
         'subject_type': 'koji_build',
         'subject_identifier': nvr,
-        'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
+        'applicable_policies': ['taskotron_release_critical_tasks_with_blocklist',
                                 'taskotron_release_critical_tasks'],
         'previous': {
-            'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
+            'applicable_policies': ['taskotron_release_critical_tasks_with_blocklist',
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
             'summary': '3 of 3 required test results missing',
@@ -389,7 +389,7 @@ def test_consume_legacy_result(
         ],
         'subject_type': 'koji_build',
         'subject_identifier': nvr,
-        'applicable_policies': ['taskotron_release_critical_tasks_with_blacklist',
+        'applicable_policies': ['taskotron_release_critical_tasks_with_blocklist',
                                 'taskotron_release_critical_tasks'],
         'previous': old_decision,
     }

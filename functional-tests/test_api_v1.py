@@ -235,7 +235,7 @@ def test_make_a_decision_on_passed_result(requests_session, greenwave_server, te
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == [
-        'taskotron_release_critical_tasks_with_blacklist',
+        'taskotron_release_critical_tasks_with_blocklist',
         'taskotron_release_critical_tasks',
     ]
     expected_summary = 'All required tests passed'
@@ -369,7 +369,7 @@ def test_make_a_decision_on_failed_result_with_waiver(
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
-    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
     expected_summary = 'All required tests passed'
     assert res_data['summary'] == expected_summary
 
@@ -390,7 +390,7 @@ def test_make_a_decision_on_failed_result(requests_session, greenwave_server, te
     res_data = r.json()
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
-    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
     expected_summary = '1 of 3 required tests failed, 2 results missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
@@ -436,7 +436,7 @@ def test_make_a_decision_on_queued_result(requests_session, greenwave_server, te
     res_data = r.json()
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
-    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
     expected_summary = '3 of 3 required test results missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
@@ -482,7 +482,7 @@ def test_make_a_decision_on_running_result(requests_session, greenwave_server, t
     res_data = r.json()
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
-    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
     expected_summary = '3 of 3 required test results missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
@@ -525,7 +525,7 @@ def test_make_a_decision_on_no_results(requests_session, greenwave_server, testd
     res_data = r.json()
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
-    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
     expected_summary = '3 of 3 required test results missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
@@ -663,7 +663,7 @@ def test_bodhi_push_update_stable_policy(
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
-    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
     expected_summary = 'All required tests passed'
     assert res_data['summary'] == expected_summary
     assert res_data['unsatisfied_requirements'] == []
@@ -722,7 +722,7 @@ def test_multiple_results_in_a_subject(
     # The failed result should be taken into account.
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
-    assert 'taskotron_release_critical_tasks_with_blacklist' in res_data['applicable_policies']
+    assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
     assert res_data['summary'] == '1 of 3 required tests failed'
     expected_unsatisfied_requirements = [
         {
@@ -984,9 +984,9 @@ def test_cached_false_positive(requests_session, greenwave_server, testdatabuild
     assert res_data['policies_satisfied'] is True
 
 
-def test_blacklist(requests_session, greenwave_server, testdatabuilder):
+def test_blocklist(requests_session, greenwave_server, testdatabuilder):
     """
-    Test that packages on the blacklist will be excluded when applying the policy.
+    Test that packages on the blocklist will be excluded when applying the policy.
     """
     nvr = 'firefox-1.0-1.el7'
     testdatabuilder.create_result(item=nvr,
@@ -1068,26 +1068,6 @@ def test_validate_gating_yaml_valid(requests_session, greenwave_server):
     assert result.status_code == 200
 
 
-def test_validate_gating_yaml_deprecated_blacklist(requests_session, greenwave_server):
-    gating_yaml = dedent("""
-        --- !Policy
-        id: "test"
-        product_versions:
-          - fedora-26
-        decision_context: test
-        rules:
-          - !PassingTestCaseRule {test_case_name: test}
-        blacklist:
-          - python-requests
-    """)
-    result = requests_session.post(
-        greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
-    assert result.json().get('message') == (
-        'The gating.yaml file is valid but it is using the deprecated '
-        '"blacklist" key. Please use "excluded_packages" instead.')
-    assert result.status_code == 200
-
-
 def test_validate_gating_yaml_empty(requests_session, greenwave_server):
     result = requests_session.post(greenwave_server + 'api/v1.0/validate-gating-yaml')
     assert result.json().get('message') == 'No policies defined'
@@ -1111,7 +1091,7 @@ def test_validate_gating_yaml_obsolete_rule(requests_session, greenwave_server):
         greenwave_server + 'api/v1.0/validate-gating-yaml', data=gating_yaml)
     assert result.json().get('message') == (
         'Policy \'test\': Attribute \'rules\': !PackageSpecificBuild is obsolete. '
-        'Please use the "packages" whitelist instead.')
+        'Please use the "packages" allowlist instead.')
     assert result.status_code == 400
 
 

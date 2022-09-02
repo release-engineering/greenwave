@@ -782,7 +782,7 @@ def test_remote_rule_malformed_yaml(tmpdir):
         product_versions:
           - fedora-26
         decision_context: bodhi_update_push_stable_with_remoterule
-        blacklist: []
+        excluded_packages: []
         rules:
           - !PassingTestCaseRule {test_case_name: dist.upgradepath}
         """), dedent("""
@@ -836,7 +836,7 @@ def test_remote_rule_malformed_yaml_with_waiver(tmpdir):
         product_versions:
           - fedora-26
         decision_context: bodhi_update_push_stable_with_remoterule
-        blacklist: []
+        excluded_packages: []
         rules:
           - !PassingTestCaseRule {test_case_name: dist.upgradepath}
         """), dedent("""
@@ -920,7 +920,7 @@ def test_parse_policies_missing_id():
             product_versions: [fedora-rawhide]
             decision_context: test
             subject_type: compose
-            blacklist: []
+            excluded_packages: []
             rules:
               - !PassingTestCaseRule {test_case_name: compose.cloud.all}
         """))
@@ -934,7 +934,7 @@ def test_parse_policies_missing_product_versions():
             id: test
             decision_context: test
             subject_type: compose
-            blacklist: []
+            excluded_packages: []
             rules:
               - !PassingTestCaseRule {test_case_name: compose.cloud.all}
         """))
@@ -949,7 +949,7 @@ def test_parse_policies_missing_decision_context(policy_class):
             id: test
             product_versions: [fedora-rawhide]
             subject_type: compose
-            blacklist: []
+            excluded_packages: []
             rules:
               - !PassingTestCaseRule {test_case_name: compose.cloud.all}
         """))
@@ -964,7 +964,7 @@ def test_parse_policies_both_decision_contexts_set(policy_class):
             id: test
             product_versions: [fedora-rawhide]
             subject_type: compose
-            blacklist: []
+            excluded_packages: []
             decision_context: test1
             decision_contexts:
             - test1
@@ -1032,7 +1032,7 @@ def test_policy_all_decision_contexts(tmpdir):
     ('net*', ['test-result-passed']),
     ('python-requests', []),
 ])
-def test_policy_with_packages_whitelist(tmpdir, package, expected_answers):
+def test_policy_with_packages_allowlist(tmpdir, package, expected_answers):
     p = tmpdir.join('temp.yaml')
     p.write(dedent("""
         --- !Policy
@@ -1063,7 +1063,7 @@ def test_parse_policies_invalid_rule():
             product_versions: [fedora-rawhide]
             decision_context: test
             subject_type: compose
-            blacklist: []
+            excluded_packages: []
             rules:
               - !PassingTestCaseRule {test_case_name: compose.cloud.all}
               - bad_rule
@@ -1204,7 +1204,6 @@ def test_policies_to_json():
         product_versions: [fedora-rawhide]
         decision_context: test
         subject_type: compose
-        blacklist: []
         excluded_packages: []
         rules: []
     """))
@@ -1215,7 +1214,6 @@ def test_policies_to_json():
         'decision_context': 'test',
         'decision_contexts': [],
         'subject_type': 'compose',
-        'blacklist': [],
         'excluded_packages': [],
         'packages': [],
         'rules': [],
@@ -1235,7 +1233,7 @@ def test_policy_with_subject_type_component_version(tmpdir):
         - fedora-29
         decision_context: decision_context_test_component_version
         subject_type: component-version
-        blacklist: []
+        excluded_packages: []
         rules:
           - !PassingTestCaseRule {test_case_name: test_for_new_type}
         """))
@@ -1258,7 +1256,7 @@ def test_policy_with_subject_type_redhat_module(tmpdir, subject_type):
         - fedora-29
         decision_context: decision_context_test_redhat_module
         subject_type: %s
-        blacklist: []
+        excluded_packages: []
         rules:
           - !PassingTestCaseRule {test_case_name: test_for_redhat_module_type}
         """ % subject_type))

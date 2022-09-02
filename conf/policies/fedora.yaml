@@ -5,12 +5,12 @@
 # Tasktron release-critical tasks rule
 #   https://github.com/fedora-infra/fmn/blob/develop/fmn/rules/taskotron.py#L5
 --- !Policy
-id: "taskotron_release_critical_tasks_with_blacklist"
+id: "taskotron_release_critical_tasks_with_blocklist"
 product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable
 subject_type: koji_build
-blacklist:
+excluded_packages:
   # see the excluded list for dist.abicheck 
   # https://infrastructure.fedoraproject.org/cgit/ansible.git/tree/roles/taskotron/taskotron-trigger/templates/trigger_rules.yml.j2#n17
   - firefox
@@ -31,7 +31,6 @@ product_versions:
   - fedora-*
 decision_context: bodhi_update_push_testing
 subject_type: koji_build
-blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
 --- !Policy
@@ -40,7 +39,6 @@ product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable
 subject_type: koji_build
-blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
   - !PassingTestCaseRule {test_case_name: dist.upgradepath}
@@ -50,7 +48,6 @@ product_versions:
   - fedora-rawhide
 decision_context: rawhide_compose_sync_to_mirrors
 subject_type: compose
-blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: compose.install_no_user, scenario: scenario1}
   - !PassingTestCaseRule {test_case_name: compose.install_no_user, scenario: scenario2}
@@ -60,7 +57,6 @@ product_versions:
   - fedora-26
 decision_context: bodhi_update_push_stable_with_remoterule
 subject_type: bodhi_update
-blacklist: []
 rules:
   - !RemoteRule {}
 
@@ -70,7 +66,6 @@ product_versions:
   - fedora-26
 decision_context: bodhi_update_with_a_package_test
 subject_type: bodhi_update
-blacklist: []
 rules:
   - !PassingTestCaseRule {test_case_name: a_package_test}
 
@@ -90,7 +85,6 @@ product_versions:
 - fedora-24
 decision_context: bodhi_update_push_stable
 subject_type: bodhi_update
-blacklist: []
 rules: []
 
 # Policy for container-image tests

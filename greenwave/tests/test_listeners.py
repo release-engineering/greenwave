@@ -645,7 +645,7 @@ def test_decision_change_for_modules(
           - rhel-8
         decision_context: osci_compose_gate_modules
         subject_type: redhat-module
-        blacklist: []
+        excluded_packages: []
         rules:
           - !RemoteRule {}
     """
