@@ -44,6 +44,12 @@ The server is now running at <http://localhost:5005> and API calls can be sent t
 Running the tests
 =================
 
+Before running tests, install dependencies for the test environment first:
+
+.. code-block:: console
+
+   $ poetry install --extras test
+
 You can run the unit tests, which live in the ``greenwave.tests`` package, with
 the following command:
 
