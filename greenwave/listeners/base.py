@@ -209,8 +209,16 @@ class BaseListener(stomp.ConnectionListener):
         body = json.dumps(message)
         while True:
             try:
+                headers = {
+                    "subject_type": decision["subject_type"],
+                    "subject_identifier": decision["subject_identifier"],
+                    "product_version": decision["product_version"],
+                    "decision_context": decision["decision_context"],
+                    "policies_satisfied": str(decision["policies_satisfied"]).lower(),
+                    "summary": decision["summary"],
+                }
                 self.connection.send(
-                    body=body, headers={}, destination=self.destination
+                    body=body, headers=headers, destination=self.destination
                 )
                 break
             except stomp.exception.NotConnectedException:

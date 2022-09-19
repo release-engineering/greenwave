@@ -111,8 +111,14 @@ def mock_retrieve_decision():
 
         def retrieve_decision(data, _config):
             if "when" in data:
-                return {"policies_satisfied": False}
-            return {"policies_satisfied": True}
+                return {
+                    "policies_satisfied": False,
+                    "summary": "1 of 1 required test results missing",
+                }
+            return {
+                "policies_satisfied": True,
+                "summary": "All required tests passed",
+            }
 
         mocked.side_effect = retrieve_decision
         yield mocked
@@ -271,6 +277,7 @@ def test_no_announcement_subjects_for_old_compose_message():
                 "unsatisfied_requirements": [
                     {"result_id": 1, "type": "test-result-missing"}
                 ],
+                "summary": "1 of 1 required test results missing",
             },
             {
                 "policies_satisfied": True,
@@ -278,6 +285,7 @@ def test_no_announcement_subjects_for_old_compose_message():
                     {"result_id": 1, "type": "test-result-missing-waived"}
                 ],
                 "unsatisfied_requirements": [],
+                "summary": "All required tests passed",
             },
         ),
         (
@@ -287,6 +295,7 @@ def test_no_announcement_subjects_for_old_compose_message():
                 "unsatisfied_requirements": [
                     {"result_id": 1, "type": "test-result-missing", "scenario": "A"}
                 ],
+                "summary": "1 of 1 required test results missing",
             },
             {
                 "policies_satisfied": False,
@@ -295,6 +304,7 @@ def test_no_announcement_subjects_for_old_compose_message():
                     {"result_id": 1, "type": "test-result-missing", "scenario": "A"},
                     {"result_id": 2, "type": "test-result-missing", "scenario": "B"},
                 ],
+                "summary": "2 of 2 required test results missing",
             },
         ),
         (
@@ -304,6 +314,7 @@ def test_no_announcement_subjects_for_old_compose_message():
                 "unsatisfied_requirements": [
                     {"result_id": 1, "type": "test-result-missing"}
                 ],
+                "summary": "1 of 1 required test results missing",
             },
             {
                 "policies_satisfied": False,
@@ -311,6 +322,7 @@ def test_no_announcement_subjects_for_old_compose_message():
                 "unsatisfied_requirements": [
                     {"result_id": 2, "type": "test-result-failed"}
                 ],
+                "summary": "1 of 1 required tests failed",
             },
         ),
     ),
@@ -354,6 +366,17 @@ def test_decision_changes(
     expected_message.update(new_decision)
     expected_body = {"msg": expected_message, "topic": DECISION_UPDATE_TOPIC}
     assert json.loads(mock_call["body"]) == expected_body
+    expected_headers = {
+        k: expected_message[k] for k in (
+            "subject_type",
+            "subject_identifier",
+            "product_version",
+            "decision_context",
+            "summary",
+        )
+    }
+    expected_headers["policies_satisfied"] = str(expected_message["policies_satisfied"]).lower()
+    assert mock_call["headers"] == expected_headers
 
 
 @pytest.mark.parametrize(
@@ -492,10 +515,22 @@ def test_remote_rule_decision_change(
             "subject_type": "koji_build",
             "subject_identifier": DUMMY_NVR,
             "policies_satisfied": True,
-            "previous": {"policies_satisfied": False},
+            "previous": {
+                "policies_satisfied": False,
+                "summary": "1 of 1 required test results missing",
+            },
+            "summary": "All required tests passed",
         },
         # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
+    }
+    assert mock_call["headers"] == {
+        "subject_type": "koji_build",
+        "subject_identifier": DUMMY_NVR,
+        "product_version": "fedora-rawhide",
+        "decision_context": "test_context",
+        "policies_satisfied": "true",
+        "summary": "All required tests passed",
     }
 
 
@@ -692,10 +727,22 @@ def test_decision_change_for_modules(
             "subject_type": "redhat-module",
             "subject_identifier": nsvc,
             "policies_satisfied": True,
-            "previous": {"policies_satisfied": False},
+            "previous": {
+                "policies_satisfied": False,
+                "summary": "1 of 1 required test results missing",
+            },
+            "summary": "All required tests passed",
         },
         # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
+    }
+    assert mock_call["headers"] == {
+        "subject_type": "redhat-module",
+        "subject_identifier": nsvc,
+        "product_version": "rhel-8",
+        "decision_context": "osci_compose_gate_modules",
+        "policies_satisfied": "true",
+        "summary": "All required tests passed",
     }
 
 
@@ -757,10 +804,22 @@ def test_decision_change_for_composes(
             "subject_type": "compose",
             "subject_identifier": "RHEL-9000",
             "policies_satisfied": True,
-            "previous": {"policies_satisfied": False},
+            "previous": {
+                "policies_satisfied": False,
+                "summary": "1 of 1 required test results missing",
+            },
+            "summary": "All required tests passed",
         },
         # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
+    }
+    assert mock_call["headers"] == {
+        "subject_type": "compose",
+        "subject_identifier": "RHEL-9000",
+        "product_version": "rhel-8",
+        "decision_context": "osci_rhel8_development_nightly_compose_gate",
+        "policies_satisfied": "true",
+        "summary": "All required tests passed",
     }
 
 
@@ -849,10 +908,22 @@ def test_fake_fedora_messaging_msg(mock_retrieve_results, mock_connection):
             "subject_type": "bodhi_update",
             "subject_identifier": "FEDORA-2019-9244c8b209",
             "policies_satisfied": True,
-            "previous": {"policies_satisfied": False},
+            "previous": {
+                "policies_satisfied": False,
+                "summary": "1 of 1 required test results missing",
+            },
+            "summary": "All required tests passed",
         },
         # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
+    }
+    assert mock_call["headers"] == {
+        "subject_type": "bodhi_update",
+        "subject_identifier": "FEDORA-2019-9244c8b209",
+        "product_version": "fedora-rawhide",
+        "decision_context": "test_context",
+        "policies_satisfied": "true",
+        "summary": "All required tests passed",
     }
 
 
@@ -918,10 +989,22 @@ def test_container_brew_build(mock_retrieve_results, koji_proxy, mock_connection
             "subject_type": "koji_build",
             "subject_identifier": "example-container",
             "policies_satisfied": True,
-            "previous": {"policies_satisfied": False},
+            "previous": {
+                "policies_satisfied": False,
+                "summary": "1 of 1 required test results missing",
+            },
+            "summary": "All required tests passed",
         },
         # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
+    }
+    assert mock_call["headers"] == {
+        "subject_type": "koji_build",
+        "subject_identifier": "example-container",
+        "product_version": "example_product_version",
+        "decision_context": "test_context",
+        "policies_satisfied": "true",
+        "summary": "All required tests passed",
     }
 
 
@@ -967,10 +1050,22 @@ def test_waiverdb_message(mock_connection):
             "subject_identifier": DUMMY_NVR,
             "testcase": "example_test",
             "policies_satisfied": True,
-            "previous": {"policies_satisfied": False},
+            "previous": {
+                "policies_satisfied": False,
+                "summary": "1 of 1 required test results missing",
+            },
+            "summary": "All required tests passed",
         },
         # Duplication of the topic in the body for datanommer, for message backwards compat
         "topic": DECISION_UPDATE_TOPIC,
+    }
+    assert mock_call["headers"] == {
+        "subject_type": "koji_build",
+        "subject_identifier": DUMMY_NVR,
+        "product_version": "rawhide",
+        "decision_context": "test_context",
+        "policies_satisfied": "true",
+        "summary": "All required tests passed",
     }
 
 
