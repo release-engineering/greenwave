@@ -20,12 +20,11 @@ def test_retrieve_scm_from_rpm_build(app, koji_proxy):
         'nvr': nvr,
         'extra': {
             'source': {
-                'original_url': 'git+https://src.fedoraproject.org/rpms/nethack.git#'
-                                '0c1a84e0e8a152897003bd7e27b3f407ff6ba040'
+                'original_url': 'git+https://src.fedoraproject.org/rpms/nethack.git#master'
             }
         },
-        # also check, that there's no fallback to source
-        'source': 'git+https://src.fedoraproject.org/rpms/nethack.git#master'
+        'source': 'git+https://src.fedoraproject.org/rpms/nethack.git#'
+                  '0c1a84e0e8a152897003bd7e27b3f407ff6ba040'
     }
     namespace, pkg_name, rev = retrieve_scm_from_koji(nvr)
     assert namespace == 'rpms'
