@@ -188,10 +188,12 @@ def _retrieve_koji_build_attributes(nvr, koji_url):
 
     task_id = build.get("task_id")
 
-    try:
-        source = build["extra"]["source"]["original_url"]
-    except (TypeError, KeyError, AttributeError):
-        source = build.get("source")
+    source = build.get("source")
+    if not source:
+        try:
+            source = build["extra"]["source"]["original_url"]
+        except (TypeError, KeyError, AttributeError):
+            source = None
 
     creation_time = build.get('creation_time')
 
