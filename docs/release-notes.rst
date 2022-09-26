@@ -2,6 +2,28 @@
 Release Notes
 =============
 
+Greenwave 2.2.0
+===============
+
+Released 27 September 2022
+
+* Drops previously deprecated and misnamed `blacklist` policy attribute. It has
+  been replaced by `excluded_packages`.
+* Adds additional message headers supported by the new stomp.py consumers to
+  allow clients to select which messages they are interested in. The new
+  headers and related decision change attributes:
+
+    - `subject_type`
+    - `subject_identifier`
+    - `product_version`
+    - `decision_context`
+    - `policies_satisified`
+    - `summary`
+
+* Fixes frequent message consumer disconnections.
+* Fixes waiving multiple scenarios. If a matching waiver has scenario=null, it
+  will apply to all test results disregarding their scenario values.
+
 Greenwave 2.1.0
 ===============
 
