@@ -23,6 +23,8 @@ Released 27 September 2022
 * Fixes frequent message consumer disconnections.
 * Fixes waiving multiple scenarios. If a matching waiver has scenario=null, it
   will apply to all test results disregarding their scenario values.
+* Fixes using correct git commit URL from Koji build metadata
+  (https://pagure.io/fedora-infrastructure/issue/10896).
 
 Greenwave 2.1.0
 ===============
