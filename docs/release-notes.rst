@@ -5,7 +5,7 @@ Release Notes
 Greenwave 2.2.0
 ===============
 
-Released 27 September 2022
+Released 29 September 2022
 
 * Drops previously deprecated and misnamed `blacklist` policy attribute. It has
   been replaced by `excluded_packages`.
