@@ -177,8 +177,8 @@ def test_404_for_invalid_product_version(requests_session, greenwave_server, tes
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r.status_code == 404
-    expected = ('Cannot find any applicable policies for koji_build subjects '
-                'at gating point bodhi_push_update_stable in f26')
+    expected = ('Found no applicable policies for koji_build subjects '
+                'at gating point(s) bodhi_push_update_stable in f26')
     assert expected == r.json()['message']
 
 
@@ -193,8 +193,8 @@ def test_404_for_invalid_decision_context(requests_session, greenwave_server, te
     }
     r = requests_session.post(greenwave_server + 'api/v1.0/decision', json=data)
     assert r.status_code == 404
-    expected = ('Cannot find any applicable policies for koji_build subjects '
-                'at gating point bodhi_push_update in fedora-26')
+    expected = ('Found no applicable policies for koji_build subjects '
+                'at gating point(s) bodhi_push_update in fedora-26')
     assert expected == r.json()['message']
 
 
