@@ -826,8 +826,11 @@ class Policy(SafeYAMLObject):
 
         There must be at least one matching rule or no rules in the policy.
         """
-        decision_context = attributes.get('decision_context')
-        if decision_context and (decision_context not in self.all_decision_contexts):
+        decision_contexts = attributes.get('decision_context')
+        if decision_contexts and not isinstance(decision_contexts, list):
+            decision_contexts = [decision_contexts]
+        if decision_contexts and not any(context in self.all_decision_contexts
+                                         for context in decision_contexts):
             return False
 
         product_version = attributes.get('product_version')

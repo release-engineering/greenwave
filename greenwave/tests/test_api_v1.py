@@ -194,8 +194,8 @@ def test_make_decision_with_no_tests_required_and_empty_remote_rules(mock_result
             response = make_decision(policies=policies)
             assert 404 == response.status_code
             print(response.json)
-            assert 'Cannot find any applicable policies for koji_build subjects at gating point ' \
-                   'test_policies in fedora-rawhide' == response.json['message']
+            assert 'Found no applicable policies for koji_build subjects at gating ' \
+                   'point(s) test_policies in fedora-rawhide' == response.json['message']
             mock_waivers.assert_not_called()
 
 
@@ -221,6 +221,44 @@ def test_make_decision_with_missing_required_gating_yaml(mock_results, mock_waiv
             assert not response.json['policies_satisfied']
             assert '1 of 1 required tests failed' == response.json['summary']
             mock_waivers.assert_called_once()
+
+
+def test_make_decision_multiple_contexts(mock_results, mock_waivers):
+    mock_results.return_value = [make_result(outcome='FAILED')]
+    mock_waivers.return_value = []
+    policies = """
+        --- !Policy
+        id: "test_policy"
+        product_versions:
+          - fedora-rawhide
+        decision_context: test_policies
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest}
+
+        --- !Policy
+        id: "test_policy_2"
+        product_versions:
+          - fedora-rawhide
+        decision_context: test_2
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest_2}
+
+        --- !Policy
+        id: "test_policy_3"
+        product_versions:
+          - fedora-rawhide
+        decision_context: test_3
+        subject_type: koji_build
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest_3}
+    """
+    response = make_decision(policies=policies, decision_context=["test_policies", "test_2"])
+    assert 200 == response.status_code
+    assert '2 of 2 required tests failed' == response.json['summary']
+    assert ['test_policy', 'test_policy_2'] == response.json['applicable_policies']
+    mock_waivers.assert_called_once()
 
 
 def test_subject_types(client):

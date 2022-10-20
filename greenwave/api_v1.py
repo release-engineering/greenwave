@@ -257,6 +257,25 @@ def make_decision():
            "verbose": true
        }
 
+    **Sample request 3**:
+
+    It is also possible to specify decision_context as a list, so you can query
+    multiple decision contexts at once.
+
+    .. sourcecode:: http
+
+       POST /api/v1.0/decision HTTP/1.1
+       Accept: application/json
+       Content-Type: application/json
+
+       {
+           "decision_context": ["bodhi_update_push_stable", "bodhi_update_push_stable_critpath"],
+           "product_version": "fedora-32",
+           "subject_type": "koji_build",
+           "subject_identifier": "bodhi-5.1.1-1.fc32",
+           "verbose": true
+       }
+
     **Sample On-demand policy request**:
 
     Note: Greenwave would not publish a message on the message bus when an on-demand
@@ -304,10 +323,10 @@ def make_decision():
        }
 
     :jsonparam string product_version: The product version string used for querying WaiverDB.
-    :jsonparam string decision_context: The decision context string, identified by a
-        free-form string label. It is to be named through coordination between policy
+    :jsonparam string decision_context: The decision context(s). Either a string or a list of
+        strings. These are free-form labels to be named through coordination between policy
         author and calling application, for example ``bodhi_update_push_stable``.
-        Do not use this parameter with `rules`.
+        Do not use this parameter together with `rules`.
     :jsonparam string subject_type: The type of software artefact we are
         making a decision about, for example ``koji_build``.
         See :ref:`subject-types` for a list of possible subject types.

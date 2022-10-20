@@ -51,6 +51,7 @@ class Decision:
     Collects answers from rules from policies.
     """
     def __init__(self, decision_context, product_version, verbose=False):
+        # this can be a single string or a list of strings
         self.decision_context = decision_context
         self.product_version = product_version
         self.verbose = verbose
@@ -74,9 +75,13 @@ class Decision:
             if subject.ignore_missing_policy:
                 return
 
+            dc = self.decision_context
+            if isinstance(dc, list):
+                dc = ' '.join(dc)
+
             raise NotFound(
-                'Cannot find any applicable policies for %s subjects at gating point %s in %s' % (
-                    subject.type, self.decision_context, self.product_version))
+                'Found no applicable policies for %s subjects at gating point(s) %s in %s' % (
+                    subject.type, dc, self.product_version))
 
         if self.verbose:
             # Retrieve test results and waivers for all items when verbose output is requested.
@@ -175,9 +180,12 @@ def make_decision(data, config):
     log.debug('New decision request for data: %s', data)
     product_version = data['product_version']
 
-    decision_context = data.get('decision_context', None)
+    decision_contexts = data.get('decision_context', [])
+    if not isinstance(decision_contexts, list):
+        # this will be a single context as a string
+        decision_contexts = [decision_contexts]
     rules = data.get('rules', [])
-    if decision_context and rules:
+    if decision_contexts and rules:
         raise BadRequest('Cannot have both decision_context and rules')
 
     on_demand_policies = []
@@ -213,7 +221,7 @@ def make_decision(data, config):
         **retriever_args)
 
     policies = on_demand_policies or config['policies']
-    decision = Decision(decision_context, product_version, verbose)
+    decision = Decision(decision_contexts, product_version, verbose)
     for subject in _decision_subjects_for_request(data):
         decision.check(subject, policies, results_retriever)
 

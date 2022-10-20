@@ -1027,6 +1027,35 @@ def test_policy_all_decision_contexts(tmpdir):
     assert policy.all_decision_contexts == ['test4']
 
 
+def test_decision_multiple_contexts(tmpdir):
+    p = tmpdir.join('fedora.yaml')
+    p.write(dedent("""
+        --- !Policy
+        id: "some_policy"
+        product_versions:
+          - rhel-9000
+        decision_context: bodhi_update_push_stable
+        subject_type: kind-of-magic
+        rules:
+          - !PassingTestCaseRule {test_case_name: sometest}
+
+        --- !Policy
+        id: "some_other_policy"
+        product_versions:
+          - rhel-9000
+        decision_context: some_other_context
+        subject_type: kind-of-magic
+        rules:
+          - !PassingTestCaseRule {test_case_name: someothertest}
+        """))
+    policies = load_policies(tmpdir.strpath)
+    subject = create_subject('kind-of-magic', 'nethack-1.2.3-1.el9000')
+    results = DummyResultsRetriever(subject, 'sometest', 'PASSED')
+    decision = Decision(['bodhi_update_push_stable', 'some_other_context'], 'rhel-9000')
+    decision.check(subject, policies, results)
+    assert answer_types(decision.answers) == ['test-result-passed', 'test-result-missing']
+
+
 @pytest.mark.parametrize(('package', 'expected_answers'), [
     ('nethack', ['test-result-passed']),
     ('net*', ['test-result-passed']),
