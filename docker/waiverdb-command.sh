@@ -2,7 +2,7 @@
 set -e
 waiverdb wait-for-db
 waiverdb db upgrade
-exec /usr/bin/gunicorn-3 \
+exec gunicorn \
   --reload \
   --bind=0.0.0.0:5004 \
   --access-logfile=- \
