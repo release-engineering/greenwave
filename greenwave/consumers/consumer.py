@@ -150,6 +150,9 @@ class Consumer:
             product_version,
             publish_testcase):
 
+        if not self.flask_app.config['PUBLISH_DECISION_UPDATES']:
+            return
+
         policy_attributes = dict(
             subject=subject,
             testcase=testcase,

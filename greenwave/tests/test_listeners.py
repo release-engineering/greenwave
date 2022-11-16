@@ -569,6 +569,54 @@ def test_remote_rule_decision_change_not_matching(
     assert len(mock_connection.send.mock_calls) == 0
 
 
+@pytest.mark.parametrize("enabled", (True, False))
+def test_decision_change_toggle(
+    mock_retrieve_decision,
+    mock_retrieve_results,
+    mock_connection,
+    enabled,
+):
+    """
+    Test we do not publish a decision change when the config setting
+    is False, even if we otherwise would.
+    """
+    old_decision = {
+        "policies_satisfied": False,
+        "satisfied_requirements": [],
+        "unsatisfied_requirements": [
+            {"result_id": 1, "type": "test-result-missing"}
+        ],
+        "summary": "1 of 1 required test results missing",
+    }
+    new_decision = {
+        "policies_satisfied": True,
+        "satisfied_requirements": [
+            {"result_id": 1, "type": "test-result-missing-waived"}
+        ],
+        "unsatisfied_requirements": [],
+        "summary": "All required tests passed",
+    }
+
+    def retrieve_decision(data, _config):
+        if "when" in data:
+            return old_decision
+        return new_decision
+
+    mock_retrieve_decision.side_effect = retrieve_decision
+
+    listener = resultsdb_listener()
+    listener.app.config["PUBLISH_DECISION_UPDATES"] = enabled
+    with listener.app.app_context():
+        listener.on_message(DummyMessage())
+
+    if enabled:
+        assert len(mock_connection.send.mock_calls) == 1
+        mock_call = mock_connection.send.mock_calls[0][2]
+        assert mock_call["destination"] == DECISION_UPDATE_TOPIC
+    else:
+        assert len(mock_connection.send.mock_calls) == 0
+
+
 def test_guess_product_version(mock_connection):
     listener = resultsdb_listener()
 

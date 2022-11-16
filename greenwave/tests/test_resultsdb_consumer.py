@@ -142,13 +142,16 @@ def test_no_announcement_subjects_for_old_compose_message():
     assert announcement_subject(message) is None
 
 
+@pytest.mark.parametrize("enabled", (True, False))
 def test_remote_rule_decision_change(
         mock_retrieve_yaml_remote_rule,
         mock_retrieve_scm_from_koji,
-        mock_retrieve_results):
+        mock_retrieve_results,
+        enabled):
     """
     Test publishing decision change message for test cases mentioned in
-    gating.yaml.
+    gating.yaml. Also tests that we respect the config toggle for
+    whether to publish decision change messages.
     """
     publish = 'greenwave.consumers.consumer.fedora_messaging.api.publish'
     with mock.patch(publish) as mock_fedora_messaging:
@@ -210,25 +213,29 @@ def test_remote_rule_decision_change(
         handler = greenwave.consumers.resultsdb.ResultsDBHandler(hub)
 
         handler.flask_app.config['policies'] = Policy.safe_load_all(policies)
+        handler.flask_app.config['PUBLISH_DECISION_UPDATES'] = enabled
         with handler.flask_app.app_context():
             handler.consume(message)
 
-        assert len(mock_fedora_messaging.mock_calls) == 1
+        if not enabled:
+            assert len(mock_fedora_messaging.mock_calls) == 0
+        else:
+            assert len(mock_fedora_messaging.mock_calls) == 1
 
-        mock_call = mock_fedora_messaging.mock_calls[0][1][0]
-        assert mock_call.topic == 'greenwave.decision.update'
-        actual_msgs_sent = mock_call.body
+            mock_call = mock_fedora_messaging.mock_calls[0][1][0]
+            assert mock_call.topic == 'greenwave.decision.update'
+            actual_msgs_sent = mock_call.body
 
-        assert actual_msgs_sent == {
-            'decision_context': 'test_context',
-            'product_version': 'fedora-rawhide',
-            'subject': [
-                {'item': nvr, 'type': 'koji_build'},
-            ],
-            'subject_type': 'koji_build',
-            'subject_identifier': nvr,
-            'previous': None,
-        }
+            assert actual_msgs_sent == {
+                'decision_context': 'test_context',
+                'product_version': 'fedora-rawhide',
+                'subject': [
+                    {'item': nvr, 'type': 'koji_build'},
+                ],
+                'subject_type': 'koji_build',
+                'subject_identifier': nvr,
+                'previous': None,
+            }
 
 
 def test_remote_rule_decision_change_not_matching(

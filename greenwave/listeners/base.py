@@ -253,6 +253,9 @@ class BaseListener(stomp.ConnectionListener):
         self, submit_time, subject, testcase, product_version, publish_testcase
     ):
 
+        if not self.app.config['PUBLISH_DECISION_UPDATES']:
+            return
+
         policy_attributes = dict(
             subject=subject,
             testcase=testcase,

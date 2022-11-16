@@ -87,6 +87,8 @@ class Config(object):
         "cert_file": "/etc/pki/umb/umb-crt",
         "ca_certs": "/etc/pki/umb/umb-ca",
     }
+    # Whether to publish decision update messages
+    PUBLISH_DECISION_UPDATES = True
 
 
 class ProductionConfig(Config):
