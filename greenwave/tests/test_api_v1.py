@@ -53,16 +53,21 @@ def mock_waivers():
         yield mocked
 
 
-def make_decision(policies=DEFAULT_DECISION_POLICIES, **kwargs):
+@pytest.fixture
+def make_decision():
     app = create_app('greenwave.config.TestingConfig')
-    app.config['policies'] = Policy.safe_load_all(dedent(policies))
-    client = app.test_client()
-    data = DEFAULT_DECISION_DATA.copy()
-    data.update(kwargs)
-    return client.post('/api/v1.0/decision', json=data)
+
+    def make_decision(policies=DEFAULT_DECISION_POLICIES, **kwargs):
+        app.config['policies'] = Policy.safe_load_all(dedent(policies))
+        client = app.test_client()
+        data = DEFAULT_DECISION_DATA.copy()
+        data.update(kwargs)
+        return client.post('/api/v1.0/decision', json=data)
+
+    yield make_decision
 
 
-def test_make_decision_retrieves_waivers_on_missing(mock_results, mock_waivers):
+def test_make_decision_retrieves_waivers_on_missing(mock_results, mock_waivers, make_decision):
     mock_results.return_value = []
     mock_waivers.return_value = []
     response = make_decision()
@@ -71,7 +76,7 @@ def test_make_decision_retrieves_waivers_on_missing(mock_results, mock_waivers):
     mock_waivers.assert_called_once()
 
 
-def test_make_decision_retrieves_waivers_on_failed(mock_results, mock_waivers):
+def test_make_decision_retrieves_waivers_on_failed(mock_results, mock_waivers, make_decision):
     mock_results.return_value = [make_result(outcome='FAILED')]
     mock_waivers.return_value = []
     response = make_decision()
@@ -80,7 +85,8 @@ def test_make_decision_retrieves_waivers_on_failed(mock_results, mock_waivers):
     mock_waivers.assert_called_once()
 
 
-def test_make_decision_retrieves_waivers_omitted_on_passed(mock_results, mock_waivers):
+def test_make_decision_retrieves_waivers_omitted_on_passed(
+        mock_results, mock_waivers, make_decision):
     mock_results.return_value = [make_result(outcome='PASSED')]
     mock_waivers.return_value = []
     response = make_decision()
@@ -89,7 +95,7 @@ def test_make_decision_retrieves_waivers_omitted_on_passed(mock_results, mock_wa
     mock_waivers.assert_not_called()
 
 
-def test_make_decision_retrieves_waivers_on_errored(mock_results, mock_waivers):
+def test_make_decision_retrieves_waivers_on_errored(mock_results, mock_waivers, make_decision):
     mock_results.return_value = [make_result(outcome='ERROR')]
     mock_waivers.return_value = []
     response = make_decision()
@@ -98,7 +104,8 @@ def test_make_decision_retrieves_waivers_on_errored(mock_results, mock_waivers):
     mock_waivers.assert_called_once()
 
 
-def test_make_decision_retrieves_waivers_once_on_verbose_and_missing(mock_results, mock_waivers):
+def test_make_decision_retrieves_waivers_once_on_verbose_and_missing(
+        mock_results, mock_waivers, make_decision):
     mock_results.return_value = []
     mock_waivers.return_value = []
     response = make_decision(verbose=True)
@@ -107,7 +114,7 @@ def test_make_decision_retrieves_waivers_once_on_verbose_and_missing(mock_result
     mock_waivers.assert_called_once()
 
 
-def test_make_decision_with_no_tests_required(mock_results, mock_waivers):
+def test_make_decision_with_no_tests_required(mock_results, mock_waivers, make_decision):
     mock_results.return_value = []
     mock_waivers.return_value = []
     policies = """
@@ -125,7 +132,8 @@ def test_make_decision_with_no_tests_required(mock_results, mock_waivers):
     mock_waivers.assert_not_called()
 
 
-def test_make_decision_with_no_tests_required_and_missing_gating_yaml(mock_results, mock_waivers):
+def test_make_decision_with_no_tests_required_and_missing_gating_yaml(
+        mock_results, mock_waivers, make_decision):
     mock_results.return_value = []
     mock_waivers.return_value = []
     policies = """
@@ -148,7 +156,8 @@ def test_make_decision_with_no_tests_required_and_missing_gating_yaml(mock_resul
             mock_waivers.assert_not_called()
 
 
-def test_make_decision_with_no_tests_required_and_empty_remote_rules(mock_results, mock_waivers):
+def test_make_decision_with_no_tests_required_and_empty_remote_rules(
+        mock_results, mock_waivers, make_decision):
     mock_results.return_value = []
     mock_waivers.return_value = []
     policies = """
@@ -193,13 +202,12 @@ def test_make_decision_with_no_tests_required_and_empty_remote_rules(mock_result
             f.return_value = remote_fragment2
             response = make_decision(policies=policies)
             assert 404 == response.status_code
-            print(response.json)
             assert 'Found no applicable policies for koji_build subjects at gating ' \
                    'point(s) test_policies in fedora-rawhide' == response.json['message']
             mock_waivers.assert_not_called()
 
 
-def test_make_decision_with_missing_required_gating_yaml(mock_results, mock_waivers):
+def test_make_decision_with_missing_required_gating_yaml(mock_results, mock_waivers, make_decision):
     mock_results.return_value = []
     mock_waivers.return_value = []
     policies = """
@@ -223,7 +231,7 @@ def test_make_decision_with_missing_required_gating_yaml(mock_results, mock_waiv
             mock_waivers.assert_called_once()
 
 
-def test_make_decision_multiple_contexts(mock_results, mock_waivers):
+def test_make_decision_multiple_contexts(mock_results, mock_waivers, make_decision):
     mock_results.return_value = [make_result(outcome='FAILED')]
     mock_waivers.return_value = []
     policies = """
