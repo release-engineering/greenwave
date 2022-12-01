@@ -47,7 +47,7 @@ sphinxcontrib-httpdomain = {version = "^1.8.0", optional = true}
 # https://github.com/sphinx-contrib/httpdomain/issues/60
 Werkzeug = {version = "<2.2", optional = true}
 
-statsd = "^3.3.0"
+statsd = "^4.0.1"
 pymemcache = "^3.5.2"
 
 [tool.poetry.extras]
