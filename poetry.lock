@@ -777,7 +777,7 @@ test = ["html5lib", "pytest"]
 
 [[package]]
 name = "sphinxcontrib-httpdomain"
-version = "1.8.0"
+version = "1.8.1"
 description = "Sphinx domain for documenting HTTP APIs"
 category = "main"
 optional = true
@@ -1025,7 +1025,7 @@ test = ["flake8", "pytest", "pytest-cov", "mock"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.10"
-content-hash = "60c55bf95b22a4b166416ed3322930571879b6671ee10a3a18d5a62be8f38c76"
+content-hash = "b9c2051a40c2527e718da7c00a81bc8fb8d7ec65566f50f84db552892a0ec44f"
 
 [metadata.files]
 alabaster = [
@@ -1624,8 +1624,8 @@ sphinxcontrib-htmlhelp = [
     {file = "sphinxcontrib_htmlhelp-2.0.0-py2.py3-none-any.whl", hash = "sha256:d412243dfb797ae3ec2b59eca0e52dac12e75a241bf0e4eb861e450d06c6ed07"},
 ]
 sphinxcontrib-httpdomain = [
-    {file = "sphinxcontrib-httpdomain-1.8.0.tar.gz", hash = "sha256:2059cfabd0cca8fcc3455cc8ffad92f0915a7d3bb03bfddba078a6a0f35beec5"},
-    {file = "sphinxcontrib_httpdomain-1.8.0-py2.py3-none-any.whl", hash = "sha256:a3396d6350728d574f52458b400f0ac848f8b6913bd41fed95d391d3ffbbade3"},
+    {file = "sphinxcontrib-httpdomain-1.8.1.tar.gz", hash = "sha256:6c2dfe6ca282d75f66df333869bb0ce7331c01b475db6809ff9d107b7cdfe04b"},
+    {file = "sphinxcontrib_httpdomain-1.8.1-py2.py3-none-any.whl", hash = "sha256:21eefe1270e4d9de8d717cc89ee92cc4871b8736774393bafc5e38a6bb77b1d5"},
 ]
 sphinxcontrib-jsmath = [
     {file = "sphinxcontrib-jsmath-1.0.1.tar.gz", hash = "sha256:a9925e4a4587247ed2191a22df5f6970656cb8ca2bd6284309578f2153e0c4b8"},
