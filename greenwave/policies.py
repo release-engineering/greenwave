@@ -688,7 +688,7 @@ class PassingTestCaseRule(Rule):
         if self.valid_since or self.valid_until:
             koji_url = current_app.config["KOJI_BASE_URL"]
             subject_creation_time = greenwave.resources.retrieve_koji_build_creation_time(
-                rule_context.subject, koji_url)
+                rule_context.subject.identifier, koji_url)
             if self.valid_since and subject_creation_time < self.valid_since:
                 return []
             if self.valid_until and self.valid_until <= subject_creation_time:
