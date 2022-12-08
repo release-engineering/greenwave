@@ -11,6 +11,7 @@ import logging
 import re
 import socket
 import threading
+from typing import List, Optional
 
 from dateutil import tz
 from dateutil.parser import parse
@@ -28,7 +29,7 @@ log = logging.getLogger(__name__)
 requests_session = threading.local().requests_session = get_requests_session()
 
 
-def _koji(uri):
+def _koji(uri: str):
     """
     Returns per-thread cached XMLRPC server proxy object for Koji.
     """
@@ -49,7 +50,11 @@ def _requests_timeout():
 
 
 class BaseRetriever:
-    def __init__(self, ignore_ids, when, url):
+    ignore_ids: List[int]
+    url: str
+    since: Optional[str]
+
+    def __init__(self, ignore_ids: List[int], when: str, url: str):
         self.ignore_ids = ignore_ids
         self.url = url
 
@@ -165,7 +170,7 @@ class NoSourceException(RuntimeError):
 
 
 @cached
-def retrieve_koji_build_target(nvr, koji_url):
+def retrieve_koji_build_target(nvr: str, koji_url: str):
     log.debug('Getting Koji task request ID %r', nvr)
     proxy = _koji(koji_url)
     task_request = proxy.getTaskRequest(nvr)
@@ -177,7 +182,7 @@ def retrieve_koji_build_target(nvr, koji_url):
 
 
 @cached
-def _retrieve_koji_build_attributes(nvr, koji_url):
+def _retrieve_koji_build_attributes(nvr: str, koji_url: str):
     log.debug('Getting Koji build %r', nvr)
     proxy = _koji(koji_url)
     build = proxy.getBuild(nvr)
@@ -200,15 +205,15 @@ def _retrieve_koji_build_attributes(nvr, koji_url):
     return (task_id, source, creation_time)
 
 
-def retrieve_koji_build_task_id(nvr, koji_url):
+def retrieve_koji_build_task_id(nvr: str, koji_url: str):
     return _retrieve_koji_build_attributes(nvr, koji_url)[0]
 
 
-def retrieve_koji_build_source(nvr, koji_url):
+def retrieve_koji_build_source(nvr: str, koji_url: str):
     return _retrieve_koji_build_attributes(nvr, koji_url)[1]
 
 
-def retrieve_koji_build_creation_time(nvr, koji_url):
+def retrieve_koji_build_creation_time(nvr: str, koji_url: str):
     creation_time = _retrieve_koji_build_attributes(nvr, koji_url)[2]
     try:
         time = parse(str(creation_time))
@@ -224,7 +229,7 @@ def retrieve_koji_build_creation_time(nvr, koji_url):
     return datetime.datetime.now(tz.tzutc())
 
 
-def retrieve_scm_from_koji(nvr):
+def retrieve_scm_from_koji(nvr: str):
     """Retrieve cached rev and namespace from koji using the nvr"""
     koji_url = current_app.config["KOJI_BASE_URL"]
     try:
@@ -234,7 +239,7 @@ def retrieve_scm_from_koji(nvr):
     return retrieve_scm_from_koji_build(nvr, source, koji_url)
 
 
-def retrieve_scm_from_koji_build(nvr, source, koji_url):
+def retrieve_scm_from_koji_build(nvr: str, source: str, koji_url: str):
     if not source:
         raise NoSourceException(
             'Failed to retrieve SCM URL from Koji build "{}" at "{}" '
@@ -262,7 +267,7 @@ def retrieve_scm_from_koji_build(nvr, source, koji_url):
 
 
 @cached
-def retrieve_yaml_remote_rule(url):
+def retrieve_yaml_remote_rule(url: str):
     """ Retrieve a remote rule file content from the git web UI. """
     response = requests_session.request('HEAD', url)
     if response.status_code == 404:

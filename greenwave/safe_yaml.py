@@ -2,11 +2,13 @@
 """
 Provides a way of defining type-safe YAML parsing.
 """
+from typing import Dict
+
 from dateutil import tz
 from dateutil.parser import parse
 import yaml
 
-safe_yaml_tag_to_class = {}
+safe_yaml_tag_to_class: Dict[str, object] = {}
 
 
 class SafeYAMLError(RuntimeError):
@@ -20,6 +22,7 @@ class SafeYAMLAttribute(object):
     """
     Base class for SafeYAMLObject attributes (in SafeYAMLObject.safe_yaml_attributes dict).
     """
+
     def __init__(self, optional=False):
         self.optional = optional
 
@@ -239,6 +242,8 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
     name to a SafeYAMLAttribute object.
     """
     yaml_loader = yaml.SafeLoader
+
+    safe_yaml_attributes: Dict[str, SafeYAMLAttribute]
 
     @classmethod
     def __new__(cls, *args, **kwargs):
