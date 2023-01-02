@@ -46,7 +46,7 @@ sphinx = {version = "^5.2.3", optional = true}
 sphinxcontrib-httpdomain = {version = "^1.8.1", optional = true}
 
 statsd = "^4.0.1"
-pymemcache = "^3.5.2"
+pymemcache = "^4.0.0"
 
 [tool.poetry.extras]
 test = [
