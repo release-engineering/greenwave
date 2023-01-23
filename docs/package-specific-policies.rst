@@ -226,7 +226,31 @@ $NVR``. Then it parses URL in "source" field to get namespace ("rpms" or
 repository name).
 
 For HTTP method, the remote rule URL is constructed based on the URL template
-specified in Greenwave configuration. The URL template is something like::
+specified in Greenwave configuration (``REMOTE_RULE_POLICIES`` option). The URL
+template is for example::
 
     http://example.com/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml
 
+The URL templates in the configuration can be also overridden in policies using
+``sources`` property of ``RemoteRule``.
+
+.. code-block:: yaml
+   :linenos:
+
+   --- !Policy
+   product_versions:
+     - fedora-*
+   decision_context: bodhi_update_push_testing
+   subject_type: koji_build
+   rules:
+     - !RemoteRule
+       sources:
+         - http://gating.example.com/gating1.yml
+         - http://gating.example.com/gating2.yml
+
+Greenwave goes through list of URLs in the specified order. If a resource is
+not found (returns 404 HTTP status), processing continues with the following
+one. If the HTTP status is 200 it picks the resource and does not process any
+following URLs. If the status is anything else or parsing the remote policy
+file fails, decision will end up with "failed-fetch-gating-yaml" unsatisfied
+requirement.

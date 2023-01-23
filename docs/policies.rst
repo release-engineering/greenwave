@@ -333,10 +333,10 @@ Below is an example configuration of remote rule URLs:
 .. code-block:: console
 
     REMOTE_RULE_POLICIES = {
-        'brew-build-group': (
-            'https://git.example.com/devops/greenwave-policies/side-tags/raw/
-            'master/{subject_id}.yaml'
-        ),
+        'brew-build-group': [
+            'https://greenwave.example.com/policies/{subject_id}.yaml',
+            'https://greenwave.example.com/policies/{pkg_name}.yaml',
+        ],
         '*': (
             'https://src.fedoraproject.org/{pkg_namespace}'
             '{pkg_name}/raw/{rev}/f/gating.yaml'
@@ -352,3 +352,6 @@ must be set.
 
 Parameter ``{subject_id}`` can also be used in URL template. If the subject identifier
 contains a hash starting with the ``sha256:`` prefix, this prefix would be removed.
+
+For details about fetching the remote policy files, see
+:ref:`fetching-gating-yaml`.

@@ -38,10 +38,7 @@ def load_policies(policies_dir):
     return policies
 
 
-def _remote_urls(subject):
-    """
-    Returns generator with possible remote rule URLs.
-    """
+def _remote_url_templates(subject):
     rr_policies_conf = current_app.config.get('REMOTE_RULE_POLICIES', {})
     cur_subject_urls = (
         rr_policies_conf.get(subject.type) or
@@ -56,7 +53,14 @@ def _remote_urls(subject):
     if not isinstance(cur_subject_urls, list):
         cur_subject_urls = [cur_subject_urls]
 
-    for current_url in cur_subject_urls:
+    return cur_subject_urls
+
+
+def _remote_urls(subject, url_templates):
+    """
+    Returns generator with possible remote rule URLs.
+    """
+    for current_url in url_templates:
         url_params = {}
         if '{pkg_name}' in current_url or '{pkg_namespace}' in current_url or \
                 '{rev}' in current_url:
@@ -567,6 +571,7 @@ class Rule(SafeYAMLObject):
 class RemoteRule(Rule):
     yaml_tag = '!RemoteRule'
     safe_yaml_attributes = {
+        'sources': SafeYAMLList(str, optional=True),
         'required': SafeYAMLBool(optional=True, default=False),
     }
 
@@ -586,7 +591,8 @@ class RemoteRule(Rule):
         answers = []
 
         try:
-            for remote_policies_url in _remote_urls(subject):
+            url_templates = self.sources or _remote_url_templates(subject)
+            for remote_policies_url in _remote_urls(subject, url_templates):
                 remote_policies_urls.append(remote_policies_url)
                 response = greenwave.resources.retrieve_yaml_remote_rule(remote_policies_url)
                 if response is not None:
