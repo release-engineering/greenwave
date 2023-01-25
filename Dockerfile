@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi:8.6 as builder
+FROM registry.access.redhat.com/ubi8/ubi:8.7 as builder
 
 # hadolint ignore=DL3033,DL4006,SC2039,SC3040
 RUN set -exo pipefail \
