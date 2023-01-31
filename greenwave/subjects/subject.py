@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import re
+from typing import Union
+
+from greenwave.subjects.subject_type import GenericSubjectType, SubjectType
 
 
 def _to_dict(format_dict, item):
@@ -25,10 +28,12 @@ class Subject:
 
     Item or identifier should uniquely identify the artefact (test subject).
     """
+    _type: Union[GenericSubjectType, SubjectType]
+    item: str
 
-    def __init__(self, type_, item):
-        self.item = item
+    def __init__(self, type_: Union[GenericSubjectType, SubjectType], item: str):
         self._type = type_
+        self.item = item
 
     @property
     def type(self):

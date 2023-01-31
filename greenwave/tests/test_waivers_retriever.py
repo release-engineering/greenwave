@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import mock
+from typing import Any, Dict
 
 from greenwave.resources import WaiversRetriever
 
-_DUMMY_RETRIEVER_ARGUMENTS = dict(
+_DUMMY_RETRIEVER_ARGUMENTS: Dict[str, Any] = dict(
     ignore_ids=[],
     when=None,
     url=None,

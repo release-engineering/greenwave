@@ -18,7 +18,7 @@ except importlib_metadata.PackageNotFoundError:
     try:
         import tomllib
     except ImportError:
-        import toml as tomllib
+        import toml as tomllib  # type: ignore
 
     with open("pyproject.toml", "r") as f:
         pyproject = tomllib.load(f)

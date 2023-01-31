@@ -7,6 +7,7 @@ import os
 import re
 import greenwave.resources
 import xmlrpc.client
+from typing import Optional
 from werkzeug.exceptions import BadRequest, NotFound
 from flask import current_app
 from greenwave.safe_yaml import (
@@ -534,6 +535,7 @@ class Rule(SafeYAMLObject):
 
     This base class is not used directly.
     """
+
     def check(self, policy, rule_context):
         """
         Evaluate this policy rule for the given item.
@@ -796,7 +798,7 @@ class FedoraAtomicCi(PackageSpecificBuild):
 
 
 class Policy(SafeYAMLObject):
-    root_yaml_tag = '!Policy'
+    root_yaml_tag: Optional[str] = '!Policy'
 
     safe_yaml_attributes = {
         'id': SafeYAMLString(),

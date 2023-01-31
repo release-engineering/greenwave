@@ -67,6 +67,7 @@ jobs:
         tox_env:
           - bandit
           - lint
+          - mypy
 
     runs-on: ubuntu-latest
 
