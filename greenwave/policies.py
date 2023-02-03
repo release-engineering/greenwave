@@ -562,10 +562,6 @@ class Rule(SafeYAMLObject):
         """
         return True
 
-    def __hash__(self):
-        d = self.to_json()
-        return hash(tuple((k, d[k]) for k in sorted(d.keys())))
-
     def __eq__(self, other):
         return self.to_json() == other.to_json()
 
@@ -675,6 +671,8 @@ class RemoteRule(Rule):
     def to_json(self):
         return {
             'rule': self.__class__.__name__,
+            'required': self.required,
+            'sources': self.sources,
         }
 
 
