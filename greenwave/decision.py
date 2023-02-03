@@ -32,7 +32,7 @@ class RuleContext:
         self.product_version = product_version
         self.subject = subject
         self.results_retriever = results_retriever
-        self.verified_rules = set()
+        self.verified_rules = []
 
     def get_results(self, test_case_name):
         return self.results_retriever.retrieve(self.subject, test_case_name)
@@ -41,7 +41,7 @@ class RuleContext:
         if rule in self.verified_rules:
             return []
 
-        self.verified_rules.add(rule)
+        self.verified_rules.append(rule)
 
         return rule.check(policy, self)
 
