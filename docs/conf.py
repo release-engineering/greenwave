@@ -18,6 +18,10 @@
 #
 import os
 import sys
+
+# This will cause the Flask application to be created with development configs
+os.environ['DOCS'] = 'true'
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import greenwave  # noqa: E402
 
