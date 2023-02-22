@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-if [ -z "$GREENWAVE_CONFIG"]; then
+if [ -z "$GREENWAVE_CONFIG" ]; then
     if [ -f /etc/greenwave/settings.py ]; then
         export GREENWAVE_CONFIG=/etc/greenwave/settings.py
     elif [ -f /src/conf/settings.py ]; then
@@ -11,7 +11,7 @@ if [ -z "$GREENWAVE_CONFIG"]; then
     fi
 fi
 
-if [ -z "$GREENWAVE_SUBJECT_TYPES_DIR"]; then
+if [ -z "$GREENWAVE_SUBJECT_TYPES_DIR" ]; then
     if [ -d /etc/greenwave/subject_types ]; then
         export GREENWAVE_SUBJECT_TYPES_DIR=/etc/greenwave/subject_types
     else
@@ -19,7 +19,7 @@ if [ -z "$GREENWAVE_SUBJECT_TYPES_DIR"]; then
     fi
 fi
 
-if [ -z "$GREENWAVE_POLICIES_DIR"]; then
+if [ -z "$GREENWAVE_POLICIES_DIR" ]; then
     if [ -d /etc/greenwave/policies ]; then
         export GREENWAVE_POLICIES_DIR=/etc/greenwave/policies
     else
