@@ -28,7 +28,8 @@ class RuleContext:
     Environment for verifying rules from multiple policies for a single
     decision subject.
     """
-    def __init__(self, product_version, subject, results_retriever):
+    def __init__(self, decision_context, product_version, subject, results_retriever):
+        self.decision_context = decision_context
         self.product_version = product_version
         self.subject = subject
         self.results_retriever = results_retriever
@@ -92,7 +93,12 @@ class Decision:
                 product_version=self.product_version,
             ))
 
-        rule_context = RuleContext(self.product_version, subject, results_retriever)
+        rule_context = RuleContext(
+            decision_context=self.decision_context,
+            product_version=self.product_version,
+            subject=subject,
+            results_retriever=results_retriever,
+        )
         for policy in subject_policies:
             self.answers.extend(policy.check(rule_context))
 

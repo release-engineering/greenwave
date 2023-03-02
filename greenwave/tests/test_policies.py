@@ -635,6 +635,59 @@ def test_remote_rule_policy_redhat_container_image(tmpdir):
             assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-failed']
 
 
+def test_remote_rule_with_multiple_contexts(tmpdir):
+    """ Testing the RemoteRule with the koji interaction.
+    In this case we are just mocking koji """
+
+    nvr = '389-ds-1.4-820181127205924.9edba152'
+    subject = create_subject('redhat-container-image', nvr)
+
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - rhel-8
+        decision_contexts:
+          - osci_compose_gate1
+          - osci_compose_gate2
+        subject_type: redhat-container-image
+        rules:
+          - !RemoteRule {}
+        """)
+
+    remote_fragment = dedent("""
+        --- !Policy
+        product_versions:
+          - rhel-8
+        decision_context: osci_compose_gate1
+        subject_type: redhat-container-image
+        rules:
+          - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-container-image.tier0.functional}
+
+        --- !Policy
+        product_versions:
+          - rhel-8
+        decision_context: osci_compose_gate2
+        subject_type: redhat-container-image
+        rules:
+          - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-container-image.tier1.functional}
+
+        """)
+
+    p = tmpdir.join('gating.yaml')
+    p.write(serverside_fragment)
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.return_value = ('containers', '389-ds', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
+        with mock.patch('greenwave.resources.retrieve_yaml_remote_rule') as f:
+            f.return_value = remote_fragment
+            policies = load_policies(tmpdir.strpath)
+            results = DummyResultsRetriever(
+                subject, 'baseos-ci.redhat-container-image.tier0.functional')
+            decision = Decision('osci_compose_gate1', 'rhel-8')
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-passed']
+
+
 def test_get_sub_policies_multiple_urls(tmpdir):
     """ Testing the RemoteRule with the koji interaction when on_demand policy is given.
     In this case we are just mocking koji """
