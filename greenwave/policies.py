@@ -639,7 +639,10 @@ class RemoteRule(Rule):
         answers = list(answers)
 
         for remote_policy in policies:
-            if remote_policy.matches_product_version(rule_context.product_version):
+            if remote_policy.matches(
+                decision_context=rule_context.decision_context,
+                product_version=rule_context.product_version,
+            ):
                 response = remote_policy.check(rule_context)
 
                 if not isinstance(response, list):
