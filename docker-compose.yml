@@ -34,7 +34,7 @@ services:
       - 9125:9125 # statsd
 
   resultsdb-db:
-    image: postgres:9.5.2
+    image: postgres:11.16-alpine
     restart: always
     env_file: ["docker/resultsdb-db.env"]
     healthcheck:
