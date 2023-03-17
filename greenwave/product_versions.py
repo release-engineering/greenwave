@@ -6,8 +6,8 @@ Product version guessing for subject identifiers
 import logging
 import re
 import socket
-import xmlrpc.client
 
+from defusedxml.xmlrpc import xmlrpc_client
 from werkzeug.exceptions import NotFound
 
 from greenwave.resources import (
@@ -68,9 +68,9 @@ def _guess_koji_build_product_version(
             return _guess_product_version(target, koji_build=True)
 
         return None
-    except (xmlrpc.client.ProtocolError, socket.error) as err:
+    except (xmlrpc_client.ProtocolError, socket.error) as err:
         raise ConnectionError('Could not reach Koji: {}'.format(err))
-    except xmlrpc.client.Fault:
+    except xmlrpc_client.Fault:
         log.exception('Unexpected Koji XML RPC fault')
 
 

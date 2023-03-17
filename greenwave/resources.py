@@ -15,8 +15,8 @@ from typing import List, Optional
 
 from dateutil import tz
 from dateutil.parser import parse
+from defusedxml.xmlrpc import xmlrpc_client
 from urllib.parse import urlparse
-import xmlrpc.client
 from flask import current_app
 from werkzeug.exceptions import BadGateway, NotFound
 
@@ -234,7 +234,7 @@ def retrieve_scm_from_koji(nvr: str):
     koji_url = current_app.config["KOJI_BASE_URL"]
     try:
         source = retrieve_koji_build_source(nvr, koji_url)
-    except (xmlrpc.client.ProtocolError, socket.error) as err:
+    except (xmlrpc_client.ProtocolError, socket.error) as err:
         raise ConnectionError("Could not reach Koji: {}".format(err))
     return retrieve_scm_from_koji_build(nvr, source, koji_url)
 

@@ -68,6 +68,7 @@ jobs:
           - bandit
           - lint
           - mypy
+          - semgrep
 
     runs-on: ubuntu-latest
 

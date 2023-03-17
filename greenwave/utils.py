@@ -127,13 +127,13 @@ def insert_headers(response):
     return response
 
 
-def sha1_mangle_key(key):
+def mangle_key(key):
     """
     Like dogpile.cache.util.sha1_mangle_key, but works correctly on
     Python 3 with str keys (which must be encoded to bytes before passing them
     to hashlib.sha1()).
     """
-    return hashlib.sha1(key.encode('utf-8')).hexdigest()  # nosec
+    return hashlib.sha256(key.encode('utf-8')).hexdigest()
 
 
 def add_to_timestamp(timestamp, **kwargs):

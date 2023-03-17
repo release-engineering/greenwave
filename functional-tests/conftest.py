@@ -40,8 +40,8 @@ def drop_and_create_database(dbname):
     engine = create_engine('postgresql+psycopg2:///template1')
     with engine.connect() as connection:
         connection.execution_options(isolation_level='AUTOCOMMIT')
-        connection.execute('DROP DATABASE IF EXISTS {}'.format(dbname))
-        connection.execute('CREATE DATABASE {}'.format(dbname))
+        connection.execute('DROP DATABASE IF EXISTS :db', db=dbname)
+        connection.execute('CREATE DATABASE :db', db=dbname)
     engine.dispose()
 
 
