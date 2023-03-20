@@ -3,6 +3,7 @@ import pytest
 
 from textwrap import dedent
 
+from defusedxml.xmlrpc import xmlrpc_client
 from werkzeug.exceptions import NotFound
 
 from greenwave.app_factory import create_app
@@ -11,7 +12,6 @@ from greenwave.policies import Policy, RemoteRule
 from greenwave.resources import NoSourceException
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.subjects.factory import create_subject
-import xmlrpc.client
 
 
 def test_match_passing_test_case_rule():
@@ -87,7 +87,7 @@ def test_invalid_nvr_iden(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remote
           - !RemoteRule {}
     """)
     nvr = 'nieco'
-    mock_retrieve_scm_from_koji.side_effect = xmlrpc.client.Fault(1000, nvr)
+    mock_retrieve_scm_from_koji.side_effect = xmlrpc_client.Fault(1000, nvr)
 
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():

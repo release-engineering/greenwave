@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-2.0+
 """
-Provides an "xmlrpc.client.ServerProxy" object with a timeout on the socket.
+Provides an "xmlrpc_client.ServerProxy" object with a timeout on the socket.
 """
 import urllib.parse
-import xmlrpc.client
+
+from defusedxml.xmlrpc import xmlrpc_client
 
 
 def get_server_proxy(uri, timeout):
     """
-    Create an :py:class:`xmlrpc.client.ServerProxy` instance with a socket timeout.
+    Create an :py:class:`xmlrpc_client.ServerProxy` instance with a socket timeout.
 
     This is a workaround for https://bugs.python.org/issue14134.
 
@@ -18,7 +19,7 @@ def get_server_proxy(uri, timeout):
         timeout (int): The timeout to set on the transport socket.
 
     Returns:
-        xmlrpc.client.ServerProxy: An instance of :py:class:`xmlrpc.client.ServerProxy` with
+        xmlrpc_client.ServerProxy: An instance of :py:class:`xmlrpc_client.ServerProxy` with
             a socket timeout set.
     """
     parsed_uri = urllib.parse.urlparse(uri)
@@ -27,10 +28,10 @@ def get_server_proxy(uri, timeout):
     else:
         transport = Transport(timeout=timeout)
 
-    return xmlrpc.client.ServerProxy(uri, transport=transport, allow_none=True)
+    return xmlrpc_client.ServerProxy(uri, transport=transport, allow_none=True)
 
 
-class Transport(xmlrpc.client.Transport):
+class Transport(xmlrpc_client.Transport):
     def __init__(self, *args, timeout=None, **kwargs):  # pragma: no cover
         super().__init__(*args, **kwargs)
         self._timeout = timeout
@@ -41,7 +42,7 @@ class Transport(xmlrpc.client.Transport):
         return connection
 
 
-class SafeTransport(xmlrpc.client.SafeTransport):
+class SafeTransport(xmlrpc_client.SafeTransport):
     def __init__(self, *args, timeout=None, **kwargs):  # pragma: no cover
         super().__init__(*args, **kwargs)
         self._timeout = timeout

@@ -2,11 +2,11 @@ import uuid
 
 from dogpile.cache import make_region
 
-from greenwave.utils import sha1_mangle_key
+from greenwave.utils import mangle_key
 
 
 def test_cache():
-    cache = make_region(key_mangler=sha1_mangle_key)
+    cache = make_region(key_mangler=mangle_key)
     cache.configure(
         backend='dogpile.cache.pymemcache',
         expiration_time=5,

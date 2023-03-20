@@ -140,6 +140,10 @@ objects:
           resources:
             limits:
               memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+        securityContext:
+          runAsNonRoot: true
     triggers:
     - type: ConfigChange
 - apiVersion: v1
@@ -208,6 +212,8 @@ objects:
           resources:
             limits:
               memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
         volumes:
         - name: policies-volume
           configMap:
@@ -215,6 +221,8 @@ objects:
         - name: config-volume
           secret:
             secretName: "greenwave-test-${TEST_ID}-config"
+        securityContext:
+          runAsNonRoot: true
     triggers:
     - type: ConfigChange
 - apiVersion: v1
