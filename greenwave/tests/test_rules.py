@@ -4,7 +4,7 @@ import pytest
 from textwrap import dedent
 
 from defusedxml.xmlrpc import xmlrpc_client
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import BadGateway, NotFound
 
 from greenwave.app_factory import create_app
 from greenwave.decision import Decision
@@ -95,9 +95,8 @@ def test_invalid_nvr_iden(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remote
         policies = Policy.safe_load_all(policy_yaml)
         policy = policies[0]
         rule = policy.rules[0]
-        sub_policies, answers = rule._get_sub_policies(policy, subject)
-        assert len(answers) == 1
-        assert 'Koji XMLRPC fault' in answers[0].error
+        with pytest.raises(BadGateway, match='Koji XMLRPC fault'):
+            sub_policies, answers = rule._get_sub_policies(policy, subject)
 
 
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
@@ -390,7 +389,9 @@ def test_remote_rule_custom_sources(mock_retrieve_yaml_remote_rule, app):
 
 
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
-def test_remote_rule_custom_sources_multiple_rules(mock_retrieve_yaml_remote_rule, app):
+@mock.patch('greenwave.resources.retrieve_scm_from_koji')
+def test_remote_rule_custom_sources_multiple_rules(
+        mock_retrieve_scm_from_koji, mock_retrieve_yaml_remote_rule, app):
     url1 = "http://gating.example.com/gating1.yml"
     url2 = "http://gating.example.com/gating2.yml"
     policy_yaml = dedent(f"""
@@ -415,6 +416,7 @@ def test_remote_rule_custom_sources_multiple_rules(mock_retrieve_yaml_remote_rul
           - !PassingTestCaseRule {test_case_name: some_test_case}
     """)
     mock_retrieve_yaml_remote_rule.side_effect = lambda url: gating_yaml if url == url2 else None
+    mock_retrieve_scm_from_koji.side_effect = NotFound
 
     policies = Policy.safe_load_all(policy_yaml)
     assert len(policies) == 1
@@ -439,5 +441,36 @@ def test_remote_rule_custom_sources_multiple_rules(mock_retrieve_yaml_remote_rul
     answer2 = decision.answers[2].to_json()
     assert answer2["type"] == "failed-fetch-gating-yaml"
     assert answer2["sources"] == []
+    assert answer2["error"] == (
+        "Koji build not found for subject_type 'koji_build',"
+        " subject_identifier 'nethack-1.2.3-1.el9000'"
+    )
 
     assert len(decision.answers) == 3
+
+
+@mock.patch('greenwave.resources.retrieve_scm_from_koji')
+def test_koji_failed(mock_retrieve_scm_from_koji, app):
+    policy_yaml = dedent("""
+        ---
+        id: "some_policy"
+        product_versions: [rhel-9000]
+        decision_context: bodhi_update_push_stable
+        subject_type: koji_build
+        rules:
+          - !RemoteRule
+    """)
+    mock_retrieve_scm_from_koji.side_effect = ConnectionRefusedError
+
+    policies = Policy.safe_load_all(policy_yaml)
+    assert len(policies) == 1
+    assert len(policies[0].rules) == 1
+
+    nvr = 'nethack-1.2.3-1.el9000'
+    subject = create_subject('koji_build', nvr)
+
+    decision = Decision('bodhi_update_push_stable', 'rhel-9000')
+    results_retriever = mock.MagicMock()
+    results_retriever.retrieve.return_value = []
+    with pytest.raises(BadGateway, match='Unexpected error while fetching remote policies'):
+        decision.check(subject, policies, results_retriever=results_retriever)
