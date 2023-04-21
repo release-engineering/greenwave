@@ -1,17 +1,19 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 
-def _is_waived(answer, waivers):
+def _find_waived_id(answer, waivers):
     """
-    Returns true only if there is a matching waiver for given answer.
+    Returns waiver ID of a matching waiver for given answer otherwise None.
     """
-    return any(
-        waiver['subject_type'] == answer.subject.type and
-        waiver['subject_identifier'] == answer.subject.identifier and
-        waiver['testcase'] == answer.test_case_name and
-        (not waiver.get('scenario') or waiver['scenario'] == answer.scenario)
-        for waiver in waivers
-    )
+    for waiver in waivers:
+        if (
+            waiver["subject_type"] == answer.subject.type
+            and waiver["subject_identifier"] == answer.subject.identifier
+            and waiver["testcase"] == answer.test_case_name
+            and (not waiver.get("scenario") or waiver["scenario"] == answer.scenario)
+        ):
+            return waiver["id"]
+    return None
 
 
 def _maybe_waive(answer, waivers):
@@ -19,8 +21,10 @@ def _maybe_waive(answer, waivers):
     Returns waived answer if it's unsatisfied there is a matching waiver,
     otherwise returns unchanged answer.
     """
-    if not answer.is_satisfied and _is_waived(answer, waivers):
-        return answer.to_waived()
+    if not answer.is_satisfied:
+        waiver_id = _find_waived_id(answer, waivers)
+        if waiver_id is not None:
+            return answer.to_waived(waiver_id)
     return answer
 
 

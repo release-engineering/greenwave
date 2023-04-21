@@ -173,6 +173,7 @@ def make_decision():
                {
                    "scenario": null,
                    "subject_identifier": "bodhi-5.1.1-1.fc32",
+                   "waiver_id": 256,
                    "subject_type": "koji_build",
                    "testcase": "dist.rpmdeplint",
                    "type": "test-result-missing-waived"
