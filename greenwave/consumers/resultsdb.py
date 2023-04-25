@@ -12,7 +12,7 @@ to the message bus about the newly satisfied/unsatisfied policy.
 import logging
 
 from greenwave.consumers.consumer import Consumer
-from greenwave.product_versions import subject_product_version
+from greenwave.product_versions import subject_product_versions
 from greenwave.subjects.factory import (
     create_subject_from_data,
     UnknownSubjectDataError,
@@ -126,18 +126,22 @@ class ResultsDBHandler(Consumer):
 
         log.debug('Considering subject: %r', subject)
 
-        product_version = subject_product_version(
+        product_versions = subject_product_versions(
             subject,
             self.koji_base_url,
             brew_task_id,
         )
 
-        log.debug('Guessed product version: %r', product_version)
+        log.debug('Guessed product versions: %r', product_versions)
 
-        self._publish_decision_change(
-            submit_time=submit_time,
-            subject=subject,
-            testcase=testcase,
-            product_version=product_version,
-            publish_testcase=False,
-        )
+        if not product_versions:
+            product_versions = [None]
+
+        for product_version in product_versions:
+            self._publish_decision_change(
+                submit_time=submit_time,
+                subject=subject,
+                testcase=testcase,
+                product_version=product_version,
+                publish_testcase=False,
+            )

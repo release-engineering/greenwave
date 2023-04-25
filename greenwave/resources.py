@@ -170,10 +170,10 @@ class NoSourceException(RuntimeError):
 
 
 @cached
-def retrieve_koji_build_target(nvr: str, koji_url: str):
-    log.debug('Getting Koji task request ID %r', nvr)
+def retrieve_koji_build_target(task_id, koji_url: str):
+    log.debug('Getting Koji task request ID %r', task_id)
     proxy = _koji(koji_url)
-    task_request = proxy.getTaskRequest(nvr)
+    task_request = proxy.getTaskRequest(task_id)
     if isinstance(task_request, list) and len(task_request) > 1:
         target = task_request[1]
         if isinstance(target, str):

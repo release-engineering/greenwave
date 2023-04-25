@@ -21,7 +21,7 @@ def create_resultdb_handler(greenwave_server, cache_config=None):
 @mock.patch('greenwave.consumers.consumer.fedora_messaging.api.publish')
 def test_consume_new_result(
         mock_fedora_messaging, requests_session, greenwave_server,
-        testdatabuilder):
+        testdatabuilder, koji_proxy):
     nvr = testdatabuilder.unique_nvr(product_version='fc26')
     result = testdatabuilder.create_result(item=nvr,
                                            testcase_name='dist.rpmdeplint',
@@ -296,7 +296,7 @@ def test_consume_compose_id_result(
 @mock.patch('greenwave.consumers.consumer.fedora_messaging.api.publish')
 def test_consume_legacy_result(
         mock_fedora_messaging, requests_session, greenwave_server,
-        testdatabuilder):
+        testdatabuilder, koji_proxy):
     """ Test that we can still handle the old legacy "taskotron" format.
 
     We should be using resultsdb.result.new everywhere now, but we also

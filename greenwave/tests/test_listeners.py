@@ -15,7 +15,7 @@ from greenwave.monitor import (
     messaging_rx_ignored_counter,
 )
 from greenwave.policies import Policy
-from greenwave.product_versions import subject_product_version
+from greenwave.product_versions import subject_product_versions
 from greenwave.subjects.factory import create_subject
 
 DECISION_UPDATE_TOPIC = "/topic/VirtualTopic.eng.greenwave.decision.update"
@@ -333,6 +333,7 @@ def test_decision_changes(
     mock_connection,
     old_decision,
     new_decision,
+    koji_proxy,
 ):
     """
     Test publishing decision changes with given previous decision.
@@ -410,6 +411,7 @@ def test_decision_does_not_change(
     mock_connection,
     old_decision,
     new_decision,
+    koji_proxy,
 ):
     """
     Test not publishing decision changes with given previous decision.
@@ -438,6 +440,7 @@ def test_decision_does_not_change_on_incomplete_outcome(
     mock_retrieve_results,
     mock_connection,
     outcome,
+    koji_proxy,
 ):
     """
     Test not publishing decision changes with given previous decision.
@@ -475,6 +478,7 @@ def test_remote_rule_decision_change(
     mock_retrieve_scm_from_koji,
     mock_retrieve_results,
     mock_connection,
+    koji_proxy,
 ):
     """
     Test publishing decision change message for test cases mentioned in
@@ -539,6 +543,7 @@ def test_remote_rule_decision_change_not_matching(
     mock_retrieve_scm_from_koji,
     mock_retrieve_results,
     mock_connection,
+    koji_proxy,
 ):
     """
     Test publishing decision change message for test cases mentioned in
@@ -569,19 +574,19 @@ def test_remote_rule_decision_change_not_matching(
     assert len(mock_connection.send.mock_calls) == 0
 
 
-def test_guess_product_version(mock_connection):
+def test_guess_product_version(mock_connection, koji_proxy):
     listener = resultsdb_listener()
 
     with listener.app.app_context():
         subject = create_subject("koji_build", "release-e2e-test-1.0.1685-1.el5")
-        product_version = subject_product_version(subject)
-        assert product_version == "rhel-5"
+        product_versions = subject_product_versions(subject)
+        assert product_versions == ["rhel-5"]
 
         subject = create_subject(
             "redhat-module", "rust-toolset-rhel8-20181010170614.b09eea91"
         )
-        product_version = subject_product_version(subject)
-        assert product_version == "rhel-8"
+        product_versions = subject_product_versions(subject)
+        assert product_versions == ["rhel-8"]
 
 
 def test_guess_product_version_with_koji(koji_proxy, app):
@@ -593,22 +598,22 @@ def test_guess_product_version_with_koji(koji_proxy, app):
     ]
 
     subject = create_subject("container-build", "fake_koji_build")
-    product_version = subject_product_version(subject, "http://localhost:5006/kojihub")
+    product_versions = subject_product_versions(subject, "http://localhost:5006/kojihub")
 
     koji_proxy.getBuild.assert_called_once_with("fake_koji_build")
     koji_proxy.getTaskRequest.assert_called_once_with(666)
-    assert product_version == "fedora-rawhide"
+    assert product_versions == ["fedora-rawhide"]
 
 
 def test_guess_product_version_with_koji_without_task_id(koji_proxy, app):
     koji_proxy.getBuild.return_value = {"task_id": None}
 
     subject = create_subject("container-build", "fake_koji_build")
-    product_version = subject_product_version(subject, "http://localhost:5006/kojihub")
+    product_versions = subject_product_versions(subject, "http://localhost:5006/kojihub")
 
     koji_proxy.getBuild.assert_called_once_with("fake_koji_build")
     koji_proxy.getTaskRequest.assert_not_called()
-    assert product_version is None
+    assert product_versions == []
 
 
 @pytest.mark.parametrize(
@@ -626,11 +631,11 @@ def test_guess_product_version_with_koji_and_unexpected_task_type(
     koji_proxy.getTaskRequest.return_value = task_request
 
     subject = create_subject("container-build", "fake_koji_build")
-    product_version = subject_product_version(subject, "http://localhost:5006/kojihub")
+    product_versions = subject_product_versions(subject, "http://localhost:5006/kojihub")
 
     koji_proxy.getBuild.assert_called_once_with("fake_koji_build")
     koji_proxy.getTaskRequest.assert_called_once_with(666)
-    assert product_version is None
+    assert product_versions == []
 
 
 @pytest.mark.parametrize(
@@ -646,8 +651,8 @@ def test_guess_product_version_failure(nvr):
     app = create_app(config_obj=CONFIG_NAME)
     with app.app_context():
         subject = create_subject("koji_build", nvr)
-    product_version = subject_product_version(subject)
-    assert product_version is None
+    product_versions = subject_product_versions(subject)
+    assert product_versions == []
 
 
 def test_decision_change_for_modules(
@@ -1106,7 +1111,7 @@ def test_listener_unique_ids(mock_connection):
     assert listener2.uid.startswith("greenwave-waiverdb-")
 
 
-def test_listener_reconnect(mock_retrieve_results, mock_connection):
+def test_listener_reconnect(mock_retrieve_results, mock_connection, koji_proxy):
     """
     Test reconnect on send failure.
     """
@@ -1126,7 +1131,7 @@ def test_listener_reconnect(mock_retrieve_results, mock_connection):
     assert len(mock_connection.ack.mock_calls) == 1
 
 
-def test_listener_send_failure(mock_connection):
+def test_listener_send_failure(mock_connection, koji_proxy):
     """
     Test exception on send.
     """
