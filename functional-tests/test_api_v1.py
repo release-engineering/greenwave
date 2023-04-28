@@ -1730,7 +1730,7 @@ def test_make_a_decision_all_scenarios_waived(
         for scenario in scenarios
     ]
 
-    testdatabuilder.create_waiver(
+    waiver = testdatabuilder.create_waiver(
         nvr=nvr,
         product_version='fedora-26',
         testcase_name='test1',
@@ -1755,6 +1755,7 @@ def test_make_a_decision_all_scenarios_waived(
             'subject_identifier': nvr,
             'subject_type': 'koji_build',
             'result_id': result['id'],
+            'waiver_id': waiver['id'],
             'testcase': 'test1',
             'scenario': result['data']['scenario'][0],
             'system_architecture': None,

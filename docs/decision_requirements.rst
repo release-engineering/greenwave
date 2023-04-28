@@ -191,6 +191,7 @@ Waived failed test result
         "subject_type": "koji-build",
         "subject_identifier": "nethack-1.2.3-1.rawhide",
         "result_id": 1002,
+        "waiver_id": 123,
         "scenario": null
     }
 
@@ -204,6 +205,7 @@ Waived missing test result
         "testcase": "example.test.case",
         "subject_type": "koji-build",
         "subject_identifier": "nethack-1.2.3-1.rawhide",
+        "waiver_id": 123,
         "scenario": null
     }
 
@@ -218,6 +220,7 @@ Waived errored test result
         "subject_type": "koji-build",
         "subject_identifier": "nethack-1.2.3-1.rawhide",
         "result_id": 1003,
+        "waiver_id": 123,
         "error_reason": "CI system out of memory",
         "scenario": null
     }

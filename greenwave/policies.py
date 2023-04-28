@@ -144,7 +144,7 @@ class RuleNotSatisfied(Answer):
     def to_json(self):
         raise NotImplementedError()
 
-    def to_waived(self):
+    def to_waived(self, waiver_id):
         """
         Transform unsatisfied answer to waived one.
         """
@@ -176,8 +176,8 @@ class TestResultMissing(RuleNotSatisfied):
             'item': self.subject.to_dict()
         }
 
-    def to_waived(self):
-        return TestResultWaived(self)
+    def to_waived(self, waiver_id):
+        return TestResultWaived(self, waiver_id)
 
 
 class TestResultIncomplete(RuleNotSatisfied):
@@ -213,8 +213,8 @@ class TestResultIncomplete(RuleNotSatisfied):
         data.update(self.data)
         return data
 
-    def to_waived(self):
-        return TestResultWaived(self)
+    def to_waived(self, waiver_id):
+        return TestResultWaived(self, waiver_id)
 
 
 class TestResultWaived(RuleSatisfied):
@@ -224,12 +224,14 @@ class TestResultWaived(RuleSatisfied):
     Contains same data as unsatisfied rule except the type has "-waived"
     suffix. Also, the deprecated "item" field is dropped.
     """
-    def __init__(self, unsatisfied_rule):
+    def __init__(self, unsatisfied_rule, waiver_id):
         self.unsatisfied_rule = unsatisfied_rule
+        self.waiver_id = waiver_id
 
     def to_json(self):
         satisfied_rule = self.unsatisfied_rule.to_json()
         satisfied_rule['type'] += '-waived'
+        satisfied_rule['waiver_id'] = self.waiver_id
 
         if 'item' in satisfied_rule:
             del satisfied_rule['item']
@@ -271,8 +273,8 @@ class TestResultFailed(RuleNotSatisfied):
         data.update(self.data)
         return data
 
-    def to_waived(self):
-        return TestResultWaived(self)
+    def to_waived(self, waiver_id):
+        return TestResultWaived(self, waiver_id)
 
 
 class TestResultErrored(RuleNotSatisfied):
@@ -319,8 +321,8 @@ class TestResultErrored(RuleNotSatisfied):
         data.update(self.data)
         return data
 
-    def to_waived(self):
-        return TestResultWaived(self)
+    def to_waived(self, waiver_id):
+        return TestResultWaived(self, waiver_id)
 
 
 class InvalidRemoteRuleYaml(RuleNotSatisfied):
@@ -347,7 +349,7 @@ class InvalidRemoteRuleYaml(RuleNotSatisfied):
             'details': self.details
         }
 
-    def to_waived(self):
+    def to_waived(self, waiver_id):
         return None
 
 
@@ -373,7 +375,7 @@ class MissingRemoteRuleYaml(RuleNotSatisfied):
             'sources': self.sources,
         }
 
-    def to_waived(self):
+    def to_waived(self, waiver_id):
         return None
 
 
@@ -402,7 +404,7 @@ class FailedFetchRemoteRuleYaml(RuleNotSatisfied):
             'error': self.error,
         }
 
-    def to_waived(self):
+    def to_waived(self, waiver_id):
         return None
 
 
