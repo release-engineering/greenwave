@@ -46,6 +46,10 @@ class SubjectType(SafeYAMLObject):
         #   '\1', '\2' etc, expanded to matched groups)
         'product_version_match': SafeYAMLList(item_type=dict, optional=True),
 
+        # Same as product_version_match, but to match build target from Koji
+        # instead of subject ID.
+        'product_version_from_koji_build_target': SafeYAMLList(item_type=dict, optional=True),
+
         # Fixed product version for the subject type used if
         # product_version_match is undefined or does not match subject ID.
         'product_version': SafeYAMLString(optional=True),

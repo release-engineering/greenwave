@@ -13,3 +13,8 @@ result_queries:
       type: "koji_build,brew-build"
   # {"original_spec_nvr": ITEM}
   - item_key: "original_spec_nvr"
+product_version_from_koji_build_target:
+  - match: '^(rhel-\d+\.\d+).*'
+    product_version: '\1'
+  - match: '^(rhel-\d+).*'
+    product_version: '\1'

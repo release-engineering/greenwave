@@ -34,7 +34,7 @@ def test_subject_create_generic(app):
     assert subject.identifier == subject.item
     assert subject.package_name is None
     assert subject.short_product_version is None
-    assert subject.product_version is None
+    assert subject.product_versions == []
     assert subject.is_koji_build
     assert not subject.supports_remote_rule
 
@@ -68,11 +68,11 @@ def test_subject_to_repr_generic(app):
 
 
 @pytest.mark.parametrize('compose, expected_product_version', (
-    ('RHEL-8.5.0-20210101.d.1', 'rhel-8'),
-    ('RHEL-9.0.0-20210101.d.2', 'rhel-9'),
-    ('FEDORA-2021-35759ad8d3', None),
+    ('RHEL-8.5.0-20210101.d.1', ['rhel-8']),
+    ('RHEL-9.0.0-20210101.d.2', ['rhel-9']),
+    ('FEDORA-2021-35759ad8d3', []),
 ))
 def test_subject_product_version_match(compose, expected_product_version, app):
     subject = create_subject('compose', compose)
     assert subject._type.product_version_match
-    assert subject.product_version == expected_product_version, compose
+    assert subject.product_versions == expected_product_version, compose

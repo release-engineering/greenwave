@@ -6,6 +6,7 @@ Product version guessing for subject identifiers
 import logging
 import re
 import socket
+from typing import List
 
 from defusedxml.xmlrpc import xmlrpc_client
 from werkzeug.exceptions import NotFound
@@ -18,9 +19,9 @@ from greenwave.resources import (
 log = logging.getLogger(__name__)
 
 
-def _guess_product_version(toparse, koji_build=False):
+def _guess_product_versions(toparse, koji_build=False) -> List[str]:
     if toparse == 'rawhide' or toparse.startswith('Fedora-Rawhide'):
-        return 'fedora-rawhide'
+        return ['fedora-rawhide']
 
     product_version = None
     if toparse.startswith('f') and koji_build:
@@ -41,52 +42,58 @@ def _guess_product_version(toparse, koji_build=False):
             try:
                 int(result[1])
                 product_version += result[1]
-                return product_version
+                return [product_version]
             except ValueError:
                 pass
 
     log.warning("Failed to guess the product version for %s", toparse)
-    return None
+    return []
 
 
-def _guess_koji_build_product_version(
-        subject_identifier, koji_base_url, koji_task_id=None):
+def _guess_koji_build_product_versions(
+        subject, koji_base_url, koji_task_id=None) -> List[str]:
     try:
         if not koji_task_id:
             try:
                 koji_task_id = retrieve_koji_build_task_id(
-                    subject_identifier, koji_base_url
+                    subject.identifier, koji_base_url
                 )
             except NotFound:
                 koji_task_id = None
 
             if not koji_task_id:
-                return None
+                return []
 
         target = retrieve_koji_build_target(koji_task_id, koji_base_url)
         if target:
-            return _guess_product_version(target, koji_build=True)
+            pvs = subject.product_versions_from_koji_build_target(target)
+            if pvs:
+                return pvs
+            return _guess_product_versions(target, koji_build=True)
 
-        return None
+        return []
     except (xmlrpc_client.ProtocolError, socket.error) as err:
         raise ConnectionError('Could not reach Koji: {}'.format(err))
     except xmlrpc_client.Fault:
         log.exception('Unexpected Koji XML RPC fault')
+        return []
 
 
-def subject_product_version(
+def subject_product_versions(
         subject,
         koji_base_url=None,
-        koji_task_id=None):
-    if subject.product_version:
-        return subject.product_version
-
-    if subject.short_product_version:
-        product_version = _guess_product_version(
-            subject.short_product_version, koji_build=subject.is_koji_build)
-        if product_version:
-            return product_version
+        koji_task_id=None) -> List[str]:
+    if subject.product_versions:
+        return subject.product_versions
 
     if koji_base_url and subject.is_koji_build:
-        return _guess_koji_build_product_version(
-            subject.identifier, koji_base_url, koji_task_id)
+        pvs = _guess_koji_build_product_versions(
+            subject, koji_base_url, koji_task_id)
+        if pvs:
+            return pvs
+
+    if subject.short_product_version:
+        return _guess_product_versions(
+            subject.short_product_version, koji_build=subject.is_koji_build)
+
+    return []

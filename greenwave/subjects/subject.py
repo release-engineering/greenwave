@@ -35,6 +35,10 @@ class Subject:
         self._type = type_
         self.item = item
 
+    def product_versions_from_koji_build_target(self, target):
+        return sorted(self._matching_product_versions(
+            target, self._type.product_version_from_koji_build_target))
+
     @property
     def type(self):
         """Subject type string."""
@@ -67,13 +71,19 @@ class Subject:
         return None
 
     @property
-    def product_version(self):
-        for pv_match in self._type.product_version_match:
-            pv = re.sub(pv_match['match'], pv_match['product_version'], self.item)
-            if pv and pv != self.item:
-                return pv.lower()
+    def product_versions(self):
+        pvs = sorted({
+            pv.lower()
+            for pv in self._matching_product_versions(
+                self.item, self._type.product_version_match)
+        })
+        if pvs:
+            return pvs
 
-        return self._type.product_version
+        if self._type.product_version:
+            return [self._type.product_version]
+
+        return []
 
     @property
     def is_koji_build(self):
@@ -105,6 +115,13 @@ class Subject:
                 yield _to_dict(query_dict, self.item)
         else:
             yield self.to_dict()
+
+    def _matching_product_versions(self, text, match_dict):
+        return {
+            re.sub(pv_match['match'], pv_match['product_version'], text)
+            for pv_match in match_dict
+            if re.match(pv_match['match'], text)
+        }
 
     def __str__(self):
         return "subject_type {!r}, subject_identifier {!r}".format(

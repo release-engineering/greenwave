@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 from greenwave.listeners.base import BaseListener
-from greenwave.product_versions import subject_product_version
+from greenwave.product_versions import subject_product_versions
 from greenwave.subjects.factory import (
     create_subject_from_data,
     UnknownSubjectDataError,
@@ -94,19 +94,24 @@ class ResultsDBListener(BaseListener):
 
         self.app.logger.debug("Considering subject: %r", subject)
 
-        product_version = subject_product_version(
+        product_versions = subject_product_versions(
             subject,
             self.koji_base_url,
             brew_task_id,
         )
 
-        self.app.logger.debug("Guessed product version: %r", product_version)
+        self.app.logger.debug("Guessed product versions: %r", product_versions)
 
-        self._publish_decision_change(
-            submit_time=submit_time,
-            subject=subject,
-            testcase=testcase,
-            product_version=product_version,
-            publish_testcase=False,
-        )
+        if not product_versions:
+            product_versions = [None]
+
+        for product_version in product_versions:
+            self._publish_decision_change(
+                submit_time=submit_time,
+                subject=subject,
+                testcase=testcase,
+                product_version=product_version,
+                publish_testcase=False,
+            )
+
         return True
