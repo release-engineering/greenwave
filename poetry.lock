@@ -495,14 +495,14 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "fedora-messaging"
-version = "3.3.0"
+version = "3.4.1"
 description = "A set of tools for using Fedora's messaging infrastructure"
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "fedora_messaging-3.3.0-py3-none-any.whl", hash = "sha256:bd797e82ecbdf66c2a592d92e50e025ef7fd58c0c9ebba139018229353c603cf"},
-    {file = "fedora_messaging-3.3.0.tar.gz", hash = "sha256:2cae159c471e3ee40017a8a42d44c2e72ad2ca23550324428674fe5b2ec09988"},
+    {file = "fedora_messaging-3.4.1-py3-none-any.whl", hash = "sha256:b523138b14be42740d0ab831807fea2211f19a9727e526ba9211fb33b1204440"},
+    {file = "fedora_messaging-3.4.1.tar.gz", hash = "sha256:a73655642a32069423bab1f53e84a1c6fc2cba1e1599d059ffc737fd52ac36c9"},
 ]
 
 [package.dependencies]
@@ -1961,4 +1961,4 @@ test = ["flake8", "pytest", "pytest-cov", "mock"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.10"
-content-hash = "711af5dd1ca46a857ea0908f908fe167196e961ef4055b3a146ef38c1f5577be"
+content-hash = "1c8cb50b4141985a3fd7745aba6412f4c4cc76d3926b62a9cc5d47880f55ed72"

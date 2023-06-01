@@ -29,7 +29,7 @@ flask = "^2.3.2"
 gunicorn = "^20.1.0"
 requests = "^2.31.0"
 python-dateutil = "^2.8.2"
-fedora-messaging = "^3.3.0"
+fedora-messaging = "^3.4.1"
 
 # latest versions of stomp.py 8.0.0 and 8.0.1 are causing connection issues
 "stomp.py" = "^8.1.0"
