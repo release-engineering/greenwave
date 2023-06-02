@@ -98,7 +98,7 @@ For such policy, missing remote rule file could result in the following decision
      "applicable_policies": ["some_policy"],
      "policies_satisfied": false,
      "satisfied_requirements": []
-     "summary": "1 of 1 required tests failed",
+     "summary": "Of 1 required test(s), 1 test(s) failed",
      "unsatisfied_requirements": [{
        "subject_identifier": "nethack-1.2.3-1.f31",
        "subject_type": "koji_build",

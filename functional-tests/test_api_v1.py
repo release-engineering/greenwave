@@ -238,7 +238,7 @@ def test_make_a_decision_on_passed_result(requests_session, greenwave_server, te
         'taskotron_release_critical_tasks_with_blocklist',
         'taskotron_release_critical_tasks',
     ]
-    expected_summary = 'All required tests passed'
+    expected_summary = 'All required tests passed or waived'
     assert res_data['summary'] == expected_summary
 
 
@@ -370,7 +370,7 @@ def test_make_a_decision_on_failed_result_with_waiver(
     assert res_data['policies_satisfied'] is True
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
-    expected_summary = 'All required tests passed'
+    expected_summary = 'All required tests passed or waived'
     assert res_data['summary'] == expected_summary
 
 
@@ -391,7 +391,7 @@ def test_make_a_decision_on_failed_result(requests_session, greenwave_server, te
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
-    expected_summary = '1 of 3 required tests failed, 2 results missing'
+    expected_summary = 'Of 3 required test(s), 1 test(s) failed, 2 result(s) missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
@@ -437,7 +437,7 @@ def test_make_a_decision_on_queued_result(requests_session, greenwave_server, te
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
-    expected_summary = '3 of 3 required test results missing'
+    expected_summary = 'Of 3 required test(s), 1 test(s) incomplete, 2 result(s) missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
@@ -483,7 +483,7 @@ def test_make_a_decision_on_running_result(requests_session, greenwave_server, t
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
-    expected_summary = '3 of 3 required test results missing'
+    expected_summary = 'Of 3 required test(s), 1 test(s) incomplete, 2 result(s) missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
@@ -526,7 +526,7 @@ def test_make_a_decision_on_no_results(requests_session, greenwave_server, testd
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
-    expected_summary = '3 of 3 required test results missing'
+    expected_summary = 'Of 3 required test(s), 3 result(s) missing'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
@@ -571,7 +571,7 @@ def test_make_a_decision_on_redhat_cont_image(requests_session, greenwave_server
     assert r.status_code == 200
     res_data = r.json()
     assert res_data['policies_satisfied'] is False
-    expected_summary = '2 of 2 required tests failed'
+    expected_summary = 'Of 2 required test(s), 2 test(s) failed'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [
         {
@@ -623,7 +623,7 @@ def test_subject_type_group(requests_session, greenwave_server, testdatabuilder)
     assert res_data['satisfied_requirements'][0]['type'] == 'test-result-passed'
     assert res_data['policies_satisfied'] is True
 
-    expected_summary = 'All required tests passed'
+    expected_summary = 'All required tests passed or waived'
     assert res_data['summary'] == expected_summary
 
 
@@ -640,7 +640,7 @@ def test_empty_policy_is_always_satisfied(
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['empty-policy']
-    expected_summary = 'no tests are required'
+    expected_summary = 'No tests are required'
     assert res_data['summary'] == expected_summary
     assert res_data['unsatisfied_requirements'] == []
 
@@ -664,7 +664,7 @@ def test_bodhi_push_update_stable_policy(
     assert res_data['policies_satisfied'] is True
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
-    expected_summary = 'All required tests passed'
+    expected_summary = 'All required tests passed or waived'
     assert res_data['summary'] == expected_summary
     assert res_data['unsatisfied_requirements'] == []
 
@@ -687,7 +687,7 @@ def test_bodhi_nonexistent_bodhi_update_policy(
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == []
-    assert res_data['summary'] == 'no tests are required'
+    assert res_data['summary'] == 'No tests are required'
     assert res_data['unsatisfied_requirements'] == []
 
 
@@ -723,7 +723,7 @@ def test_multiple_results_in_a_subject(
     assert res_data['policies_satisfied'] is False
     assert 'taskotron_release_critical_tasks' in res_data['applicable_policies']
     assert 'taskotron_release_critical_tasks_with_blocklist' in res_data['applicable_policies']
-    assert res_data['summary'] == '1 of 3 required tests failed'
+    assert res_data['summary'] == 'Of 3 required test(s), 1 test(s) failed'
     expected_unsatisfied_requirements = [
         {
             'item': {'item': nvr, 'type': 'koji_build'},
@@ -821,7 +821,7 @@ def test_make_a_decision_on_passed_result_with_scenario(
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['openqa_important_stuff_for_rawhide']
-    expected_summary = 'All required tests passed'
+    expected_summary = 'All required tests passed or waived'
     assert res_data['summary'] == expected_summary
 
 
@@ -859,7 +859,7 @@ def test_make_a_decision_on_failing_result_with_scenario(
     res_data = r.json()
     assert res_data['policies_satisfied'] is False
     assert res_data['applicable_policies'] == ['openqa_important_stuff_for_rawhide']
-    expected_summary = '1 of 2 required tests failed'
+    expected_summary = 'Of 2 required test(s), 1 test(s) failed'
     assert res_data['summary'] == expected_summary
     expected_unsatisfied_requirements = [{
         'item': {'productmd.compose.id': compose_id},
@@ -1049,7 +1049,7 @@ def test_make_a_decision_about_brew_build(requests_session, greenwave_server, te
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
     assert res_data['applicable_policies'] == ['osci_compose']
-    assert res_data['summary'] == 'All required tests passed'
+    assert res_data['summary'] == 'All required tests passed or waived'
 
 
 def test_validate_gating_yaml_valid(requests_session, greenwave_server):
@@ -1295,7 +1295,7 @@ def test_decision_on_redhat_module(requests_session, greenwave_server, testdatab
     assert r.status_code == 200
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
-    expected_summary = 'All required tests passed'
+    expected_summary = 'All required tests passed or waived'
     assert res_data['summary'] == expected_summary
     assert res_data['results'][0]['data']['type'][0] == 'redhat-module'
 
@@ -1319,7 +1319,7 @@ def test_verbose_retrieve_latest_results(requests_session, greenwave_server, tes
     assert r.status_code == 200
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
-    expected_summary = 'All required tests passed'
+    expected_summary = 'All required tests passed or waived'
     assert res_data['summary'] == expected_summary
     assert len(res_data['results']) == 3
     for result in res_data['results']:
@@ -1361,7 +1361,7 @@ def test_make_decision_passed_on_subject_type_bodhi_with_waiver(
     assert res_data['applicable_policies'] == [
         'bodhi-test-policy',
     ]
-    expected_summary = 'All required tests passed'
+    expected_summary = 'All required tests passed or waived'
     assert res_data['summary'] == expected_summary
 
 
@@ -1420,7 +1420,7 @@ def test_verbose_retrieve_latest_results_scenario(requests_session, greenwave_se
     assert r.status_code == 200
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
-    expected_summary = 'All required tests passed'
+    expected_summary = 'All required tests passed or waived'
     assert res_data['summary'] == expected_summary
     assert len(res_data['results']) == 2
     for result in res_data['results']:
@@ -1699,7 +1699,7 @@ def test_make_a_decision_on_passed_result_with_custom_scenario(
     assert r.status_code == 200
     res_data = r.json()
     assert res_data['policies_satisfied'] is True
-    assert res_data['summary'] == 'All required tests passed'
+    assert res_data['summary'] == 'All required tests passed or waived'
     assert res_data['satisfied_requirements'] == [
         {
             'subject_identifier': item1_nvr,
@@ -1766,4 +1766,4 @@ def test_make_a_decision_all_scenarios_waived(
         for result in results
     ]
     assert res_data['policies_satisfied'] is True
-    assert res_data['summary'] == 'All required tests passed'
+    assert res_data['summary'] == 'All required tests passed or waived'

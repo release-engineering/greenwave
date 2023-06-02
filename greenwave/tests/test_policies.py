@@ -83,17 +83,17 @@ def test_summarize_answers():
     testResultMissing = TestResultMissing(testSubject, 'test', None, None)
 
     assert summarize_answers([testResultPassed]) == \
-        'All required tests passed'
+        'All required tests passed or waived'
     assert summarize_answers([testResultFailed, testResultPassed]) == \
-        '1 of 2 required tests failed'
+        'Of 2 required test(s), 1 test(s) failed'
     assert summarize_answers([testResultMissing]) == \
-        '1 of 1 required test results missing'
-    assert summarize_answers([testResultMissing, testResultFailed]) == \
-        '1 of 2 required tests failed, 1 result missing'
-    assert summarize_answers([testResultMissing, testResultMissing, testResultFailed]) == \
-        '1 of 3 required tests failed, 2 results missing'
+        'Of 1 required test(s), 1 result(s) missing'
+    assert summarize_answers([testResultFailed, testResultMissing]) == \
+        'Of 2 required test(s), 1 test(s) failed, 1 result(s) missing'
+    assert summarize_answers([testResultFailed, testResultMissing, testResultMissing]) == \
+        'Of 3 required test(s), 1 test(s) failed, 2 result(s) missing'
     assert summarize_answers([testResultMissing, testResultPassed]) == \
-        '1 of 2 required test results missing'
+        'Of 2 required test(s), 1 result(s) missing'
 
 
 def test_decision_with_missing_result(tmpdir):
