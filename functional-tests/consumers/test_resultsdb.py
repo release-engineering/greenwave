@@ -89,7 +89,7 @@ def test_consume_new_result(
                 'source': None,
             }
         ],
-        'summary': '2 of 3 required test results missing',
+        'summary': 'Of 3 required test(s), 2 result(s) missing',
         'subject': [
             {'item': nvr, 'type': 'koji_build'},
         ],
@@ -101,7 +101,7 @@ def test_consume_new_result(
             'applicable_policies': ['taskotron_release_critical_tasks_with_blocklist',
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
-            'summary': '3 of 3 required test results missing',
+            'summary': 'Of 3 required test(s), 3 result(s) missing',
             'satisfied_requirements': [],
             'unsatisfied_requirements': [
                 {
@@ -152,7 +152,7 @@ def test_consume_new_result(
             },
         ],
         'unsatisfied_requirements': [],
-        'summary': 'All required tests passed',
+        'summary': 'All required tests passed or waived',
         'subject': [
             {'item': nvr, 'type': 'koji_build'},
         ],
@@ -162,7 +162,7 @@ def test_consume_new_result(
         'previous': {
             'applicable_policies': ['taskotron_release_critical_tasks_for_testing'],
             'policies_satisfied': False,
-            'summary': '1 of 1 required test results missing',
+            'summary': 'Of 1 required test(s), 1 result(s) missing',
             'satisfied_requirements': [],
             'unsatisfied_requirements': [
                 {
@@ -260,7 +260,7 @@ def test_consume_compose_id_result(
         'subject': [{'productmd.compose.id': compose_id}],
         'subject_type': 'compose',
         'subject_identifier': compose_id,
-        'summary': '1 of 2 required test results missing',
+        'summary': 'Of 2 required test(s), 1 result(s) missing',
         'previous': old_decision,
         'satisfied_requirements': [{
             'subject_type': 'compose',
@@ -380,7 +380,7 @@ def test_consume_legacy_result(
                 'source': None,
             }
         ],
-        'summary': '2 of 3 required test results missing',
+        'summary': 'Of 3 required test(s), 2 result(s) missing',
         'subject': [
             {
                 'item': nvr,
@@ -427,7 +427,7 @@ def test_consume_legacy_result(
             'type': 'test-result-passed'
         }],
         'unsatisfied_requirements': [],
-        'summary': 'All required tests passed',
+        'summary': 'All required tests passed or waived',
         'subject': [
             {
                 'item': nvr,
@@ -628,7 +628,7 @@ def test_consume_new_result_container_image(
         'subject': [{'item': item_hash, 'type': 'container-image'}],
         'subject_type': 'container-image',
         'subject_identifier': item_hash,
-        'summary': 'All required tests passed',
+        'summary': 'All required tests passed or waived',
         'previous': old_decision,
         'satisfied_requirements': [{
             'subject_type': 'container-image',

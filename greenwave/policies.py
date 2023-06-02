@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+from collections import defaultdict
 from fnmatch import fnmatch
 import glob
 import logging
@@ -139,6 +140,7 @@ class RuleNotSatisfied(Answer):
     """
 
     is_satisfied = False
+    summary_text = "unexpected unsatisfied requirement(s)"
 
     def to_json(self):
         raise NotImplementedError()
@@ -149,12 +151,20 @@ class RuleNotSatisfied(Answer):
         """
         raise NotImplementedError()
 
+    def update_summary(self, summary):
+        if self.is_test_result:
+            summary.test_msgs[self.summary_text] += 1
+        else:
+            summary.non_test_msgs[self.summary_text] += 1
+
 
 class TestResultMissing(RuleNotSatisfied):
     """
     A required test case is missing (that is, we did not find any result in
     ResultsDB with a matching item and test case name).
     """
+
+    summary_text = "result(s) missing"
 
     def __init__(self, subject, test_case_name, scenario, source):
         self.subject = subject
@@ -184,6 +194,8 @@ class TestResultIncomplete(RuleNotSatisfied):
     A required test case is incomplete (that is, we did not find any completed
     result outcomes in ResultsDB with a matching item and test case name).
     """
+
+    summary_text = "test(s) incomplete"
 
     def __init__(self, subject, test_case_name, source, result_id, data):
         self.subject = subject
@@ -244,6 +256,8 @@ class TestResultFailed(RuleNotSatisfied):
     not passing).
     """
 
+    summary_text = "test(s) failed"
+
     def __init__(self, subject, test_case_name, source, result_id, data):
         self.subject = subject
         self.test_case_name = test_case_name
@@ -282,6 +296,8 @@ class TestResultErrored(RuleNotSatisfied):
     testing process and could not finish the testing (outcome in ResultsDB
     was an error).
     """
+
+    summary_text = "test(s) errored"
 
     def __init__(
             self,
@@ -330,6 +346,8 @@ class InvalidRemoteRuleYaml(RuleNotSatisfied):
     """
 
     scenario = None
+    is_test_result = False
+    summary_text = "non-test-result unsatisfied requirement(s) (gating.yaml issues)"
 
     def __init__(self, subject, test_case_name, details, source):
         self.subject = subject
@@ -359,6 +377,8 @@ class MissingRemoteRuleYaml(RuleNotSatisfied):
 
     test_case_name = 'missing-gating-yaml'
     scenario = None
+    is_test_result = False
+    summary_text = "non-test-result unsatisfied requirement(s) (gating.yaml issues)"
 
     def __init__(self, subject, sources):
         self.subject = subject
@@ -383,9 +403,10 @@ class FailedFetchRemoteRuleYaml(RuleNotSatisfied):
     Error while fetching remote policy.
     """
 
-    scenario = None
-
     test_case_name = 'failed-fetch-gating-yaml'
+    scenario = None
+    is_test_result = False
+    summary_text = "non-test-result unsatisfied requirement(s) (gating.yaml issues)"
 
     def __init__(self, subject, sources, error):
         self.subject = subject
@@ -457,6 +478,9 @@ class ExcludedInPolicy(RuleSatisfied):
     """
     Package was excluded in policy.
     """
+
+    is_test_result = False
+
     def __init__(self, subject_identifier, policy):
         self.subject_identifier = subject_identifier
         self.policy = policy
@@ -470,35 +494,26 @@ class ExcludedInPolicy(RuleSatisfied):
         }
 
 
-def _summarize_answers_without_errored(answers):
-    failure_count = sum(
-        1 for answer in answers
-        if isinstance(answer, RuleNotSatisfied)
-    )
-    missing_count = sum(
-        1 for answer in answers
-        if isinstance(answer, (TestResultIncomplete, TestResultMissing))
-    )
+class _Summary(object):
+    """
+    Internal class using for generating the result summary.
+    """
+    def __init__(self):
+        self.test_msgs = defaultdict(int)
+        self.non_test_msgs = defaultdict(int)
 
-    # Missing results are also failures but we will distinguish between those
-    # two in summary message.
-    failure_count -= missing_count
-
-    if failure_count and missing_count:
-        return '{} of {} required tests failed, {} result{} missing'.format(
-            failure_count, len(answers), missing_count, 's' if missing_count > 1 else '')
-
-    if failure_count > 0:
-        return '{} of {} required tests failed'.format(failure_count, len(answers))
-
-    if missing_count > 0:
-        return '{} of {} required test results missing'.format(missing_count, len(answers))
-
-    if all(answer.is_satisfied for answer in answers):
-        return 'All required tests passed'
-
-    logging.error('Unexpected unsatisfied result')
-    return 'inexplicable result'
+    def to_text(self, test_count):
+        msgstr = ""
+        if self.non_test_msgs:
+            msgstr = ", ".join(f"{num} {msg}" for (msg, num) in self.non_test_msgs.items())
+        if self.test_msgs:
+            addmsg = f"Of {test_count} required test(s), "
+            addmsg += ", ".join(f"{num} {msg}" for (msg, num) in self.test_msgs.items())
+            if msgstr:
+                msgstr = f"{msgstr}. {addmsg}"
+            else:
+                msgstr = addmsg
+        return msgstr
 
 
 def summarize_answers(answers):
@@ -511,23 +526,25 @@ def summarize_answers(answers):
     Returns:
         str: Human-readable summary.
     """
-    test_answers = [
-        answer for answer in answers
-        if answer.is_test_result
-    ]
-    if not test_answers:
-        return 'no tests are required'
+    summary = _Summary()
+    test_count = 0
+    for answer in answers:
+        if isinstance(answer, RuleNotSatisfied):
+            answer.update_summary(summary)
+        if answer.is_test_result:
+            test_count += 1
 
-    summary = _summarize_answers_without_errored(test_answers)
+    msgstr = summary.to_text(test_count)
+    if msgstr:
+        return msgstr
 
-    errored_count = len([
-        answer for answer in test_answers
-        if isinstance(answer, TestResultErrored)
-    ])
-    if errored_count:
-        summary += f' ({errored_count} {"error" if errored_count == 1 else "errors"})'
+    # if we got here, there should be no unsatisfied results
+    if test_count:
+        # this means we had some passed/waived tests
+        return 'All required tests passed or waived'
 
-    return summary
+    # otherwise, should mean we had no required tests
+    return 'No tests are required'
 
 
 class Rule(SafeYAMLObject):

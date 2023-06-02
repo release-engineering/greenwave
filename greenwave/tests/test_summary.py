@@ -32,47 +32,47 @@ def test_summary_passed():
     answers = [
         testResultPassed,
     ]
-    assert summarize_answers(answers) == 'All required tests passed'
+    assert summarize_answers(answers) == 'All required tests passed or waived'
 
 
 def test_summary_empty():
     answers = []
-    assert summarize_answers(answers) == 'no tests are required'
+    assert summarize_answers(answers) == 'No tests are required'
 
 
 def test_summary_failed():
     answers = [
         testResultFailed,
     ]
-    assert summarize_answers(answers) == '1 of 1 required tests failed'
+    assert summarize_answers(answers) == 'Of 1 required test(s), 1 test(s) failed'
 
 
 def test_summary_incomplete():
     answers = [
         testResultIncomplete,
     ]
-    assert summarize_answers(answers) == '1 of 1 required test results missing'
+    assert summarize_answers(answers) == 'Of 1 required test(s), 1 test(s) incomplete'
 
 
 def test_summary_missing():
     answers = [
         testResultMissing,
     ]
-    assert summarize_answers(answers) == '1 of 1 required test results missing'
+    assert summarize_answers(answers) == 'Of 1 required test(s), 1 result(s) missing'
 
 
 def test_summary_missing_waived():
     answers = [
         TestResultWaived(testResultMissing, 123),
     ]
-    assert summarize_answers(answers) == 'All required tests passed'
+    assert summarize_answers(answers) == 'All required tests passed or waived'
 
 
 def test_summary_errored():
     answers = [
         testResultErrored,
     ]
-    assert summarize_answers(answers) == '1 of 1 required tests failed (1 error)'
+    assert summarize_answers(answers) == 'Of 1 required test(s), 1 test(s) errored'
 
 
 def test_summary_one_passed_one_failed():
@@ -80,7 +80,7 @@ def test_summary_one_passed_one_failed():
         testResultPassed,
         testResultFailed,
     ]
-    assert summarize_answers(answers) == '1 of 2 required tests failed'
+    assert summarize_answers(answers) == 'Of 2 required test(s), 1 test(s) failed'
 
 
 def test_summary_one_passed_one_missing():
@@ -88,7 +88,7 @@ def test_summary_one_passed_one_missing():
         testResultPassed,
         testResultMissing,
     ]
-    assert summarize_answers(answers) == '1 of 2 required test results missing'
+    assert summarize_answers(answers) == 'Of 2 required test(s), 1 result(s) missing'
 
 
 def test_summary_one_passed_one_missing_waived():
@@ -96,7 +96,7 @@ def test_summary_one_passed_one_missing_waived():
         testResultPassed,
         TestResultWaived(testResultMissing, 123),
     ]
-    assert summarize_answers(answers) == 'All required tests passed'
+    assert summarize_answers(answers) == 'All required tests passed or waived'
 
 
 def test_summary_one_failed_one_missing():
@@ -104,7 +104,8 @@ def test_summary_one_failed_one_missing():
         testResultFailed,
         testResultMissing,
     ]
-    assert summarize_answers(answers) == '1 of 2 required tests failed, 1 result missing'
+    exp = 'Of 2 required test(s), 1 test(s) failed, 1 result(s) missing'
+    assert summarize_answers(answers) == exp
 
 
 def test_summary_one_passed_one_failed_one_missing():
@@ -113,7 +114,8 @@ def test_summary_one_passed_one_failed_one_missing():
         testResultFailed,
         testResultMissing,
     ]
-    assert summarize_answers(answers) == '1 of 3 required tests failed, 1 result missing'
+    exp = 'Of 3 required test(s), 1 test(s) failed, 1 result(s) missing'
+    assert summarize_answers(answers) == exp
 
 
 def test_summary_one_passed_one_failed_one_missing_two_errored():
@@ -124,14 +126,16 @@ def test_summary_one_passed_one_failed_one_missing_two_errored():
         testResultMissing,
         testResultErrored,
     ]
-    assert summarize_answers(answers) == '3 of 5 required tests failed, 1 result missing (2 errors)'
+    exp = 'Of 5 required test(s), 2 test(s) errored, 1 test(s) failed, 1 result(s) missing'
+    assert summarize_answers(answers) == exp
 
 
 def test_summary_invalid_gating_yaml():
     answers = [
         testInvalidGatingYaml,
     ]
-    assert summarize_answers(answers) == '1 of 1 required tests failed'
+    exp = '1 non-test-result unsatisfied requirement(s) (gating.yaml issues)'
+    assert summarize_answers(answers) == exp
 
 
 def test_summary_one_passed_one_invalid_gating_yaml_one_missing():
@@ -140,4 +144,6 @@ def test_summary_one_passed_one_invalid_gating_yaml_one_missing():
         testResultMissing,
         testInvalidGatingYaml,
     ]
-    assert summarize_answers(answers) == '1 of 3 required tests failed, 1 result missing'
+    exp = '1 non-test-result unsatisfied requirement(s) (gating.yaml issues). '
+    exp += 'Of 2 required test(s), 1 result(s) missing'
+    assert summarize_answers(answers) == exp

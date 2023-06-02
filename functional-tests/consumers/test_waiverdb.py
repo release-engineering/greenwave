@@ -77,7 +77,7 @@ def test_consume_new_waiver(
             'applicable_policies': ['taskotron_release_critical_tasks_with_blocklist',
                                     'taskotron_release_critical_tasks'],
             'policies_satisfied': False,
-            'summary': '1 of 3 required tests failed',
+            'summary': 'Of 3 required test(s), 1 test(s) failed',
             'satisfied_requirements': [
                 {
                     'subject_type': 'koji_build',
@@ -160,6 +160,6 @@ def test_consume_new_waiver(
             }
         ],
         'unsatisfied_requirements': [],
-        'summary': 'All required tests passed',
+        'summary': 'All required tests passed or waived',
         'testcase': testcase,
     }

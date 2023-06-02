@@ -317,7 +317,7 @@ decision.
 If a remote rule file exists it should contain a policy for each required decision
 context. If no tests are required for the particular decision context, there
 should be empty rules set, i.e. ``rules: []``. In this case the evaluation result
-will be ``no tests are required``. If there is no decision context matching the
+will be ``No tests are required``. If there is no decision context matching the
 original policy, the result will be ``Cannot find any applicable policies``.
 
 To be able to get remote rule file, Greenwave requires ``REMOTE_RULE_POLICIES``

@@ -72,7 +72,7 @@ def test_make_decision_retrieves_waivers_on_missing(mock_results, mock_waivers, 
     mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
-    assert '1 of 1 required test results missing' == response.json['summary']
+    assert 'Of 1 required test(s), 1 result(s) missing' == response.json['summary']
     mock_waivers.assert_called_once()
 
 
@@ -81,7 +81,7 @@ def test_make_decision_retrieves_waivers_on_failed(mock_results, mock_waivers, m
     mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
-    assert '1 of 1 required tests failed' == response.json['summary']
+    assert 'Of 1 required test(s), 1 test(s) failed' == response.json['summary']
     mock_waivers.assert_called_once()
 
 
@@ -91,7 +91,7 @@ def test_make_decision_retrieves_waivers_omitted_on_passed(
     mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
-    assert 'All required tests passed' == response.json['summary']
+    assert 'All required tests passed or waived' == response.json['summary']
     mock_waivers.assert_not_called()
 
 
@@ -100,7 +100,7 @@ def test_make_decision_retrieves_waivers_on_errored(mock_results, mock_waivers, 
     mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
-    assert '1 of 1 required tests failed (1 error)' == response.json['summary']
+    assert 'Of 1 required test(s), 1 test(s) errored' == response.json['summary']
     mock_waivers.assert_called_once()
 
 
@@ -110,7 +110,7 @@ def test_make_decision_retrieves_waivers_once_on_verbose_and_missing(
     mock_waivers.return_value = []
     response = make_decision(verbose=True)
     assert 200 == response.status_code
-    assert '1 of 1 required test results missing' == response.json['summary']
+    assert 'Of 1 required test(s), 1 result(s) missing' == response.json['summary']
     mock_waivers.assert_called_once()
 
 
@@ -128,7 +128,7 @@ def test_make_decision_with_no_tests_required(mock_results, mock_waivers, make_d
     """
     response = make_decision(policies=policies)
     assert 200 == response.status_code
-    assert 'no tests are required' == response.json['summary']
+    assert 'No tests are required' == response.json['summary']
     mock_waivers.assert_not_called()
 
 
@@ -152,7 +152,7 @@ def test_make_decision_with_no_tests_required_and_missing_gating_yaml(
             f.return_value = None
             response = make_decision(policies=policies)
             assert 200 == response.status_code
-            assert 'no tests are required' == response.json['summary']
+            assert 'No tests are required' == response.json['summary']
             mock_waivers.assert_not_called()
 
 
@@ -198,7 +198,7 @@ def test_make_decision_with_no_tests_required_and_empty_remote_rules(
             f.return_value = remote_gating_yaml
             response = make_decision(policies=policies)
             assert 200 == response.status_code
-            assert 'no tests are required' == response.json['summary']
+            assert 'No tests are required' == response.json['summary']
             mock_waivers.assert_not_called()
 
 
@@ -245,7 +245,8 @@ def test_make_decision_with_missing_required_gating_yaml(mock_results, mock_waiv
             response = make_decision(policies=policies)
             assert 200 == response.status_code
             assert not response.json['policies_satisfied']
-            assert '1 of 1 required tests failed' == response.json['summary']
+            exp = '1 non-test-result unsatisfied requirement(s) (gating.yaml issues)'
+            assert exp == response.json['summary']
             mock_waivers.assert_called_once()
 
 
@@ -282,7 +283,7 @@ def test_make_decision_multiple_contexts(mock_results, mock_waivers, make_decisi
     """
     response = make_decision(policies=policies, decision_context=["test_policies", "test_2"])
     assert 200 == response.status_code
-    assert '2 of 2 required tests failed' == response.json['summary']
+    assert 'Of 2 required test(s), 2 test(s) failed' == response.json['summary']
     assert ['test_policy', 'test_policy_2'] == response.json['applicable_policies']
     mock_waivers.assert_called_once()
 
