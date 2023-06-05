@@ -1,7 +1,7 @@
 ---
 version: '3'
 services:
-  dev:
+  greenwave: &greenwave
     build: .
     image: greenwave
     user: ${DEV_USER_ID:-1000}
@@ -15,12 +15,14 @@ services:
       - ./conf/policies/:/etc/greenwave/policies/:ro,z
       - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
     ports:
-      - 8080:8080
-    healthcheck:
-      test: "curl -f http://localhost:8080/api/v1.0/about || exit 1"
+      - 127.0.0.1:8080:8080
+    healthcheck: &greenwave-healthcheck
+      test: >-
+        /src/docker/docker-entrypoint.sh python -c 'import requests;
+        requests.get("http://127.0.0.1:8080/healthcheck").raise_for_status();'
       interval: 1s
-      timeout: 30s
-      retries: 15
+      timeout: 5s
+      retries: 30
     depends_on:
       - memcached
       - resultsdb
@@ -30,18 +32,16 @@ services:
   statsd:
     image: quay.io/prometheus/statsd-exporter
     ports:
-      - 9102:9102 # http
-      - 9125:9125 # statsd
+      - 127.0.0.1:9102:9102  # http
+      - 127.0.0.1:9125:9125  # statsd
 
   resultsdb-db:
     image: postgres:11.16-alpine
     restart: always
     env_file: ["docker/resultsdb-db.env"]
     healthcheck:
+      <<: *greenwave-healthcheck
       test: "pg_isready -U postgres || exit 1"
-      interval: 1s
-      timeout: 30s
-      retries: 15
 
   resultsdb:
     image: quay.io/factory2/resultsdb
@@ -54,12 +54,12 @@ services:
       - ./docker/resultsdb-settings.py:/etc/resultsdb/settings.py:ro,z
       - ./docker/resultsdb.conf:/etc/httpd/conf.d/resultsdb.conf:ro,z
     ports:
-      - 5001:5001
+      - 127.0.0.1:5001:5001
     healthcheck:
-      test: "curl -f http://localhost:5001 || exit 1"
-      interval: 1s
-      timeout: 30s
-      retries: 15
+      <<: *greenwave-healthcheck
+      test: >-
+        /app/entrypoint.sh python -c 'import requests;
+        requests.get("http://127.0.0.1:5001/api/v2.0/healthcheck").raise_for_status();'
     depends_on:
       - resultsdb-db
 
@@ -80,26 +80,24 @@ services:
       - ./docker/waiverdb-settings.py:/etc/waiverdb/settings.py:ro,z
       - ./docker/client_secrets.json:/etc/secret/client_secrets.json:ro,z
     ports:
-      - 5004:5004
+      - 127.0.0.1:5004:5004
     user: '0'
     healthcheck:
-      test: "curl -f http://localhost:5004/api/v1.0/about || exit 1"
-      interval: 1s
-      timeout: 30s
-      retries: 15
+      <<: *greenwave-healthcheck
+      test: >-
+        /app/entrypoint.sh python -c 'import requests;
+        requests.get("http://127.0.0.1:5004/healthcheck").raise_for_status();'
     depends_on:
       - waiverdb-db
 
   memcached:
     image: "quay.io/factory2/memcached"
     ports:
-      - 11211:11211
+      - 127.0.0.1:11211:11211
 
   resultsdb-listener:
+    <<: *greenwave
     image: greenwave
-    user: ${DEV_USER_ID:-1000}
-    working_dir: /
-    env_file: ["docker/dev.env"]
     command:
       - "gunicorn"
       - "--reload"
@@ -110,29 +108,13 @@ services:
       - "--enable-stdio-inheritance"
       - "greenwave.resultsdb_listener:app"
     ports:
-      - 8082:8082
-    volumes:
-      - ./:/src:ro,z
-      - ./docker/home:/home/dev:rw,z
-      - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
-      - ./conf/policies/:/etc/greenwave/policies/:ro,z
-      - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
-    healthcheck:
-      test: "curl -f http://localhost:8082/api/v1.0/about || exit 1"
-      interval: 1s
-      timeout: 30s
-      retries: 15
-    depends_on:
-      - memcached
-      - umb
+      - 127.0.0.1:8082:8082
     deploy:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   waiverdb-listener:
+    <<: *greenwave
     image: greenwave
-    user: ${DEV_USER_ID:-1000}
-    working_dir: /
-    env_file: ["docker/dev.env"]
     command:
       - "gunicorn"
       - "--reload"
@@ -143,21 +125,7 @@ services:
       - "--enable-stdio-inheritance"
       - "greenwave.waiverdb_listener:app"
     ports:
-      - 8083:8083
-    volumes:
-      - ./:/src:ro,z
-      - ./docker/home:/home/dev:rw,z
-      - ./docker/greenwave-settings.py:/etc/greenwave/settings.py:ro,z
-      - ./conf/policies/:/etc/greenwave/policies/:ro,z
-      - ./conf/subject_types/:/etc/greenwave/subject_types/:ro,z
-    healthcheck:
-      test: "curl -f http://localhost:8083/api/v1.0/about || exit 1"
-      interval: 1s
-      timeout: 30s
-      retries: 15
-    depends_on:
-      - memcached
-      - umb
+      - 127.0.0.1:8083:8083
     deploy:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
@@ -172,8 +140,8 @@ services:
     volumes:
       - ./docker/umb.yml:/etc/umb.yml:ro,z
     ports:
-      - 5671:5671    # amqp
-      - 61612:61612  # stomp
+      - 127.0.0.1:5671:5671    # amqp
+      - 127.0.0.1:61612:61612  # stomp
     deploy:
       replicas: ${GREENWAVE_LISTENERS:-1}
 

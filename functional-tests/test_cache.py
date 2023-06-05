@@ -11,7 +11,7 @@ def test_cache():
         backend='dogpile.cache.pymemcache',
         expiration_time=5,
         arguments={
-            'url': 'localhost:11211',
+            'url': '127.0.0.1:11211',
             'distributed_lock': True,
         },
     )
