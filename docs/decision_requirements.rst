@@ -112,10 +112,8 @@ requested subject is found in ResultsDB and is not classified as
         "type": "test-result-failed",
         "testcase": "example.test.case",
         "result_id": 1002,
-        "item": {
-            "type": "koji-build",
-            "identifier": "nethack-1.2.3-1.rawhide"
-        },
+        "subject_type": "koji-build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
         "scenario": null
     }
 
@@ -136,10 +134,8 @@ This indicates that test case run was not finished properly.
         "testcase": "example.test.case",
         "result_id": 1003,
         "error_reason": "CI system out of memory",
-        "item": {
-            "type": "koji-build",
-            "identifier": "nethack-1.2.3-1.rawhide"
-        },
+        "subject_type": "koji-build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
         "scenario": null
     }
 
@@ -367,8 +363,8 @@ Failed tests results have ``test-result-failed`` or ``test-result-errored`` type
         if req["type"] in ("test-result-failed", "test-result-errored")
     ]
     for req in failed:
-        subject_id = req.get("subject_identifier") or req["item"].get("type")
-        subject_type = req.get("subject_type") or req["item"].get("item")
+        subject_id = req["subject_identifier"]
+        subject_type = req["subject_type"]
         print(f'Failed: {req["testcase"]} ({subject_id} {subject_type})')
 
 Other unsatisfied requirement types:
@@ -408,8 +404,8 @@ waiver).
 
     waiver_data = [
         {
-            "subject_identifier": req.get("subject_identifier") or req["item"].get("type"),
-            "subject_type": req.get("subject_type") or req["item"].get("item"),
+            "subject_identifier": req["subject_identifier"]
+            "subject_type": req["subject_type"]
             "testcase": req["testcase"],
             "scenario": req.get("scenario"),
             "waived": True,

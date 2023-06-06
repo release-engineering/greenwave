@@ -179,7 +179,5 @@ jobs:
           GREENWAVE_LISTENERS: '0'
         run: |
           podman-compose up -d &&
-          podman-compose ps &&
-          podman-compose logs &&
           tox -e functional -- --no-cov functional-tests &&
           podman-compose down

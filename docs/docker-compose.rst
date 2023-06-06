@@ -43,7 +43,7 @@ Check logs if needed:
 
 .. code-block:: console
 
-  podman logs greenwave_dev_1
+  podman logs greenwave_greenwave_1
 
 Run unit and functional tests:
 
@@ -69,7 +69,7 @@ restart the container with:
 
 .. code-block:: console
 
-  podman restart greenwave_dev_1
+  podman restart greenwave_greenwave_1
 
 You could encounter the following error when executing the application or
 tests:
