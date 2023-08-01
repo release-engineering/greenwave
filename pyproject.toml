@@ -24,9 +24,9 @@ include = [
 [tool.poetry.dependencies]
 python = ">=3.8,<3.10"
 PyYAML = "^6.0"
-"dogpile.cache" = "^1.2.0"
+"dogpile.cache" = "^1.2.2"
 flask = "^2.3.2"
-gunicorn = "^20.1.0"
+gunicorn = "^21.2.0"
 requests = "^2.31.0"
 python-dateutil = "^2.8.2"
 fedora-messaging = "^3.4.1"
@@ -37,7 +37,7 @@ fedora-messaging = "^3.4.1"
 flake8 = {version = "^5.0.4", optional = true}
 pytest = {version = "^7.4.0", optional = true}
 pytest-cov = {version = "^4.1.0", optional = true}
-mock = {version = "^5.0.1", optional = true}
+mock = {version = "^5.1.0", optional = true}
 
 SQLAlchemy = {version = "^2.0.17", optional = true}
 psycopg2-binary = {version = "^2.9.6", optional = true}
