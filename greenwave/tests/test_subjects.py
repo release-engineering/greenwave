@@ -74,5 +74,5 @@ def test_subject_to_repr_generic(app):
 ))
 def test_subject_product_version_match(compose, expected_product_version, app):
     subject = create_subject('compose', compose)
-    assert subject._type.product_version_match
+    assert subject.subject_type.product_version_match
     assert subject.product_versions == expected_product_version, compose

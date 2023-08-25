@@ -294,3 +294,41 @@ def test_waive_scenarios_all():
         ),
     ]
     assert expected_json == [w.to_json() for w in waived]
+
+
+def test_waive_with_subject_type_alias():
+    subject = test_subject()
+    subject.subject_type.aliases = ['brew-build']
+    answers = [
+        TestResultMissing(
+            subject=subject,
+            test_case_name='test1',
+            scenario='scenario1',
+            source='https://greenwave_tests.example.com',
+        )
+    ]
+
+    waived = waive_answers(answers, [])
+    assert answers == waived
+
+    waivers = [
+        dict(
+            id=9,
+            subject_type='brew-build',
+            subject_identifier='nethack-1.2.3-1.rawhide',
+            product_version='rawhide',
+            testcase='test1',
+        )
+    ]
+    waived = waive_answers(answers, waivers)
+    expected_json = dict(
+        type='test-result-missing-waived',
+        testcase='test1',
+        subject_type='koji_build',
+        subject_identifier='nethack-1.2.3-1.rawhide',
+        waiver_id=9,
+        scenario='scenario1',
+        source='https://greenwave_tests.example.com',
+    )
+    assert 1 == len(waived)
+    assert expected_json == waived[0].to_json()

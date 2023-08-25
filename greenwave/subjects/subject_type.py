@@ -84,6 +84,9 @@ class GenericSubjectType:
         for name, attr in SubjectType.safe_yaml_attributes.items():
             self.__setattr__(name, attr.default_value)
 
+    def matches(self, id_):
+        return id_ == self.id or id_ in self.aliases
+
     def __repr__(self):
         return '<GenericSubjectType {!r}>'.format(self.id)
 

@@ -28,21 +28,21 @@ class Subject:
 
     Item or identifier should uniquely identify the artefact (test subject).
     """
-    _type: Union[GenericSubjectType, SubjectType]
+    subject_type: Union[GenericSubjectType, SubjectType]
     item: str
 
     def __init__(self, type_: Union[GenericSubjectType, SubjectType], item: str):
-        self._type = type_
+        self.subject_type = type_
         self.item = item
 
     def product_versions_from_koji_build_target(self, target):
         return sorted(self._matching_product_versions(
-            target, self._type.product_version_from_koji_build_target))
+            target, self.subject_type.product_version_from_koji_build_target))
 
     @property
     def type(self):
         """Subject type string."""
-        return self._type.id
+        return self.subject_type.id
 
     @property
     def identifier(self):
@@ -52,7 +52,7 @@ class Subject:
     @property
     def package_name(self):
         """Package name of the subject or None."""
-        if self._type.is_nvr:
+        if self.subject_type.is_nvr:
             return self.item.rsplit("-", 2)[0]
 
         return None
@@ -60,7 +60,7 @@ class Subject:
     @property
     def short_product_version(self):
         """Get short product version of the subject (guess from identifier) or None."""
-        if self._type.is_nvr:
+        if self.subject_type.is_nvr:
             try:
                 _, _, release = self.identifier.rsplit("-", 2)
                 _, short_prod_version = release.rsplit(".", 1)
@@ -75,31 +75,31 @@ class Subject:
         pvs = sorted({
             pv.lower()
             for pv in self._matching_product_versions(
-                self.item, self._type.product_version_match)
+                self.item, self.subject_type.product_version_match)
         })
         if pvs:
             return pvs
 
-        if self._type.product_version:
-            return [self._type.product_version]
+        if self.subject_type.product_version:
+            return [self.subject_type.product_version]
 
         return []
 
     @property
     def is_koji_build(self):
-        return self._type.is_koji_build
+        return self.subject_type.is_koji_build
 
     @property
     def supports_remote_rule(self):
-        return self._type.supports_remote_rule
+        return self.subject_type.supports_remote_rule
 
     @property
     def ignore_missing_policy(self):
-        return self._type.ignore_missing_policy
+        return self.subject_type.ignore_missing_policy
 
     def to_dict(self):
-        if self._type.item_dict:
-            return _to_dict(self._type.item_dict, self.item)
+        if self.subject_type.item_dict:
+            return _to_dict(self.subject_type.item_dict, self.item)
 
         return {"type": self.type, "item": self.item}
 
@@ -110,8 +110,8 @@ class Subject:
         For example, one set of parameters could have "type=koji_build" for one
         query and "type=brew-build" for another.
         """
-        if self._type.result_queries:
-            for query_dict in self._type.result_queries:
+        if self.subject_type.result_queries:
+            for query_dict in self.subject_type.result_queries:
                 yield _to_dict(query_dict, self.item)
         else:
             yield self.to_dict()
@@ -130,5 +130,5 @@ class Subject:
 
     def __repr__(self):
         return "Subject({!r}, {!r})".format(
-            self._type, self.item
+            self.subject_type, self.item
         )
