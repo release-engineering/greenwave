@@ -657,6 +657,9 @@ class RemoteRule(Rule):
         return answers
 
     def matches(self, policy, **attributes):
+        if attributes.get('match_any_remote_rule'):
+            return True
+
         subject = attributes.get('subject')
         if not subject:
             return True

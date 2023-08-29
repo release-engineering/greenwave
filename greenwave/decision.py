@@ -69,6 +69,7 @@ class Decision:
             if policy.matches(
                 decision_context=self.decision_context,
                 product_version=self.product_version,
+                match_any_remote_rule=True,
                 subject=subject)
         ]
 

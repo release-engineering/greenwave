@@ -539,6 +539,7 @@ def test_remote_rule_decision_change(
 
 
 def test_remote_rule_decision_change_not_matching(
+    mock_retrieve_decision,
     mock_retrieve_yaml_remote_rule,
     mock_retrieve_scm_from_koji,
     mock_retrieve_results,
@@ -546,9 +547,19 @@ def test_remote_rule_decision_change_not_matching(
     koji_proxy,
 ):
     """
-    Test publishing decision change message for test cases mentioned in
+    Test not publishing decision change message for test cases not mentioned in
     gating.yaml.
     """
+    def retrieve_decision(data, _config):
+        return {
+            "policies_satisfied": True,
+            "summary": "no tests are required",
+            "satisfied_requirements": [],
+            "unsatisfied_requirements": [],
+        }
+
+    mock_retrieve_decision.side_effect = retrieve_decision
+
     gating_yaml = dedent(
         """
         --- !Policy
