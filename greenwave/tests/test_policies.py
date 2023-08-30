@@ -10,6 +10,7 @@ from textwrap import dedent
 from greenwave.app_factory import create_app
 from greenwave.decision import Decision
 from greenwave.policies import (
+    applicable_decision_context_product_version_pairs,
     load_policies,
     summarize_answers,
     Policy,
@@ -1591,3 +1592,40 @@ def test_cache_passing_results():
     cached = results4.retrieve(subject, testcase='sometest')
     assert results4.retrieve_data_called == 0
     assert cached == retrieved2
+
+
+def test_applicable_policies():
+    policies = Policy.safe_load_all(dedent("""
+        --- !Policy
+        id: test_policy
+        product_versions: [fedora-rawhide]
+        decision_context: test_context
+        subject_type: koji_build
+        rules:
+            - !RemoteRule {required: false}
+            - !PassingTestCaseRule {test_case_name: common.test.case}
+    """))
+    remote_fragment = dedent("""
+        --- !Policy
+        product_versions:
+          - fedora-rawhide
+        decision_context: test_context
+        subject_type: brew-build
+        rules:
+          - !PassingTestCaseRule {test_case_name: remote.test.case}
+    """)
+
+    subject = create_subject('koji_build', 'nethack-1.2.3-1.el9000')
+
+    with mock.patch("greenwave.resources.retrieve_scm_from_koji") as scm:
+        scm.return_value = (
+            "rpms", "nethack", "c3c47a08a66451cb9686c49f040776ed35a0d1bb")
+        with mock.patch("greenwave.resources.retrieve_yaml_remote_rule") as f:
+            f.return_value = remote_fragment
+            result = applicable_decision_context_product_version_pairs(
+                policies,
+                subject=subject,
+                testcase="remote.test.case",
+            )
+
+    assert len(result) == 1

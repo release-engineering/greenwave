@@ -7,7 +7,7 @@ def _find_waived_id(answer, waivers):
     """
     for waiver in waivers:
         if (
-            waiver["subject_type"] == answer.subject.type
+            answer.subject.subject_type.matches(waiver["subject_type"])
             and waiver["subject_identifier"] == answer.subject.identifier
             and waiver["testcase"] == answer.test_case_name
             and (not waiver.get("scenario") or waiver["scenario"] == answer.scenario)

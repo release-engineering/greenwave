@@ -857,7 +857,7 @@ class Policy(SafeYAMLObject):
 
     def matches_subject_type(self, **attributes):
         subject = attributes.get('subject')
-        return not subject or subject.type == self.subject_type
+        return not subject or subject.subject_type.matches(self.subject_type)
 
     def matches_sub_policy(self, sub_policy):
         return set(sub_policy.all_decision_contexts).intersection(self.all_decision_contexts)
