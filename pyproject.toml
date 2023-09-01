@@ -25,7 +25,7 @@ include = [
 python = ">=3.8,<3.10"
 PyYAML = "^6.0"
 "dogpile.cache" = "^1.2.2"
-flask = "^2.3.2"
+flask = "^2.3.3"
 gunicorn = "^21.2.0"
 requests = "^2.31.0"
 python-dateutil = "^2.8.2"
