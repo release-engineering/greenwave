@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi:8.7 as builder
+FROM registry.fedoraproject.org/fedora:38 as builder
 
 # hadolint ignore=DL3033,DL4006,SC2039,SC3040
 RUN set -exo pipefail \
@@ -7,14 +7,18 @@ RUN set -exo pipefail \
     && yum install -y \
         --setopt install_weak_deps=false \
         --nodocs \
-        python39 \
+        --disablerepo=* \
+        --enablerepo=fedora,updates \
+        python3 \
     # install runtime dependencies
     && yum install -y \
         --installroot=/mnt/rootfs \
-        --releasever=8 \
+        --releasever=38 \
         --setopt install_weak_deps=false \
         --nodocs \
-        python39 \
+        --disablerepo=* \
+        --enablerepo=fedora,updates \
+        python3 \
     && yum --installroot=/mnt/rootfs clean all \
     && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum.* \
     # https://python-poetry.org/docs/master/#installing-with-the-official-installer
@@ -65,7 +69,10 @@ ENV \
     WEB_CONCURRENCY=8
 
 COPY --from=builder /mnt/rootfs/ /
-COPY --from=builder /etc/yum.repos.d/ubi.repo /etc/yum.repos.d/ubi.repo
+COPY --from=builder \
+    /etc/yum.repos.d/fedora.repo \
+    /etc/yum.repos.d/fedora-updates.repo \
+    /etc/yum.repos.d/
 WORKDIR /src
 
 USER 1001

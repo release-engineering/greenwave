@@ -21,6 +21,6 @@ except importlib_metadata.PackageNotFoundError:
         import toml as tomllib  # type: ignore
 
     with open("pyproject.toml", "r") as f:
-        pyproject = tomllib.load(f)
+        pyproject = tomllib.load(f)  # type: ignore
 
     __version__ = pyproject["tool"]["poetry"]["version"]
