@@ -400,7 +400,7 @@ def test_decision_changes(
             },
         ),
         (
-            HTTPError(),
+            HTTPError(),  # type: ignore
             {"policies_satisfied": True},
         ),
     ),
