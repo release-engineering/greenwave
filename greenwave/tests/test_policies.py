@@ -401,7 +401,7 @@ def test_remote_rule_policy_old_config(tmpdir):
                         'http://localhost.localdomain/nethack/'
                         'c3c47a08a66451cb9686c49f040776ed35a0d1bb/gating.yaml'
                     )
-                    assert f.mock_calls == [call, call]
+                    assert f.mock_calls == [call]
     finally:
         Config.REMOTE_RULE_POLICIES = config_remote_rules_backup
 
@@ -741,9 +741,7 @@ def test_get_sub_policies_multiple_urls(tmpdir):
                         *scm.return_value
                     )
                 )
-                assert session.request.mock_calls == [
-                    expected_call1, expected_call2,
-                    expected_call1, expected_call2]
+                assert session.request.mock_calls == [expected_call1, expected_call2]
                 assert answer_types(decision.answers) == ['missing-gating-yaml']
                 assert not decision.answers[0].is_satisfied
                 assert decision.answers[0].subject.identifier == subject.identifier

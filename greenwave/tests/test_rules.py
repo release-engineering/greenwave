@@ -72,6 +72,12 @@ def test_match_remote_rule(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remot
         assert rule.matches(policy, subject=subject)
         assert rule.matches(policy, subject=subject, testcase='some_test_case')
         assert not rule.matches(policy, subject=subject, testcase='other_test_case')
+        assert rule.matches(
+            policy,
+            subject=subject,
+            testcase='other_test_case',
+            match_any_remote_rule=True,
+        )
 
 
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
