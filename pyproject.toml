@@ -39,7 +39,7 @@ pytest = {version = "^7.4.0", optional = true}
 pytest-cov = {version = "^4.1.0", optional = true}
 mock = {version = "^5.1.0", optional = true}
 
-SQLAlchemy = {version = "^2.0.20", optional = true}
+SQLAlchemy = {version = "^2.0.21", optional = true}
 psycopg2-binary = {version = "^2.9.6", optional = true}
 
 sphinx = {version = "^7.1.2", optional = true}
