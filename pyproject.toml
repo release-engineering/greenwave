@@ -25,7 +25,7 @@ include = [
 python = ">=3.8,<3.12"
 PyYAML = "^6.0"
 "dogpile.cache" = "^1.2.2"
-flask = "^2.3.3"
+flask = "^3.0.0"
 gunicorn = "^21.2.0"
 requests = "^2.31.0"
 python-dateutil = "^2.8.2"
@@ -39,8 +39,8 @@ pytest = {version = "^7.4.0", optional = true}
 pytest-cov = {version = "^4.1.0", optional = true}
 mock = {version = "^5.1.0", optional = true}
 
-SQLAlchemy = {version = "^2.0.20", optional = true}
-psycopg2-binary = {version = "^2.9.6", optional = true}
+SQLAlchemy = {version = "^2.0.21", optional = true}
+psycopg2-binary = {version = "^2.9.8", optional = true}
 
 sphinx = {version = "^7.1.2", optional = true}
 sphinxcontrib-httpdomain = {version = "^1.8.1", optional = true}
