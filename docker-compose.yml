@@ -35,8 +35,8 @@ services:
       - 127.0.0.1:9102:9102  # http
       - 127.0.0.1:9125:9125  # statsd
 
-  resultsdb-db:
-    image: postgres:11.16-alpine
+  resultsdb-db: &resultsdb-db
+    image: postgres:14.7-alpine
     restart: always
     env_file: ["docker/resultsdb-db.env"]
     healthcheck:
@@ -64,8 +64,7 @@ services:
       - resultsdb-db
 
   waiverdb-db:
-    image: postgres:9.5.2
-    restart: always
+    <<: *resultsdb-db
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
