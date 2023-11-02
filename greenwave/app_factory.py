@@ -10,6 +10,12 @@ from greenwave.policies import load_policies
 from greenwave.subjects.subject_type import load_subject_types
 
 from dogpile.cache import make_region
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
 import requests
 from werkzeug.exceptions import default_exceptions
 
@@ -19,6 +25,12 @@ log = logging.getLogger(__name__)
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
 def create_app(config_obj=None):
     app = Flask(__name__)
+
+    provider = TracerProvider(resource=Resource.create({SERVICE_NAME: "greenwave"}))
+    trace.set_tracer_provider(provider)
+    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+
+    FlaskInstrumentor().instrument_app(app, tracer_provider=provider)
 
     app.config.update(load_config(config_obj))
     if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':  # nosec
