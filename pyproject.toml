@@ -35,12 +35,12 @@ fedora-messaging = "^3.4.1"
 "stomp.py" = "^8.1.0"
 
 flake8 = {version = "^5.0.4", optional = true}
-pytest = {version = "^7.4.0", optional = true}
+pytest = {version = "^7.4.3", optional = true}
 pytest-cov = {version = "^4.1.0", optional = true}
 mock = {version = "^5.1.0", optional = true}
 
-SQLAlchemy = {version = "^2.0.21", optional = true}
-psycopg2-binary = {version = "^2.9.8", optional = true}
+SQLAlchemy = {version = "^2.0.22", optional = true}
+psycopg2-binary = {version = "^2.9.9", optional = true}
 
 sphinx = {version = "^7.1.2", optional = true}
 sphinxcontrib-httpdomain = {version = "^1.8.1", optional = true}
