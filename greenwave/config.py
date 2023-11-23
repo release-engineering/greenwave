@@ -88,6 +88,12 @@ class Config(object):
         "ca_certs": "/etc/pki/umb/umb-ca",
     }
 
+    # Secure cookies
+    PERMANENT_SESSION_LIFETIME = 300
+    SESSION_COOKIE_NAME = "session"
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+
 
 class ProductionConfig(Config):
     DEBUG = False
