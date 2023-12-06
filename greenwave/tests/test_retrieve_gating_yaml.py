@@ -5,10 +5,11 @@ from requests.exceptions import ConnectionError, HTTPError
 
 import pytest
 import mock
-from werkzeug.exceptions import BadGateway, NotFound
+from werkzeug.exceptions import NotFound
 
 from greenwave.resources import (
     NoSourceException,
+    KojiScmUrlParseError,
     retrieve_scm_from_koji,
     retrieve_yaml_remote_rule,
 )
@@ -114,7 +115,7 @@ def test_retrieve_scm_from_build_with_missing_rev(app, koji_proxy):
         }
     }
     expected_error = 'missing URL fragment with SCM revision information'
-    with pytest.raises(BadGateway, match=expected_error):
+    with pytest.raises(KojiScmUrlParseError, match=expected_error):
         retrieve_scm_from_koji(nvr)
 
 

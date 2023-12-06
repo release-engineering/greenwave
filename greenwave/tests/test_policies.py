@@ -21,7 +21,7 @@ from greenwave.policies import (
     TestResultFailed,
     OnDemandPolicy
 )
-from greenwave.resources import ResultsRetriever
+from greenwave.resources import ResultsRetriever, KojiScmUrlParseError
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.subjects.factory import create_subject
 from greenwave.waivers import waive_answers
@@ -745,6 +745,43 @@ def test_get_sub_policies_multiple_urls(tmpdir):
                 assert answer_types(decision.answers) == ['missing-gating-yaml']
                 assert not decision.answers[0].is_satisfied
                 assert decision.answers[0].subject.identifier == subject.identifier
+
+
+def test_get_sub_policies_scm_error(tmpdir):
+    """
+    Test that _get_sub_policies correctly returns an error to go in
+    the response - but doesn't raise an exception - when SCM URL parse
+    fails.
+    """
+
+    nvr = '389-ds-1.4-820181127205924.9edba152'
+    subject = create_subject('redhat-container-image', nvr)
+
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - rhel-8
+        decision_contexts:
+          - osci_compose_gate1
+          - osci_compose_gate2
+        subject_type: redhat-container-image
+        rules:
+          - !RemoteRule {}
+        """)
+
+    p = tmpdir.join('gating.yaml')
+    p.write(serverside_fragment)
+    with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
+        scm.side_effect = KojiScmUrlParseError("Failed to parse SCM URL")
+        policies = load_policies(tmpdir.strpath)
+        results = DummyResultsRetriever(
+            subject, 'baseos-ci.redhat-container-image.tier0.functional')
+        decision = Decision('osci_compose_gate1', 'rhel-8')
+        decision.check(subject, policies, results)
+        assert answer_types(decision.answers) == ['failed-fetch-gating-yaml']
+        assert not decision.answers[0].is_satisfied
+        assert decision.answers[0].subject.identifier == subject.identifier
 
 
 def test_redhat_container_image_subject_type():
