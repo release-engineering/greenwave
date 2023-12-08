@@ -3,6 +3,7 @@ import logging
 import requests
 
 from json import dumps
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, RetryError
 from urllib3.util.retry import Retry
@@ -13,6 +14,8 @@ from flask import current_app, has_app_context
 from greenwave import __version__
 
 log = logging.getLogger(__name__)
+
+RequestsInstrumentor().instrument()
 
 
 class ErrorResponse(requests.Response):

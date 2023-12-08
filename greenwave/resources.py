@@ -18,6 +18,7 @@ from dateutil.parser import parse
 from defusedxml.xmlrpc import xmlrpc_client
 from urllib.parse import urlparse
 from flask import current_app
+from opentelemetry import trace
 from werkzeug.exceptions import BadGateway, NotFound
 
 from greenwave.cache import cached
@@ -25,6 +26,7 @@ from greenwave.request_session import get_requests_session
 from greenwave.xmlrpc_server_proxy import get_server_proxy
 
 log = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 requests_session = threading.local().requests_session = get_requests_session()
 
@@ -75,6 +77,7 @@ class BaseRetriever:
         else:
             self.since = None
 
+    @tracer.start_as_current_span("retrieve")
     def retrieve(self, *args, **kwargs):
         items = self._retrieve_all(*args, **kwargs)
         return [item for item in items if item['id'] not in self.ignore_ids]

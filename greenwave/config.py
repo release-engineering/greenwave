@@ -88,6 +88,11 @@ class Config(object):
         "ca_certs": "/etc/pki/umb/umb-ca",
     }
 
+
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = None
+    OTEL_EXPORTER_SERVICE_NAME = "greenwave"
+
+    
     # Secure cookies
     PERMANENT_SESSION_LIFETIME = 300
     SESSION_COOKIE_NAME = "session"

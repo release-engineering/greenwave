@@ -18,6 +18,9 @@ from greenwave.monitor import (
 from greenwave.policies import applicable_decision_context_product_version_pairs
 from greenwave.utils import right_before_this_time
 
+
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+
 log = logging.getLogger(__name__)
 
 
@@ -61,6 +64,7 @@ class Consumer:
     hub_config_prefix = 'greenwave_consumer_'
     default_topic = 'item.new'
     monitor_labels = {'handler': 'greenwave_consumer'}
+    context = None
 
     def __init__(self, hub, *args, **kwargs):
         """
@@ -92,6 +96,7 @@ class Consumer:
         try:
             message = message.get('body', message)
             log.debug('Processing message "%s"', message)
+            self.context = TraceContextTextMapPropagator().extract(message)
 
             with self.flask_app.app_context():
                 self._consume_message(message)
@@ -108,6 +113,7 @@ class Consumer:
 
     def _publish_decision_update_fedora_messaging(self, decision):
         try:
+            TraceContextTextMapPropagator().inject(decision, self.context)
             msg = fedora_messaging.api.Message(
                 topic='greenwave.decision.update',
                 body=decision

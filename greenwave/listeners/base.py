@@ -7,6 +7,7 @@ import threading
 import uuid
 
 import stomp
+from opentelemetry.context import Context
 from requests.exceptions import HTTPError
 
 import greenwave.app_factory
@@ -24,6 +25,9 @@ from greenwave.monitor import (
 )
 from greenwave.policies import applicable_decision_context_product_version_pairs
 from greenwave.utils import right_before_this_time
+
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+
 
 GREENWAVE_LISTENER_PREFIX = "greenwave"
 
@@ -83,6 +87,8 @@ class BaseListener(stomp.ConnectionListener):
         self.app = greenwave.app_factory.create_app(config_obj)
 
         self.destination = self.app.config["LISTENER_DECISION_UPDATE_DESTINATION"]
+
+        self.context = None
 
     def on_error(self, frame):
         self.app.logger.warning("Received an error: %s", frame.body)
@@ -198,13 +204,15 @@ class BaseListener(stomp.ConnectionListener):
         self._publish_decision_change() and returns True or just
         returns False.
         """
-        raise NotImplementedError()
+        self.context: Context = TraceContextTextMapPropagator().extract(message)
 
     def _inc(self, messaging_counter):
         """Helper method to increase monitoring counter."""
         messaging_counter.labels(**self.monitor_labels).inc()
 
     def _publish_decision_update(self, decision):
+        self.app.logger.debug(f"Trace Context: {self.context}")
+        TraceContextTextMapPropagator().inject(decision, self.context)
         message = {"msg": decision, "topic": self.destination}
         body = json.dumps(message)
         while True:
@@ -216,7 +224,11 @@ class BaseListener(stomp.ConnectionListener):
                     "decision_context": decision["decision_context"],
                     "policies_satisfied": str(decision["policies_satisfied"]).lower(),
                     "summary": decision["summary"],
+
                 }
+                if decision.get("traceparent", None):
+                    headers["traceparent"] = decision["traceparent"]
+
                 self.connection.send(
                     body=body, headers=headers, destination=self.destination
                 )

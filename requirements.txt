@@ -1,3 +1,7 @@
 wheel==0.42.0
+opentelemetry-sdk
+opentelemetry-instrumentation-flask==0.41b0
+opentelemetry-instrumentation-requests==0.41b0
+opentelemetry-exporter-otlp-proto-http
 pip==23.3.2
 setuptools==69.0.3

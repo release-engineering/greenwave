@@ -58,3 +58,7 @@ LOGGING = {
         'handlers': ['console'],
     },
 }
+
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = 'http://jaeger:4318/v1/traces'
+OTEL_EXPORTER_SERVICE_NAME = "greenwave"
+
