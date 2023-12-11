@@ -606,6 +606,8 @@ class RemoteRule(Rule):
             logging.exception('Unexpected Koji XMLRPC fault with code: %s', err.faultCode)
             error = f'Koji XMLRPC fault due to: \'{err.faultString}\''
             raise BadGateway(error)
+        except greenwave.resources.KojiScmUrlParseError as err:
+            return [], [FailedFetchRemoteRuleYaml(subject, remote_policies_urls, err.description)]
         except Exception:
             logging.exception('Failed to retrieve policies for %r', subject)
             error = 'Unexpected error while fetching remote policies'

@@ -169,6 +169,13 @@ class NoSourceException(RuntimeError):
     pass
 
 
+class KojiScmUrlParseError(BadGateway):
+    """
+    Exception raised when parsing SCM revision from Koji build fails.
+    """
+    pass
+
+
 @cached
 def retrieve_koji_build_target(task_id, koji_url: str):
     log.debug('Getting Koji task request ID %r', task_id)
@@ -256,7 +263,7 @@ def retrieve_scm_from_koji_build(nvr: str, source: str, koji_url: str):
 
     rev = url.fragment
     if not rev:
-        raise BadGateway(
+        raise KojiScmUrlParseError(
             'Failed to parse SCM URL "{}" from Koji build "{}" at "{}" '
             '(missing URL fragment with SCM revision information)'.format(source, nvr, koji_url)
         )
