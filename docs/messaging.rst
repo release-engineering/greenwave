@@ -37,7 +37,7 @@ new test result message from ResultsDB.
 
      "applicable_policies": ["osci_compose_modules"],
      "policies_satisfied": false,
-     "summary": "Of 2 required test(s), 1 result(s) missing",
+     "summary": "Of 2 required tests, 1 result missing",
      "satisfied_requirements": [{
        "result_id": 7483048,
        "testcase": "osci.redhat-module.installability.functional",
@@ -58,7 +58,7 @@ new test result message from ResultsDB.
      "previous": {
        "applicable_policies": ["osci_compose_modules"],
        "policies_satisfied": false,
-       "summary": "Of 2 required test(s), 1 test(s) failed",
+       "summary": "Of 2 required tests, 1 test failed",
        "satisfied_requirements": [{
          "result_id": 7483048,
          "testcase": "osci.redhat-module.installability.functional",

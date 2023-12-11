@@ -140,7 +140,7 @@ class RuleNotSatisfied(Answer):
     """
 
     is_satisfied = False
-    summary_text = "unexpected unsatisfied requirement(s)"
+    summary_text = "unexpected unsatisfied requirement{s}"
 
     def to_json(self):
         raise NotImplementedError()
@@ -152,10 +152,7 @@ class RuleNotSatisfied(Answer):
         raise NotImplementedError()
 
     def update_summary(self, summary):
-        if self.is_test_result:
-            summary.test_msgs[self.summary_text] += 1
-        else:
-            summary.non_test_msgs[self.summary_text] += 1
+        summary.append(self)
 
 
 class TestResultMissing(RuleNotSatisfied):
@@ -164,7 +161,7 @@ class TestResultMissing(RuleNotSatisfied):
     ResultsDB with a matching item and test case name).
     """
 
-    summary_text = "result(s) missing"
+    summary_text = "result{s} missing"
 
     def __init__(self, subject, test_case_name, scenario, source):
         self.subject = subject
@@ -195,7 +192,7 @@ class TestResultIncomplete(RuleNotSatisfied):
     result outcomes in ResultsDB with a matching item and test case name).
     """
 
-    summary_text = "test(s) incomplete"
+    summary_text = "test{s} incomplete"
 
     def __init__(self, subject, test_case_name, source, result_id, data):
         self.subject = subject
@@ -256,7 +253,7 @@ class TestResultFailed(RuleNotSatisfied):
     not passing).
     """
 
-    summary_text = "test(s) failed"
+    summary_text = "test{s} failed"
 
     def __init__(self, subject, test_case_name, source, result_id, data):
         self.subject = subject
@@ -297,7 +294,7 @@ class TestResultErrored(RuleNotSatisfied):
     was an error).
     """
 
-    summary_text = "test(s) errored"
+    summary_text = "test{s} errored"
 
     def __init__(
             self,
@@ -347,7 +344,7 @@ class InvalidRemoteRuleYaml(RuleNotSatisfied):
 
     scenario = None
     is_test_result = False
-    summary_text = "non-test-result unsatisfied requirement(s) (gating.yaml issues)"
+    summary_text = "error{s} due to invalid remote rule file"
 
     def __init__(self, subject, test_case_name, details, source):
         self.subject = subject
@@ -378,7 +375,7 @@ class MissingRemoteRuleYaml(RuleNotSatisfied):
     test_case_name = 'missing-gating-yaml'
     scenario = None
     is_test_result = False
-    summary_text = "non-test-result unsatisfied requirement(s) (gating.yaml issues)"
+    summary_text = "error{s} due to missing remote rule file"
 
     def __init__(self, subject, sources):
         self.subject = subject
@@ -406,7 +403,7 @@ class FailedFetchRemoteRuleYaml(RuleNotSatisfied):
     test_case_name = 'failed-fetch-gating-yaml'
     scenario = None
     is_test_result = False
-    summary_text = "non-test-result unsatisfied requirement(s) (gating.yaml issues)"
+    summary_text = "error{s} while trying to fetch remote rule file"
 
     def __init__(self, subject, sources, error):
         self.subject = subject
@@ -501,19 +498,48 @@ class _Summary(object):
     def __init__(self):
         self.test_msgs = defaultdict(int)
         self.non_test_msgs = defaultdict(int)
+        self.test_count = 0
 
-    def to_text(self, test_count):
+    def to_text(self):
         msgstr = ""
         if self.non_test_msgs:
-            msgstr = ", ".join(f"{num} {msg}" for (msg, num) in self.non_test_msgs.items())
+            msgstr = ", ".join(
+                self.sformat(f"{{num}} {msg}", num)
+                for (msg, num) in sorted(self.non_test_msgs.items())
+            )
         if self.test_msgs:
-            addmsg = f"Of {test_count} required test(s), "
-            addmsg += ", ".join(f"{num} {msg}" for (msg, num) in self.test_msgs.items())
+            addmsg = self.sformat("Of {num} required test{s}, ", self.test_count)
+            addmsg += ", ".join(
+                self.sformat(f"{{num}} {msg}", num)
+                for (msg, num) in sorted(self.test_msgs.items())
+            )
             if msgstr:
                 msgstr = f"{msgstr}. {addmsg}"
             else:
                 msgstr = addmsg
-        return msgstr
+        if msgstr:
+            return msgstr
+
+        # if we got here, there should be no unsatisfied results
+        if self.test_count:
+            # this means we had some passed/waived tests
+            return f'All required tests ({self.test_count} total) have passed or been waived'
+
+        # otherwise, should mean we had no required tests
+        return 'No tests are required'
+
+    def append(self, answer: Answer):
+        if isinstance(answer, RuleNotSatisfied):
+            if answer.is_test_result:
+                self.test_msgs[answer.summary_text] += 1
+            else:
+                self.non_test_msgs[answer.summary_text] += 1
+        if answer.is_test_result:
+            self.test_count += 1
+
+    @staticmethod
+    def sformat(text: str, number: int) -> str:
+        return text.format(num=number, s='s' if number != 1 else '')
 
 
 def summarize_answers(answers):
@@ -527,24 +553,10 @@ def summarize_answers(answers):
         str: Human-readable summary.
     """
     summary = _Summary()
-    test_count = 0
     for answer in answers:
-        if isinstance(answer, RuleNotSatisfied):
-            answer.update_summary(summary)
-        if answer.is_test_result:
-            test_count += 1
+        summary.append(answer)
 
-    msgstr = summary.to_text(test_count)
-    if msgstr:
-        return msgstr
-
-    # if we got here, there should be no unsatisfied results
-    if test_count:
-        # this means we had some passed/waived tests
-        return 'All required tests passed or waived'
-
-    # otherwise, should mean we had no required tests
-    return 'No tests are required'
+    return summary.to_text()
 
 
 class Rule(SafeYAMLObject):

@@ -72,7 +72,7 @@ def test_make_decision_retrieves_waivers_on_missing(mock_results, mock_waivers, 
     mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
-    assert 'Of 1 required test(s), 1 result(s) missing' == response.json['summary']
+    assert 'Of 1 required test, 1 result missing' == response.json['summary']
     mock_waivers.assert_called_once()
 
 
@@ -81,7 +81,7 @@ def test_make_decision_retrieves_waivers_on_failed(mock_results, mock_waivers, m
     mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
-    assert 'Of 1 required test(s), 1 test(s) failed' == response.json['summary']
+    assert 'Of 1 required test, 1 test failed' == response.json['summary']
     mock_waivers.assert_called_once()
 
 
@@ -91,7 +91,7 @@ def test_make_decision_retrieves_waivers_omitted_on_passed(
     mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
-    assert 'All required tests passed or waived' == response.json['summary']
+    assert 'All required tests (1 total) have passed or been waived' == response.json['summary']
     mock_waivers.assert_not_called()
 
 
@@ -100,7 +100,7 @@ def test_make_decision_retrieves_waivers_on_errored(mock_results, mock_waivers, 
     mock_waivers.return_value = []
     response = make_decision()
     assert 200 == response.status_code
-    assert 'Of 1 required test(s), 1 test(s) errored' == response.json['summary']
+    assert 'Of 1 required test, 1 test errored' == response.json['summary']
     mock_waivers.assert_called_once()
 
 
@@ -110,7 +110,7 @@ def test_make_decision_retrieves_waivers_once_on_verbose_and_missing(
     mock_waivers.return_value = []
     response = make_decision(verbose=True)
     assert 200 == response.status_code
-    assert 'Of 1 required test(s), 1 result(s) missing' == response.json['summary']
+    assert 'Of 1 required test, 1 result missing' == response.json['summary']
     mock_waivers.assert_called_once()
 
 
@@ -245,7 +245,7 @@ def test_make_decision_with_missing_required_gating_yaml(mock_results, mock_waiv
             response = make_decision(policies=policies)
             assert 200 == response.status_code
             assert not response.json['policies_satisfied']
-            exp = '1 non-test-result unsatisfied requirement(s) (gating.yaml issues)'
+            exp = '1 error due to missing remote rule file'
             assert exp == response.json['summary']
             mock_waivers.assert_called_once()
 
@@ -283,7 +283,7 @@ def test_make_decision_multiple_contexts(mock_results, mock_waivers, make_decisi
     """
     response = make_decision(policies=policies, decision_context=["test_policies", "test_2"])
     assert 200 == response.status_code
-    assert 'Of 2 required test(s), 2 test(s) failed' == response.json['summary']
+    assert 'Of 2 required tests, 2 tests failed' == response.json['summary']
     assert ['test_policy', 'test_policy_2'] == response.json['applicable_policies']
     mock_waivers.assert_called_once()
 
