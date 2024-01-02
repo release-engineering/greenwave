@@ -4,7 +4,7 @@ import logging
 import logging.config
 
 from flask import Flask
-from greenwave.api_v1 import api
+from greenwave.api_v1 import api, landing_page
 from greenwave.utils import json_error, load_config, mangle_key
 from greenwave.policies import load_policies
 from greenwave.subjects.subject_type import load_subject_types
@@ -50,6 +50,7 @@ def create_app(config_obj=None):
 
     # register blueprints
     app.register_blueprint(api, url_prefix="/api/v1.0")
+    app.add_url_rule('/', view_func=landing_page)
     app.add_url_rule('/healthcheck', view_func=healthcheck)
 
     # Initialize the cache.

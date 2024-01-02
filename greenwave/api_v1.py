@@ -21,6 +21,54 @@ api = (Blueprint('api_v1', __name__))
 log = logging.getLogger(__name__)
 
 
+@api.route('/', methods=['GET'])
+def landing_page():
+    """
+    Landing page with links to documentation and other APIs and interpretation
+    of outcomes from ResultDB results (passed, error and incomplete).
+
+    **Sample response**:
+
+    .. sourcecode:: none
+
+       HTTP/1.1 200 OK
+       Connection: close
+       Content-Length: 452
+       Content-Type: application/json
+       Date: Tue, 05 Dec 2023 07:45:39 GMT
+       Server: Werkzeug/3.0.1 Python/3.12.0
+
+       {
+           "api_v1": "http://greenwave.example.com/api/v1.0",
+           "documentation": "https://gating-greenwave.readthedocs.io",
+           "koji_api": "https://koji.example.com/kojihub",
+           "outcomes_error": ["ERROR"],
+           "outcomes_incomplete": ["QUEUED", "RUNNING"],
+           "outcomes_passed": ["PASSED", "INFO"],
+           "remote_rule_policies": {
+               "*": "https://git.example.com/{pkg_namespace}{pkg_name}/raw/{rev}/gating.yaml",
+               "brew-build-group": "https://git.example.com/side-tags/{pkg_namespace}{pkg_name}.yaml"
+           },
+           "resultsdb_api": "https://resultsdb.example.com/api/v2.0",
+           "waiverdb_api": "http://waiverdb.example.com/api/v1.0"
+       }
+    """  # noqa: E501
+    return (
+        jsonify({
+            "documentation": current_app.config["DOCUMENTATION_URL"],
+            "api_v1": current_app.config["GREENWAVE_API_URL"],
+            "resultsdb_api": current_app.config["RESULTSDB_API_URL"],
+            "waiverdb_api": current_app.config["WAIVERDB_API_URL"],
+            "koji_api": current_app.config["KOJI_BASE_URL"],
+            "outcomes_passed": current_app.config["OUTCOMES_PASSED"],
+            "outcomes_error": current_app.config["OUTCOMES_ERROR"],
+            "outcomes_incomplete": current_app.config["OUTCOMES_INCOMPLETE"],
+            "remote_rule_policies": current_app.config["REMOTE_RULE_POLICIES"],
+        }),
+        200,
+    )
+
+
 @api.route('/version', methods=['GET'])
 def version():
     """

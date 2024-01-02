@@ -94,6 +94,8 @@ class Config(object):
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "Lax"
 
+    DOCUMENTATION_URL = "https://gating-greenwave.readthedocs.io"
+
 
 class ProductionConfig(Config):
     DEBUG = False
