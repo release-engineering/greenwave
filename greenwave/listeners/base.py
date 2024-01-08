@@ -211,7 +211,6 @@ class BaseListener(stomp.ConnectionListener):
         messaging_counter.labels(**self.monitor_labels).inc()
 
     def _publish_decision_update(self, decision):
-        self.app.logger.debug(f"Trace Context: {self.context}")
         TraceContextTextMapPropagator().inject(decision, self.context)
         message = {"msg": decision, "topic": self.destination}
         body = json.dumps(message)
@@ -224,11 +223,7 @@ class BaseListener(stomp.ConnectionListener):
                     "decision_context": decision["decision_context"],
                     "policies_satisfied": str(decision["policies_satisfied"]).lower(),
                     "summary": decision["summary"],
-
                 }
-                if decision.get("traceparent", None):
-                    headers["traceparent"] = decision["traceparent"]
-
                 self.connection.send(
                     body=body, headers=headers, destination=self.destination
                 )
