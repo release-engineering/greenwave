@@ -689,7 +689,7 @@ def test_remote_rule_with_multiple_contexts(tmpdir):
             assert answer_types(decision.answers) == ['fetched-gating-yaml', 'test-result-passed']
 
 
-def test_get_sub_policies_multiple_urls(tmpdir):
+def test_get_sub_policies_multiple_urls(tmpdir, requests_mock):
     """ Testing the RemoteRule with the koji interaction when on_demand policy is given.
     In this case we are just mocking koji """
 
@@ -719,32 +719,25 @@ def test_get_sub_policies_multiple_urls(tmpdir):
     with app.app_context():
         with mock.patch('greenwave.resources.retrieve_scm_from_koji') as scm:
             scm.return_value = ('rpms', 'nethack', 'c3c47a08a66451cb9686c49f040776ed35a0d1bb')
-            with mock.patch('greenwave.resources.requests_session') as session:
-                response = mock.MagicMock()
-                response.status_code = 404
-                session.request.return_value = response
+            urls = [
+                'https://src{0}.fp.org/{1}/{2}/raw/{3}/f/gating.yaml'.format(i, *scm.return_value)
+                for i in range(1, 3)
+            ]
+            for url in urls:
+                requests_mock.head(url, status_code=404)
 
-                policy = OnDemandPolicy.create_from_json(serverside_json)
-                assert isinstance(policy.rules[0], RemoteRule)
-                assert policy.rules[0].required
+            policy = OnDemandPolicy.create_from_json(serverside_json)
+            assert isinstance(policy.rules[0], RemoteRule)
+            assert policy.rules[0].required
 
-                results = DummyResultsRetriever()
-                decision = Decision(None, 'fedora-26')
-                decision.check(subject, [policy], results)
-                expected_call1 = mock.call(
-                    'HEAD', 'https://src1.fp.org/{0}/{1}/raw/{2}/f/gating.yaml'.format(
-                        *scm.return_value
-                    )
-                )
-                expected_call2 = mock.call(
-                    'HEAD', 'https://src2.fp.org/{0}/{1}/raw/{2}/f/gating.yaml'.format(
-                        *scm.return_value
-                    )
-                )
-                assert session.request.mock_calls == [expected_call1, expected_call2]
-                assert answer_types(decision.answers) == ['missing-gating-yaml']
-                assert not decision.answers[0].is_satisfied
-                assert decision.answers[0].subject.identifier == subject.identifier
+            results = DummyResultsRetriever()
+            decision = Decision(None, 'fedora-26')
+            decision.check(subject, [policy], results)
+            request_history = [(r.method, r.url) for r in requests_mock.request_history]
+            assert request_history == [('HEAD', urls[0]), ('HEAD', urls[1])]
+            assert answer_types(decision.answers) == ['missing-gating-yaml']
+            assert not decision.answers[0].is_satisfied
+            assert decision.answers[0].subject.identifier == subject.identifier
 
 
 def test_get_sub_policies_scm_error(tmpdir):
