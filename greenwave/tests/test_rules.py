@@ -1,5 +1,6 @@
 import mock
 import pytest
+import re
 
 from textwrap import dedent
 
@@ -81,8 +82,8 @@ def test_match_remote_rule(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remot
 
 
 @mock.patch('greenwave.resources.retrieve_yaml_remote_rule')
-@mock.patch('greenwave.resources.retrieve_scm_from_koji')
-def test_invalid_nvr_iden(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remote_rule):
+@mock.patch('greenwave.resources._koji')
+def test_invalid_nvr_iden(koji, mock_retrieve_yaml_remote_rule):
     policy_yaml = dedent("""
         --- !Policy
         id: "some_policy"
@@ -93,7 +94,7 @@ def test_invalid_nvr_iden(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remote
           - !RemoteRule {}
     """)
     nvr = 'nieco'
-    mock_retrieve_scm_from_koji.side_effect = xmlrpc_client.Fault(1000, nvr)
+    koji().getBuild.side_effect = xmlrpc_client.Fault(1000, 'invalid format')
 
     app = create_app('greenwave.config.TestingConfig')
     with app.app_context():
@@ -101,7 +102,9 @@ def test_invalid_nvr_iden(mock_retrieve_scm_from_koji, mock_retrieve_yaml_remote
         policies = Policy.safe_load_all(policy_yaml)
         policy = policies[0]
         rule = policy.rules[0]
-        with pytest.raises(BadGateway, match='Koji XMLRPC fault'):
+        expected_error = re.escape(
+            f'Failed to get Koji build for "{nvr}": invalid format (code: 1000)')
+        with pytest.raises(BadGateway, match=expected_error):
             sub_policies, answers = rule._get_sub_policies(policy, subject)
 
 
