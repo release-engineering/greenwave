@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import re
 import socket
-from requests.exceptions import ConnectionError, HTTPError
+from requests.exceptions import ConnectionError
 
 import pytest
-import mock
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import BadGateway, NotFound
 
 from greenwave.resources import (
     NoSourceException,
@@ -119,43 +119,39 @@ def test_retrieve_scm_from_build_with_missing_rev(app, koji_proxy):
         retrieve_scm_from_koji(nvr)
 
 
-def test_retrieve_yaml_remote_rule_no_namespace(app):
-    with mock.patch('greenwave.resources.requests_session') as session:
-        # Return 404, because we are only interested in the URL in the request
-        # and whether it is correct even with empty namespace.
-        response = mock.MagicMock()
-        response.status_code = 404
-        session.request.return_value = response
-        returned_file = retrieve_yaml_remote_rule(
+def test_retrieve_yaml_remote_rule_no_namespace(app, requests_mock):
+    requests_mock.head(
+        'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml', status_code=404)
+    # Return 404, because we are only interested in the URL in the request
+    # and whether it is correct even with empty namespace.
+    returned_file = retrieve_yaml_remote_rule(
+        app.config['REMOTE_RULE_POLICIES']['*'].format(
+            rev='deadbeaf', pkg_name='pkg', pkg_namespace=''
+        )
+    )
+
+    request_history = [(r.method, r.url) for r in requests_mock.request_history]
+    assert request_history == [(
+        'HEAD', 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml'
+    )]
+    assert returned_file is None
+
+
+def test_retrieve_yaml_remote_rule_connection_error(app, requests_mock):
+    requests_mock.head('https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml')
+    exc = ConnectionError('Something went terribly wrong...')
+    requests_mock.get('https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml', exc=exc)
+
+    expected_error = re.escape(
+        'Got unexpected status code 502 for'
+        ' https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml:'
+        ' {"message": "Something went terribly wrong..."}'
+    )
+    with pytest.raises(BadGateway, match=expected_error):
+        retrieve_yaml_remote_rule(
             app.config['REMOTE_RULE_POLICIES']['*'].format(
                 rev='deadbeaf', pkg_name='pkg', pkg_namespace=''
             )
-        )
-
-        assert session.request.mock_calls == [mock.call(
-            'HEAD', 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml'
-        )]
-        assert returned_file is None
-
-
-def test_retrieve_yaml_remote_rule_connection_error(app):
-    with mock.patch('requests.Session.request') as mocked_request:
-        response = mock.MagicMock()
-        response.status_code = 200
-        mocked_request.side_effect = [
-            response, ConnectionError('Something went terribly wrong...')
-        ]
-
-        with pytest.raises(HTTPError) as excinfo:
-            retrieve_yaml_remote_rule(
-                app.config['REMOTE_RULE_POLICIES']['*'].format(
-                    rev='deadbeaf', pkg_name='pkg', pkg_namespace=''
-                )
-            )
-
-        assert str(excinfo.value) == (
-            '502 Server Error: Something went terribly wrong... for url: '
-            'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml'
         )
 
 
