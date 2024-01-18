@@ -6,6 +6,7 @@ import stomp
 
 from greenwave.listeners.resultsdb import ResultsDBListener
 from greenwave.subjects.subject import SubjectType
+from greenwave.tracing import init_tracing
 
 JSON_MESSAGE = {
     "data": {
@@ -73,7 +74,7 @@ JSON_MESSAGE = {
     "traceparent": "00-a9c3b99a95cc045e573e163c3ac80a77-d99d251a8caecd06-01"
 }
 patch_subject = SubjectType()
-patch_subject.id = "redhat-module"
+patch_subject.id = "redhat-module"  # type: ignore
 
 patch_decision = {
     'policies_satisfied': True,
@@ -106,3 +107,51 @@ def test_tracing(mocked_factory, mocked_decision, mocked_decision_unchanged):
         mock_publish.assert_called_once()
         assert mock_publish.call_args.args[0]["traceparent"] == JSON_MESSAGE[
             "traceparent"]
+
+
+@patch("greenwave.tracing.TracerProvider")
+@patch("greenwave.tracing.OTLPSpanExporter")
+@patch("greenwave.tracing.FlaskInstrumentor")
+@patch("greenwave.tracing.BatchSpanProcessor")
+@patch("greenwave.tracing.Resource")
+def test_init_tracing_with_valid_config(mock_resource, mock_batch, mock_instrumentor,
+                                        mock_span_exporter,
+                                        mock_provider):
+    app = MagicMock()
+    app.config.get.side_effect = lambda key: {
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://example.com",
+        "OTEL_EXPORTER_SERVICE_NAME": "example_service"
+    }.get(key)
+
+    init_tracing(app)
+
+    mock_provider.assert_called_once_with(
+        resource=mock_resource.create.return_value)
+    mock_span_exporter.assert_called_once_with(endpoint="http://example.com")
+    mock_provider.return_value.add_span_processor.assert_called_once_with(
+        mock_batch.return_value)
+    (mock_instrumentor().instrument_app.
+     assert_called_once_with(app,
+                             tracer_provider=mock_provider.return_value))
+
+
+@patch("greenwave.tracing.TracerProvider")
+def test_init_tracing_with_invalid_config_name(mock_provider):
+    app = MagicMock()
+    app.config.get.side_effect = lambda key: {
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://example.com",
+    }.get(key)
+
+    init_tracing(app)
+    mock_provider.assert_not_called()
+
+
+@patch("greenwave.tracing.TracerProvider")
+def test_init_tracing_with_invalid_config_endpoint(mock_provider):
+    app = MagicMock()
+    app.config.get.side_effect = lambda key: {
+        "OTEL_EXPORTER_SERVICE_NAME": "example_service",
+    }.get(key)
+
+    init_tracing(app)
+    mock_provider.assert_not_called()
