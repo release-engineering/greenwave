@@ -2,6 +2,7 @@
 import logging
 import datetime
 
+from opentelemetry import trace
 from werkzeug.exceptions import (
     BadRequest,
     NotFound,
@@ -21,6 +22,7 @@ from greenwave.subjects.factory import (
 from greenwave.waivers import waive_answers
 
 log = logging.getLogger(__name__)
+tracer = trace.get_tracer(__name__)
 
 
 class RuleContext:
@@ -174,6 +176,7 @@ def _decision_subjects_for_request(data):
         yield create_subject(data['subject_type'], data['subject_identifier'])
 
 
+@tracer.start_as_current_span("make_decision")
 def make_decision(data, config):
     if not data:
         raise UnsupportedMediaType('No JSON payload in request')

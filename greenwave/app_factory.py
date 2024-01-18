@@ -8,6 +8,7 @@ from greenwave.api_v1 import api, landing_page
 from greenwave.utils import json_error, load_config, mangle_key
 from greenwave.policies import load_policies
 from greenwave.subjects.subject_type import load_subject_types
+from greenwave.tracing import init_tracing
 
 from dogpile.cache import make_region
 import requests
@@ -27,6 +28,8 @@ def create_app(config_obj=None):
     logging_config = app.config.get('LOGGING')
     if logging_config:
         logging.config.dictConfig(logging_config)
+
+    init_tracing(app)
 
     policies_dir = app.config['POLICIES_DIR']
     log.debug("config: Loading policies from %r", policies_dir)

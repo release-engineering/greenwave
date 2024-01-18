@@ -12,6 +12,7 @@ class WaiverDBListener(BaseListener):
         self.koji_base_url = self.app.config["KOJI_BASE_URL"]
 
     def _consume_message(self, msg):
+        super()._consume_message(message=msg)
         product_version = msg["product_version"]
         testcase = msg["testcase"]
         subject = create_subject(msg["subject_type"], msg["subject_identifier"])

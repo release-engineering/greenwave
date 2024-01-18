@@ -71,6 +71,7 @@ class ResultsDBListener(BaseListener):
         return subject
 
     def _consume_message(self, msg):
+        super()._consume_message(message=msg)
         try:
             testcase = msg["testcase"]["name"]
         except KeyError:
