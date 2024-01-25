@@ -195,7 +195,14 @@ class KojiScmUrlParseError(BadGateway):
 def retrieve_koji_build_target(task_id, koji_url: str):
     log.debug('Getting Koji task request ID %r', task_id)
     proxy = _koji(koji_url)
-    task_request = proxy.getTaskRequest(task_id)
+    try:
+        task_request = proxy.getTaskRequest(task_id)
+    except xmlrpc_client.Fault as e:
+        error = (
+            f'Failed to get Koji task request ID {task_id}: {e.faultString} (code: {e.faultCode})')
+        log.debug(error)
+        raise BadGateway(error)
+
     if isinstance(task_request, list) and len(task_request) > 1:
         target = task_request[1]
         if isinstance(target, str):
@@ -207,7 +214,14 @@ def retrieve_koji_build_target(task_id, koji_url: str):
 def _retrieve_koji_build_attributes(nvr: str, koji_url: str):
     log.debug('Getting Koji build %r', nvr)
     proxy = _koji(koji_url)
-    build = proxy.getBuild(nvr)
+
+    try:
+        build = proxy.getBuild(nvr)
+    except xmlrpc_client.Fault as e:
+        error = f'Failed to get Koji build for "{nvr}": {e.faultString} (code: {e.faultCode})'
+        log.debug(error)
+        raise BadGateway(error)
+
     if not build:
         raise NotFound(
             'Failed to find Koji build for "{}" at "{}"'.format(nvr, koji_url)

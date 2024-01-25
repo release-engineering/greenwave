@@ -7,7 +7,6 @@ import os
 import re
 from typing import Optional
 
-from defusedxml.xmlrpc import xmlrpc_client
 from werkzeug.exceptions import BadGateway, BadRequest, NotFound
 from flask import current_app
 
@@ -602,12 +601,10 @@ class RemoteRule(Rule):
         except NotFound:
             error = f'Koji build not found for {subject}'
             return [], [FailedFetchRemoteRuleYaml(subject, remote_policies_urls, error)]
-        except xmlrpc_client.Fault as err:
-            logging.exception('Unexpected Koji XMLRPC fault with code: %s', err.faultCode)
-            error = f'Koji XMLRPC fault due to: \'{err.faultString}\''
-            raise BadGateway(error)
         except greenwave.resources.KojiScmUrlParseError as err:
             return [], [FailedFetchRemoteRuleYaml(subject, remote_policies_urls, err.description)]
+        except BadGateway:
+            raise
         except Exception:
             logging.exception('Failed to retrieve policies for %r', subject)
             error = 'Unexpected error while fetching remote policies'
