@@ -99,7 +99,7 @@ class BaseListener(stomp.ConnectionListener):
                 _send_nack(self, frame.headers)
                 return
 
-        self.app.logger.debug("Received a message: %s", frame.body)
+        self.app.logger.debug("Received a message ID: %s", frame.headers['message-id'])
         _send_ack(self, frame.headers)
         self._inc(messaging_rx_counter)
 
@@ -247,7 +247,6 @@ class BaseListener(stomp.ConnectionListener):
             old_decision = greenwave.decision.make_decision(
                 request_data, self.app.config
             )
-            self.app.logger.debug("old decision: %s", old_decision)
         except HTTPError as e:
             self.app.logger.exception(
                 "Failed to retrieve decision for data=%s, error: %s", request_data, e
@@ -281,14 +280,23 @@ class BaseListener(stomp.ConnectionListener):
                 subject_type=subject.type,
                 subject_identifier=subject.identifier,
             )
-            if decision is None:
+            if decision is None or old_decision is None:
                 self._inc(decision_failed_counter.labels(decision_context=decision_context))
                 continue
 
-            if _is_decision_unchanged(old_decision, decision):
+            log_label = (
+                f"[item:{subject.identifier} type:{subject.type}"
+                f" context:{decision_context} pv:{product_version}]"
+            )
+            if old_decision["summary"] != decision["summary"]:
                 self.app.logger.debug(
-                    "Skipped emitting fedora message, decision did not change: %s", decision
+                    "Summary change for %s: %r -> %r",
+                    log_label,
+                    old_decision["summary"],
+                    decision["summary"],
                 )
+
+            if _is_decision_unchanged(old_decision, decision):
                 self._inc(decision_unchanged_counter.labels(decision_context=decision_context))
                 continue
 
@@ -308,5 +316,5 @@ class BaseListener(stomp.ConnectionListener):
             if publish_testcase:
                 decision["testcase"] = testcase
 
-            self.app.logger.info("Publishing decision change message: %r", decision)
+            self.app.logger.info("Publishing decision change message for: %s", log_label)
             self._publish_decision_update(decision)
