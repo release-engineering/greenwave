@@ -724,7 +724,7 @@ def test_get_sub_policies_multiple_urls(tmpdir, requests_mock):
                 for i in range(1, 3)
             ]
             for url in urls:
-                requests_mock.head(url, status_code=404)
+                requests_mock.get(url, status_code=404)
 
             policy = OnDemandPolicy.create_from_json(serverside_json)
             assert isinstance(policy.rules[0], RemoteRule)
@@ -734,7 +734,7 @@ def test_get_sub_policies_multiple_urls(tmpdir, requests_mock):
             decision = Decision(None, 'fedora-26')
             decision.check(subject, [policy], results)
             request_history = [(r.method, r.url) for r in requests_mock.request_history]
-            assert request_history == [('HEAD', urls[0]), ('HEAD', urls[1])]
+            assert request_history == [('GET', urls[0]), ('GET', urls[1])]
             assert answer_types(decision.answers) == ['missing-gating-yaml']
             assert not decision.answers[0].is_satisfied
             assert decision.answers[0].subject.identifier == subject.identifier

@@ -120,7 +120,7 @@ def test_retrieve_scm_from_build_with_missing_rev(app, koji_proxy):
 
 
 def test_retrieve_yaml_remote_rule_no_namespace(app, requests_mock):
-    requests_mock.head(
+    requests_mock.get(
         'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml', status_code=404)
     # Return 404, because we are only interested in the URL in the request
     # and whether it is correct even with empty namespace.
@@ -132,20 +132,18 @@ def test_retrieve_yaml_remote_rule_no_namespace(app, requests_mock):
 
     request_history = [(r.method, r.url) for r in requests_mock.request_history]
     assert request_history == [(
-        'HEAD', 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml'
+        'GET', 'https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml'
     )]
     assert returned_file is None
 
 
 def test_retrieve_yaml_remote_rule_connection_error(app, requests_mock):
-    requests_mock.head('https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml')
     exc = ConnectionError('Something went terribly wrong...')
     requests_mock.get('https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml', exc=exc)
 
     expected_error = re.escape(
         'Got unexpected status code 502 for'
-        ' https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml:'
-        ' {"message": "Something went terribly wrong..."}'
+        ' https://src.fedoraproject.org/pkg/raw/deadbeaf/f/gating.yaml'
     )
     with pytest.raises(BadGateway, match=expected_error):
         retrieve_yaml_remote_rule(
