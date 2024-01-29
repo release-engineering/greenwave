@@ -34,9 +34,6 @@ class SubjectType(SafeYAMLObject):
         # version can be parsed for identifier.
         'is_nvr': SafeYAMLBool(optional=True),
 
-        # Subject type can be used with RemoteRule only if value is True.
-        'supports_remote_rule': SafeYAMLBool(optional=True, default=False),
-
         # Omit responding with HTTP 404 if there is no applicable policy.
         'ignore_missing_policy': SafeYAMLBool(optional=True, default=False),
 

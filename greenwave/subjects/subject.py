@@ -90,10 +90,6 @@ class Subject:
         return self.subject_type.is_koji_build
 
     @property
-    def supports_remote_rule(self):
-        return self.subject_type.supports_remote_rule
-
-    @property
     def ignore_missing_policy(self):
         return self.subject_type.ignore_missing_policy
 
