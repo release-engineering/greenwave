@@ -2,6 +2,23 @@
 Release Notes
 =============
 
+Greenwave 2.3.0
+===============
+
+Released 6 March 2024
+
+* Allows querying multiple decision contexts in a single decision
+* `RemoteRule` now supports a customized remote URL
+* Responds a `502 Bad Gateway` HTTP error, when Koji or remote rule
+  server are not available
+* Waived requirements now contain a waiver ID
+* Adds a landing page with the configuration information
+* Improves a `RemoteRule` handling (dealing with 404 error, regardless
+  of other rules)
+* Allows matching of multiple product versions
+* Changes a status string, making it more consistent
+
+
 Greenwave 2.2.0
 ===============
 
