@@ -385,6 +385,7 @@ def test_decision_changes(
     (
         (
             {
+                "summary": "1 of 1 test results failed",
                 "policies_satisfied": False,
                 "satisfied_requirements": [],
                 "unsatisfied_requirements": [
@@ -392,6 +393,7 @@ def test_decision_changes(
                 ],
             },
             {
+                "summary": "1 of 1 test results failed",
                 "policies_satisfied": False,
                 "satisfied_requirements": [],
                 "unsatisfied_requirements": [
