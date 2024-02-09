@@ -583,9 +583,6 @@ class RemoteRule(Rule):
         and answers (including FetchedRemoteRuleYaml, MissingRemoteRuleYaml,
         InvalidRemoteRuleYaml, FailedFetchRemoteRuleYaml).
         """
-        if not subject.supports_remote_rule:
-            return [], []
-
         remote_policies_urls = []
         remote_policies_url = None
         response = None

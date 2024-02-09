@@ -36,7 +36,6 @@ def test_subject_create_generic(app):
     assert subject.short_product_version is None
     assert subject.product_versions == []
     assert subject.is_koji_build
-    assert not subject.supports_remote_rule
 
 
 def test_subject_koji_build_result_queries(app):

@@ -3,7 +3,6 @@ id: redhat-container-image
 product_version: rhel-8
 is_koji_build: true
 is_nvr: true
-supports_remote_rule: true
 item_key: "nvr"
 result_queries:
   - item_key: "nvr"

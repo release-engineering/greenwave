@@ -1,4 +1,3 @@
 --- !SubjectType
 id: redhat-module
 product_version: rhel-8
-supports_remote_rule: true

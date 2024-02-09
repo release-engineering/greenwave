@@ -160,9 +160,9 @@ To waive this, use the test case name "invalid-gating-yaml".
 Missing remote rule
 -------------------
 
-If the requested policy contains a ``RemoteRule`` with ``required`` attribute
-set to ``true``, this unsatisfied requirement is created for each subject that
-supports remote rule files and the file is missing for requested subject.
+This unsatisfied requirement is created if the requested policy contains a
+``RemoteRule`` with ``required`` attribute set to ``true`` but the remote file
+is missing.
 
 To waive this, use test case name "missing-gating-yaml".
 

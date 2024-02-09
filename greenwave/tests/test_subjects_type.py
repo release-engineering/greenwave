@@ -18,7 +18,6 @@ def test_subject_type_create(subject_types):
     assert subject_type.aliases == ['brew-build']
     assert subject_type.is_koji_build
     assert subject_type.is_nvr
-    assert subject_type.supports_remote_rule
     assert subject_type.item_key == 'original_spec_nvr'
 
 
