@@ -305,7 +305,8 @@ def retrieve_scm_from_koji_build(nvr: str, source: str, koji_url: str):
 @cached
 def retrieve_yaml_remote_rule(url: str):
     """ Retrieve a remote rule file content from the git web UI. """
-    response = requests_session.request('GET', url)
+    timeout = current_app.config['REMOTE_RULE_GIT_TIMEOUT']
+    response = requests_session.get(url, timeout=timeout)
 
     if response.status_code == 404:
         log.debug('Remote rule not found: %s', url)
