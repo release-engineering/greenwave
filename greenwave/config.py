@@ -36,7 +36,6 @@ class Config(object):
         '*': 'https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml'
     }
     REMOTE_RULE_GIT_TIMEOUT = 30
-    REMOTE_RULE_GIT_MAX_RETRY = 3
     KOJI_BASE_URL = 'https://koji.fedoraproject.org/kojihub'
     # Options for outbound HTTP requests made by python-requests
     REQUESTS_TIMEOUT = (6.1, 15)
