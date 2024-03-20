@@ -2,10 +2,36 @@
 Writing Policies
 ================
 
+Greenwave policies are part of the server configuration and define which test
+cases are required to pass for specific decision contexts (or gating points),
+subject types, product versions or even for individual artifact names
+(packages, modules, images…).
+
 When you ask Greenwave for a decision, it checks all the configured policies
 to find which ones are applicable to the subject of the decision. It then
 evaluates all the rules in each applicable policy and makes a decision based
 on whether they are *all* satisfied.
+
+Greenwave decision requests need the following parameters to identify the
+policies to use:
+
+- decision_context
+- product_version
+- subject_type
+
+Greenwave policies need the following parameters:
+
+- decision_contexts
+- product_versions
+- subject_type
+- rules
+- id
+
+Optionally, policies can define applicable "package" (the name from NVR)
+allowlist and blocklist using parameters ``packages`` and
+``excluded_packages``. This works only for subject types that support NVR
+formatted subject identifiers (``is_nvr`` in :ref:`subject-types`
+configuration).
 
 Policies are YAML files, loaded from the directory given by the
 ``POLICIES_DIR`` configuration setting (by default,
@@ -138,7 +164,11 @@ Subject types
 Greenwave can make decisions about any type of software artefacts, the value of
 this field just needs to be a string.
 
-But these are common examples of types (just for reference):
+The subject types can be configured in server (``SUBJECT_TYPES_DIR`` points to
+the directory with the configuration YAML files). This customization can be
+listed via API :http:get:`/api/v1.0/subject_types`.
+
+These are common examples of types:
 
 ``koji_build``
    A build stored in the `Koji`_ build system. Builds are identified by their
@@ -171,39 +201,39 @@ Rule types
 PassingTestCaseRule
 -------------------
 
-   For this rule to be satisfied, there must be a result in ResultsDB for the
-   given ``test_case_name`` with an outcome of ``PASSED`` or ``INFO``, *or*
-   there must be a corresponding waiver in WaiverDB for the given test case.
+For this rule to be satisfied, there must be a result in ResultsDB for the
+given ``test_case_name`` with an outcome of ``PASSED`` or ``INFO``, *or*
+there must be a corresponding waiver in WaiverDB for the given test case.
 
-   The rule requires all matching latest test results with distinct triplets
-   ``system_architecture``, ``system_variant`` and ``scenario`` (which are
-   defined in result data) to pass or be waived.
+The rule requires all matching latest test results with distinct triplets
+``system_architecture``, ``system_variant`` and ``scenario`` (which are
+defined in result data) to pass or be waived.
 
-   Optional ``scenario`` property can be specified to consider only results
-   with a given scenario name.
+Optional ``scenario`` property can be specified to consider only results
+with a given scenario name.
 
-   Optional ``valid_since`` and ``valid_until`` properties declare a date/time
-   range for which the rule is applicable. The range is compared to subject's
-   build time from Koji if available or the current date/time. The default
-   value is ``null`` for both, indicating that the rule is always valid. The
-   comparison logic is following::
+Optional ``valid_since`` and ``valid_until`` properties declare a date/time
+range for which the rule is applicable. The range is compared to subject's
+build time from Koji if available or the current date/time. The default
+value is ``null`` for both, indicating that the rule is always valid. The
+comparison logic is following::
 
-      if valid_since != null and subject_time < valid_since then
-         rule is not applicable
-      else if valid_until != null and subject_time >= valid_until then
-         rule is not applicable
-      else
-         rule is applicable
+  if valid_since != null and subject_time < valid_since then
+     rule is not applicable
+  else if valid_until != null and subject_time >= valid_until then
+     rule is not applicable
+  else
+     rule is applicable
 
-   Removing the rule is equivalent to setting ``valid_until`` to the current
-   date/time. This is preferable since it won't affect previous decisions.
-   Similarly, adding new rule with ``valid_since`` set to the current or a
-   future date/time does not affect previous decisions.
+Removing the rule is equivalent to setting ``valid_until`` to the current
+date/time. This is preferable since it won't affect previous decisions.
+Similarly, adding new rule with ``valid_since`` set to the current or a
+future date/time does not affect previous decisions.
 
-   In the following example, on ``2021-10-02`` (if not specified, the time
-   defaults to 00:00 UTC), compose test results for test case
-   ``compose.autocloud`` start requiring scenario ``x86_64.uefi`` instead of
-   ``x86_64.64bit``.
+In the following example, on ``2021-10-02`` (if not specified, the time
+defaults to 00:00 UTC), compose test results for test case
+``compose.autocloud`` start requiring scenario ``x86_64.uefi`` instead of
+``x86_64.64bit``.
 
    .. code-block:: yaml
       :linenos:
@@ -229,36 +259,42 @@ PassingTestCaseRule
 RemoteRule
 ----------
 
-   See the :ref:`remoterule-configure-additional-policies` section below for
-   some information about how RemoteRule works and how to configure it.
+See the :ref:`remoterule-configure-additional-policies` section below for
+some information about how RemoteRule works and how to configure it.
 
 
 Testing your policy changes
 ===========================
 
-If you're writing a new policy, you can use the Greenwave dev server to try it
-out and experiment with how if affects Greenwave's decisions.
-
-First, follow the steps in the :doc:`dev-guide` to get the dev server running
-locally.
-
-Then, add your new or modified policy in the :file:`conf/policies/` directory
-of your source tree. Note that Greenwave currently loads policies once at
-startup, it doesn't reload them at runtime. Therefore you should restart the
-dev server whenever you make a change to the policies.
-
-Now, you can use :program:`curl` or your favourite HTTP client to ask
-Greenwave for a decision:
+Before requesting a new policy, you can verify the rules for the policy by
+passing ``rules`` to API :http:post:`/api/v1.0/decision` instead of the
+``decision_context`` attribute.
 
 .. code-block:: bash
 
-   curl http://localhost:5005/api/v1.0/decision \
-     --header 'Content-Type: application/json' \
-     --data '{"product_version": "fedora-27",
-         "decision_context": "bodhi_update_push_stable",
-         "subject": [{"item": "akonadi-calendar-tools-17.12.1-1.fc27",
-                      "type": "koji_build"}]}'
+   curl https://greenwave.fedoraproject.org/api/v1.0/decision \
+     --json '{
+       "product_version": "fedora-27",
+       "subject_identifier": "akonadi-calendar-tools-17.12.1-1.fc27",
+       "subject_type": "koji_build",
+       "rules": [
+         {"type": "PassingTestCaseRule", "test_case_name": "example1.test.case.name"},
+         {"type": "PassingTestCaseRule", "test_case_name": "example2.test.case.name"},
+         {
+           "type": "RemoteRule",
+           "source": "https://gitlab.example.com/ci/policies/-/raw/master/{subject_id}.yml"
+         }
+       ]}'
 
+
+Updating existing policies
+==========================
+
+Modifying rules in policies would normally break previous gating decisions. To
+avoid this, use ``valid_since`` when adding new rules and ``valid_until``
+instead of removing rules.
+
+For details, see: :ref:`PassingTestCaseRule`
 
 
 .. _remoterule-configure-additional-policies:
