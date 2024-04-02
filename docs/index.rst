@@ -11,6 +11,10 @@ Greenwave
 gating points in a software delivery pipeline, based on test results stored in
 `ResultsDB`_ and waivers stored in `WaiverDB`_.
 
+**Gating** serves as a way to stop broken or non-compliant builds (RPM,
+container image, module, compose…) from getting shipped to customers or getting
+through other gating points (for example tagging a build as stable).
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
