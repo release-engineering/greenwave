@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: GPL-2.0+
 import json
 from textwrap import dedent
+from unittest import mock
 
-import mock
 import pytest
 import stomp
 from requests.exceptions import HTTPError
 
 from greenwave.app_factory import create_app
-from greenwave.listeners.waiverdb import WaiverDBListener
 from greenwave.listeners.resultsdb import ResultsDBListener
+from greenwave.listeners.waiverdb import WaiverDBListener
 from greenwave.monitor import (
     messaging_rx_counter,
     messaging_rx_ignored_counter,
@@ -65,7 +65,7 @@ class DummyMessage:
         nvr=DUMMY_NVR,
         type_="koji_build",
         testcase="dist.rpmdeplint",
-        **kwargs
+        **kwargs,
     ):
         if "message" in kwargs:
             self.message = kwargs["message"]
@@ -368,7 +368,8 @@ def test_decision_changes(
     expected_body = {"msg": expected_message, "topic": DECISION_UPDATE_TOPIC}
     assert json.loads(mock_call["body"]) == expected_body
     expected_headers = {
-        k: expected_message[k] for k in (
+        k: expected_message[k]
+        for k in (
             "subject_type",
             "subject_identifier",
             "product_version",
@@ -376,7 +377,9 @@ def test_decision_changes(
             "summary",
         )
     }
-    expected_headers["policies_satisfied"] = str(expected_message["policies_satisfied"]).lower()
+    expected_headers["policies_satisfied"] = str(
+        expected_message["policies_satisfied"]
+    ).lower()
     assert mock_call["headers"] == expected_headers
 
 
@@ -552,6 +555,7 @@ def test_remote_rule_decision_change_not_matching(
     Test not publishing decision change message for test cases not mentioned in
     gating.yaml.
     """
+
     def retrieve_decision(data, _config):
         return {
             "policies_satisfied": True,
@@ -611,7 +615,9 @@ def test_guess_product_version_with_koji(koji_proxy, app):
     ]
 
     subject = create_subject("container-build", "fake_koji_build")
-    product_versions = subject_product_versions(subject, "http://localhost:5006/kojihub")
+    product_versions = subject_product_versions(
+        subject, "http://localhost:5006/kojihub"
+    )
 
     koji_proxy.getBuild.assert_called_once_with("fake_koji_build")
     koji_proxy.getTaskRequest.assert_called_once_with(666)
@@ -622,7 +628,9 @@ def test_guess_product_version_with_koji_without_task_id(koji_proxy, app):
     koji_proxy.getBuild.return_value = {"task_id": None}
 
     subject = create_subject("container-build", "fake_koji_build")
-    product_versions = subject_product_versions(subject, "http://localhost:5006/kojihub")
+    product_versions = subject_product_versions(
+        subject, "http://localhost:5006/kojihub"
+    )
 
     koji_proxy.getBuild.assert_called_once_with("fake_koji_build")
     koji_proxy.getTaskRequest.assert_not_called()
@@ -644,7 +652,9 @@ def test_guess_product_version_with_koji_and_unexpected_task_type(
     koji_proxy.getTaskRequest.return_value = task_request
 
     subject = create_subject("container-build", "fake_koji_build")
-    product_versions = subject_product_versions(subject, "http://localhost:5006/kojihub")
+    product_versions = subject_product_versions(
+        subject, "http://localhost:5006/kojihub"
+    )
 
     koji_proxy.getBuild.assert_called_once_with("fake_koji_build")
     koji_proxy.getTaskRequest.assert_called_once_with(666)

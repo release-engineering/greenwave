@@ -11,7 +11,7 @@ product_versions:
 decision_context: bodhi_update_push_stable
 subject_type: koji_build
 excluded_packages:
-  # see the excluded list for dist.abicheck 
+  # see the excluded list for dist.abicheck
   # https://infrastructure.fedoraproject.org/cgit/ansible.git/tree/roles/taskotron/taskotron-trigger/templates/trigger_rules.yml.j2#n17
   - firefox
   - thunderbird

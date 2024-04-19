@@ -8,6 +8,12 @@ get started.
 Development setup
 =================
 
+Install pre-commit:
+
+.. code-block:: console
+
+   $ pre-commit install
+
 Install development dependencies:
 
 .. code-block:: console
@@ -68,12 +74,15 @@ documentation, you can build it locally and view it in your browser:
 Code style
 ==========
 
-We follow the `PEP 8`_ style guide for Python. You can check your code's style
-using flake8:
+We follow the `PEP 8`_ style guide for Python. Pre-commit (see installation
+instructions above) runs ``ruff`` and other tools to automatically check and
+reformats the code on commit.
+
+To run pre-commit on all files:
 
 .. code-block:: console
 
-   $ tox -e flake8
+   $ pre-commit run --all-files
 
 Additionally, we follow the `"Google style" for docstrings
 <http://www.sphinx-doc.org/en/latest/ext/example_google.html>`_.

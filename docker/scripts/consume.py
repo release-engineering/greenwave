@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
+import itertools
 import json
 import os
-import itertools
-
 from pprint import pprint
 
 from rhmsg.activemq.consumer import AMQConsumer
@@ -29,7 +28,7 @@ def message_handler(message, data):
     if isinstance(body, str):
         body = body.encode("utf-8", "backslashreplace")
     if data["dump"]:
-        print("------------- ({0}) {1} --------------".format(num, message.id))
+        print(f"------------- ({num}) {message.id} --------------")
         print("address:", message.address)
         print("subject:", message.subject)
         print("properties:", message.properties)
@@ -55,7 +54,7 @@ def message_handler(message, data):
 
 
 def main():
-    os.environ['PN_TRACE_FRM'] = '1'
+    os.environ["PN_TRACE_FRM"] = "1"
     consumer = InsecureAMQConsumer(urls=URLS)
     consumer.consume(
         ADDRESS,
@@ -72,5 +71,5 @@ def main():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

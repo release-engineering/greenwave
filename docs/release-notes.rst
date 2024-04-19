@@ -319,7 +319,7 @@ Released 15 July 2019
   The following  issue prevents adopting a newer version of Sphinx: `https://github.com/ignatenkobrain/sphinxcontrib-issuetracker/ issues/23`.
 * General code optimizations and documentation update.
 * Correct the waiverdb consumer to use the correct messaging setting.
-* Bug fix - Add retry logic when fetching data from dist-git. 
+* Bug fix - Add retry logic when fetching data from dist-git.
 * Bug fix - Fix matching some wrong product versions.
 * Fun addition - Added life-decision endpoint. Ask a question to Greenwave checking the /life-decision endpoint,
   it will give you an advice for your life. Greenwave is just a service, it cannot give you every answers for your life decisions, but it can help you to find the answer inside your heart.

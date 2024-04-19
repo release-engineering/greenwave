@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-2.0+
 """
 Provides an "xmlrpc_client.ServerProxy" object with a timeout on the socket.
 """
+
 import urllib.parse
 
 from defusedxml.xmlrpc import xmlrpc_client
@@ -23,7 +23,7 @@ def get_server_proxy(uri, timeout):
             a socket timeout set.
     """
     parsed_uri = urllib.parse.urlparse(uri)
-    if parsed_uri.scheme == 'https':
+    if parsed_uri.scheme == "https":
         transport = SafeTransport(timeout=timeout)
     else:
         transport = Transport(timeout=timeout)

@@ -8,11 +8,11 @@ from greenwave.utils import mangle_key
 def test_cache():
     cache = make_region(key_mangler=mangle_key)
     cache.configure(
-        backend='dogpile.cache.pymemcache',
+        backend="dogpile.cache.pymemcache",
         expiration_time=5,
         arguments={
-            'url': '127.0.0.1:11211',
-            'distributed_lock': True,
+            "url": "127.0.0.1:11211",
+            "distributed_lock": True,
         },
     )
     key = uuid.uuid1().hex

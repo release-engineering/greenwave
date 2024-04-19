@@ -2,8 +2,8 @@
 from greenwave.listeners.base import BaseListener
 from greenwave.product_versions import subject_product_versions
 from greenwave.subjects.factory import (
-    create_subject_from_data,
     UnknownSubjectDataError,
+    create_subject_from_data,
 )
 
 

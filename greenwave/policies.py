@@ -1,24 +1,23 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-from collections import defaultdict
-from fnmatch import fnmatch
 import glob
 import logging
 import os
 import re
-from typing import Optional
+from collections import defaultdict
+from fnmatch import fnmatch
 
-from werkzeug.exceptions import BadGateway, BadRequest, NotFound
 from flask import current_app
+from werkzeug.exceptions import BadGateway, BadRequest, NotFound
 
 import greenwave.resources
 from greenwave.safe_yaml import (
     SafeYAMLBool,
     SafeYAMLDateTime,
+    SafeYAMLError,
     SafeYAMLList,
     SafeYAMLObject,
     SafeYAMLString,
-    SafeYAMLError,
 )
 
 log = logging.getLogger(__name__)
@@ -32,26 +31,28 @@ def load_policies(policies_dir):
     :return: A list of policies.
 
     """
-    policy_pathnames = glob.glob(os.path.join(policies_dir, '*.yaml'))
+    policy_pathnames = glob.glob(os.path.join(policies_dir, "*.yaml"))
     policies = []
     for policy_pathname in policy_pathnames:
-        with open(policy_pathname, 'r') as f:
+        with open(policy_pathname) as f:
             policies.extend(greenwave.policies.Policy.safe_load_all(f))
     log.debug("Loaded %i policies from %s", len(policies), policies_dir)
     return policies
 
 
 def _remote_url_templates(subject):
-    rr_policies_conf = current_app.config.get('REMOTE_RULE_POLICIES', {})
+    rr_policies_conf = current_app.config.get("REMOTE_RULE_POLICIES", {})
     cur_subject_urls = (
-        rr_policies_conf.get(subject.type) or
-        rr_policies_conf.get('*') or
-        current_app.config.get('DIST_GIT_URL_TEMPLATE')
+        rr_policies_conf.get(subject.type)
+        or rr_policies_conf.get("*")
+        or current_app.config.get("DIST_GIT_URL_TEMPLATE")
     )
 
     if not cur_subject_urls:
-        raise RuntimeError(f'Cannot use a remote rule for {subject} subject '
-                           f'as it has not been configured')
+        raise RuntimeError(
+            f"Cannot use a remote rule for {subject} subject "
+            "as it has not been configured"
+        )
 
     if not isinstance(cur_subject_urls, list):
         cur_subject_urls = [cur_subject_urls]
@@ -65,11 +66,14 @@ def _remote_urls(subject, url_templates):
     """
     for current_url in url_templates:
         url_params = {}
-        if '{pkg_name}' in current_url or '{pkg_namespace}' in current_url or \
-                '{rev}' in current_url:
+        if (
+            "{pkg_name}" in current_url
+            or "{pkg_namespace}" in current_url
+            or "{rev}" in current_url
+        ):
             try:
-                pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
-                    subject.identifier
+                pkg_namespace, pkg_name, rev = (
+                    greenwave.resources.retrieve_scm_from_koji(subject.identifier)
                 )
             except greenwave.resources.NoSourceException as e:
                 log.warning(e)
@@ -78,15 +82,15 @@ def _remote_urls(subject, url_templates):
             # if the element is actually a container and not a pkg there will be a "-container"
             # string at the end of the "pkg_name" and it will not match with the one in the
             # remote rule file URL
-            if pkg_namespace == 'containers':
-                pkg_name = re.sub('-container$', '', pkg_name)
+            if pkg_namespace == "containers":
+                pkg_name = re.sub("-container$", "", pkg_name)
             if pkg_namespace:
-                pkg_namespace += '/'
+                pkg_namespace += "/"
             url_params.update(rev=rev, pkg_name=pkg_name, pkg_namespace=pkg_namespace)
 
-        if '{subject_id}' in current_url:
+        if "{subject_id}" in current_url:
             subj_id = subject.identifier
-            if subj_id.startswith('sha256:'):
+            if subj_id.startswith("sha256:"):
                 subj_id = subj_id[7:]
             url_params.update(subject_id=subj_id)
 
@@ -97,7 +101,7 @@ class DisallowedRuleError(RuntimeError):
     pass
 
 
-class Answer(object):
+class Answer:
     """
     Represents the result of evaluating a policy rule against a particular
     item. But we call it an "answer" because the word "result" is a bit
@@ -116,8 +120,8 @@ class Answer(object):
         raise NotImplementedError()
 
     def __repr__(self):
-        attributes = ' '.join(f'{k}={v}' for k, v in self.to_json().items())
-        return f'<{self.__class__.__name__} {attributes}>'
+        attributes = " ".join(f"{k}={v}" for k, v in self.to_json().items())
+        return f"<{self.__class__.__name__} {attributes}>"
 
 
 class RuleSatisfied(Answer):
@@ -171,15 +175,14 @@ class TestResultMissing(RuleNotSatisfied):
 
     def to_json(self):
         return {
-            'type': 'test-result-missing',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'scenario': self.scenario,
-            'source': self.source,
-
+            "type": "test-result-missing",
+            "testcase": self.test_case_name,
+            "subject_type": self.subject.type,
+            "subject_identifier": self.subject.identifier,
+            "scenario": self.scenario,
+            "source": self.source,
             # For backwards compatibility only:
-            'item': self.subject.to_dict()
+            "item": self.subject.to_dict(),
         }
 
     def to_waived(self, waiver_id):
@@ -203,20 +206,19 @@ class TestResultIncomplete(RuleNotSatisfied):
 
     @property
     def scenario(self):
-        return self.data.get('scenario')
+        return self.data.get("scenario")
 
     def to_json(self):
         data = {
             # Same type as TestResultMissing for backwards compatibility
-            'type': 'test-result-missing',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'source': self.source,
-            'result_id': self.result_id,
-
+            "type": "test-result-missing",
+            "testcase": self.test_case_name,
+            "subject_type": self.subject.type,
+            "subject_identifier": self.subject.identifier,
+            "source": self.source,
+            "result_id": self.result_id,
             # For backwards compatibility only:
-            'item': self.subject.to_dict()
+            "item": self.subject.to_dict(),
         }
         data.update(self.data)
         return data
@@ -232,17 +234,18 @@ class TestResultWaived(RuleSatisfied):
     Contains same data as unsatisfied rule except the type has "-waived"
     suffix. Also, the deprecated "item" field is dropped.
     """
+
     def __init__(self, unsatisfied_rule, waiver_id):
         self.unsatisfied_rule = unsatisfied_rule
         self.waiver_id = waiver_id
 
     def to_json(self):
         satisfied_rule = self.unsatisfied_rule.to_json()
-        satisfied_rule['type'] += '-waived'
-        satisfied_rule['waiver_id'] = self.waiver_id
+        satisfied_rule["type"] += "-waived"
+        satisfied_rule["waiver_id"] = self.waiver_id
 
-        if 'item' in satisfied_rule:
-            del satisfied_rule['item']
+        if "item" in satisfied_rule:
+            del satisfied_rule["item"]
 
         return satisfied_rule
 
@@ -264,21 +267,20 @@ class TestResultFailed(RuleNotSatisfied):
 
     @property
     def scenario(self):
-        return self.data.get('scenario')
+        return self.data.get("scenario")
 
     def to_json(self):
         data = {
-            'type': 'test-result-failed',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'source': self.source,
-            'result_id': self.result_id,
-
+            "type": "test-result-failed",
+            "testcase": self.test_case_name,
+            "subject_type": self.subject.type,
+            "subject_identifier": self.subject.identifier,
+            "source": self.source,
+            "result_id": self.result_id,
             # These are for backwards compatibility only
             # (the values are already visible in the result data itself, the
             # caller shouldn't need them repeated here):
-            'item': self.subject.to_dict(),
+            "item": self.subject.to_dict(),
         }
         data.update(self.data)
         return data
@@ -296,14 +298,7 @@ class TestResultErrored(RuleNotSatisfied):
 
     summary_text = "test{s} errored"
 
-    def __init__(
-            self,
-            subject,
-            test_case_name,
-            source,
-            result_id,
-            data,
-            error_reason):
+    def __init__(self, subject, test_case_name, source, result_id, data, error_reason):
         self.subject = subject
         self.test_case_name = test_case_name
         self.source = source
@@ -313,22 +308,21 @@ class TestResultErrored(RuleNotSatisfied):
 
     @property
     def scenario(self):
-        return self.data.get('scenario')
+        return self.data.get("scenario")
 
     def to_json(self):
         data = {
-            'type': 'test-result-errored',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'source': self.source,
-            'result_id': self.result_id,
-            'error_reason': self.error_reason,
-
+            "type": "test-result-errored",
+            "testcase": self.test_case_name,
+            "subject_type": self.subject.type,
+            "subject_identifier": self.subject.identifier,
+            "source": self.source,
+            "result_id": self.result_id,
+            "error_reason": self.error_reason,
             # These are for backwards compatibility only
             # (the values are already visible in the result data itself, the
             # caller shouldn't need them repeated here):
-            'item': self.subject.to_dict(),
+            "item": self.subject.to_dict(),
         }
         data.update(self.data)
         return data
@@ -354,13 +348,13 @@ class InvalidRemoteRuleYaml(RuleNotSatisfied):
 
     def to_json(self):
         return {
-            'type': 'invalid-gating-yaml',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'scenario': self.scenario,
-            'source': self.source,
-            'details': self.details
+            "type": "invalid-gating-yaml",
+            "testcase": self.test_case_name,
+            "subject_type": self.subject.type,
+            "subject_identifier": self.subject.identifier,
+            "scenario": self.scenario,
+            "source": self.source,
+            "details": self.details,
         }
 
     def to_waived(self, waiver_id):
@@ -372,7 +366,7 @@ class MissingRemoteRuleYaml(RuleNotSatisfied):
     Remote policy not found in remote repository.
     """
 
-    test_case_name = 'missing-gating-yaml'
+    test_case_name = "missing-gating-yaml"
     scenario = None
     is_test_result = False
     summary_text = "error{s} due to missing remote rule file"
@@ -383,12 +377,12 @@ class MissingRemoteRuleYaml(RuleNotSatisfied):
 
     def to_json(self):
         return {
-            'type': 'missing-gating-yaml',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'scenario': self.scenario,
-            'sources': self.sources,
+            "type": "missing-gating-yaml",
+            "testcase": self.test_case_name,
+            "subject_type": self.subject.type,
+            "subject_identifier": self.subject.identifier,
+            "scenario": self.scenario,
+            "sources": self.sources,
         }
 
     def to_waived(self, waiver_id):
@@ -400,7 +394,7 @@ class FailedFetchRemoteRuleYaml(RuleNotSatisfied):
     Error while fetching remote policy.
     """
 
-    test_case_name = 'failed-fetch-gating-yaml'
+    test_case_name = "failed-fetch-gating-yaml"
     scenario = None
     is_test_result = False
     summary_text = "error{s} while trying to fetch remote rule file"
@@ -412,13 +406,13 @@ class FailedFetchRemoteRuleYaml(RuleNotSatisfied):
 
     def to_json(self):
         return {
-            'type': 'failed-fetch-gating-yaml',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'scenario': self.scenario,
-            'sources': self.sources,
-            'error': self.error,
+            "type": "failed-fetch-gating-yaml",
+            "testcase": self.test_case_name,
+            "subject_type": self.subject.type,
+            "subject_identifier": self.subject.identifier,
+            "scenario": self.scenario,
+            "sources": self.sources,
+            "error": self.error,
         }
 
     def to_waived(self, waiver_id):
@@ -438,11 +432,11 @@ class FetchedRemoteRuleYaml(RuleSatisfied):
 
     def to_json(self):
         return {
-            'type': 'fetched-gating-yaml',
-            'testcase': 'fetched-gating-yaml',
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'source': self.source,
+            "type": "fetched-gating-yaml",
+            "testcase": "fetched-gating-yaml",
+            "subject_type": self.subject.type,
+            "subject_identifier": self.subject.identifier,
+            "source": self.source,
         }
 
 
@@ -451,6 +445,7 @@ class TestResultPassed(RuleSatisfied):
     A required test case passed (that is, its outcome in ResultsDB was passing)
     or a corresponding waiver was found.
     """
+
     def __init__(self, subject, test_case_name, source, result_id, data):
         self.subject = subject
         self.test_case_name = test_case_name
@@ -460,12 +455,12 @@ class TestResultPassed(RuleSatisfied):
 
     def to_json(self):
         data = {
-            'type': 'test-result-passed',
-            'testcase': self.test_case_name,
-            'subject_type': self.subject.type,
-            'subject_identifier': self.subject.identifier,
-            'source': self.source,
-            'result_id': self.result_id,
+            "type": "test-result-passed",
+            "testcase": self.test_case_name,
+            "subject_type": self.subject.type,
+            "subject_identifier": self.subject.identifier,
+            "source": self.source,
+            "result_id": self.result_id,
         }
         data.update(self.data)
         return data
@@ -484,17 +479,18 @@ class ExcludedInPolicy(RuleSatisfied):
 
     def to_json(self):
         return {
-            'type': 'excluded',
-            'subject_identifier': self.subject_identifier,
-            'policy': self.policy.id,
-            'source': self.policy.source,
+            "type": "excluded",
+            "subject_identifier": self.subject_identifier,
+            "policy": self.policy.id,
+            "source": self.policy.source,
         }
 
 
-class _Summary(object):
+class _Summary:
     """
     Internal class using for generating the result summary.
     """
+
     def __init__(self):
         self.test_msgs = defaultdict(int)
         self.non_test_msgs = defaultdict(int)
@@ -523,10 +519,10 @@ class _Summary(object):
         # if we got here, there should be no unsatisfied results
         if self.test_count:
             # this means we had some passed/waived tests
-            return f'All required tests ({self.test_count} total) have passed or been waived'
+            return f"All required tests ({self.test_count} total) have passed or been waived"
 
         # otherwise, should mean we had no required tests
-        return 'No tests are required'
+        return "No tests are required"
 
     def append(self, answer: Answer):
         if isinstance(answer, RuleNotSatisfied):
@@ -539,7 +535,7 @@ class _Summary(object):
 
     @staticmethod
     def sformat(text: str, number: int) -> str:
-        return text.format(num=number, s='s' if number != 1 else '')
+        return text.format(num=number, s="s" if number != 1 else "")
 
 
 def summarize_answers(answers):
@@ -582,7 +578,7 @@ class Rule(SafeYAMLObject):
         raise NotImplementedError()
 
     def matches(self, policy, **attributes):
-        #pylint: disable=unused-argument
+        # pylint: disable=unused-argument
         """
         Same as Policy.matches() for a rule attributes.
 
@@ -599,14 +595,14 @@ class Rule(SafeYAMLObject):
 
 
 class RemoteRule(Rule):
-    yaml_tag = '!RemoteRule'
+    yaml_tag = "!RemoteRule"
     safe_yaml_attributes = {
-        'sources': SafeYAMLList(str, optional=True),
-        'required': SafeYAMLBool(optional=True, default=False),
+        "sources": SafeYAMLList(str, optional=True),
+        "required": SafeYAMLBool(optional=True, default=False),
     }
 
     def _get_sub_policies(self, policy, subject):
-        #pylint: disable=broad-except
+        # pylint: disable=broad-except
         """
         Returns matching policies from the first available remote rule file,
         and answers (including FetchedRemoteRuleYaml, MissingRemoteRuleYaml,
@@ -621,19 +617,25 @@ class RemoteRule(Rule):
             url_templates = self.sources or _remote_url_templates(subject)
             for remote_policies_url in _remote_urls(subject, url_templates):
                 remote_policies_urls.append(remote_policies_url)
-                response = greenwave.resources.retrieve_yaml_remote_rule(remote_policies_url)
+                response = greenwave.resources.retrieve_yaml_remote_rule(
+                    remote_policies_url
+                )
                 if response is not None:
                     break
         except NotFound:
-            error = f'Koji build not found for {subject}'
+            error = f"Koji build not found for {subject}"
             return [], [FailedFetchRemoteRuleYaml(subject, remote_policies_urls, error)]
         except greenwave.resources.KojiScmUrlParseError as err:
-            return [], [FailedFetchRemoteRuleYaml(subject, remote_policies_urls, err.description)]
+            return [], [
+                FailedFetchRemoteRuleYaml(
+                    subject, remote_policies_urls, err.description
+                )
+            ]
         except BadGateway:
             raise
         except Exception:
-            logging.exception('Failed to retrieve policies for %r', subject)
-            error = 'Unexpected error while fetching remote policies'
+            logging.exception("Failed to retrieve policies for %r", subject)
+            error = "Unexpected error while fetching remote policies"
             raise BadGateway(error)
 
         # Remote rule file not found?
@@ -649,14 +651,17 @@ class RemoteRule(Rule):
         except SafeYAMLError as e:
             answers.append(
                 InvalidRemoteRuleYaml(
-                    subject, 'invalid-gating-yaml', str(e), remote_policies_url))
+                    subject, "invalid-gating-yaml", str(e), remote_policies_url
+                )
+            )
             policies = []
 
         for sub_policy in policies:
             sub_policy.source = remote_policies_url
 
         sub_policies = [
-            sub_policy for sub_policy in policies
+            sub_policy
+            for sub_policy in policies
             if policy.matches_sub_policy(sub_policy)
         ]
         return sub_policies, answers
@@ -682,10 +687,10 @@ class RemoteRule(Rule):
         return answers
 
     def matches(self, policy, **attributes):
-        if attributes.get('match_any_remote_rule'):
+        if attributes.get("match_any_remote_rule"):
             return True
 
-        subject = attributes.get('subject')
+        subject = attributes.get("subject")
         if not subject:
             return True
 
@@ -705,9 +710,9 @@ class RemoteRule(Rule):
 
     def to_json(self):
         return {
-            'rule': self.__class__.__name__,
-            'required': self.required,
-            'sources': self.sources,
+            "rule": self.__class__.__name__,
+            "required": self.required,
+            "sources": self.sources,
         }
 
 
@@ -716,20 +721,24 @@ class PassingTestCaseRule(Rule):
     This rule requires either a passing result for the given test case, or
     a non-passing result with a waiver.
     """
-    yaml_tag = '!PassingTestCaseRule'
+
+    yaml_tag = "!PassingTestCaseRule"
 
     safe_yaml_attributes = {
-        'test_case_name': SafeYAMLString(),
-        'scenario': SafeYAMLString(optional=True),
-        'valid_since': SafeYAMLDateTime(optional=True),
-        'valid_until': SafeYAMLDateTime(optional=True),
+        "test_case_name": SafeYAMLString(),
+        "scenario": SafeYAMLString(optional=True),
+        "valid_since": SafeYAMLDateTime(optional=True),
+        "valid_until": SafeYAMLDateTime(optional=True),
     }
 
     def check(self, policy, rule_context):
         if self.valid_since or self.valid_until:
             koji_url = current_app.config["KOJI_BASE_URL"]
-            subject_creation_time = greenwave.resources.retrieve_koji_build_creation_time(
-                rule_context.subject.identifier, koji_url)
+            subject_creation_time = (
+                greenwave.resources.retrieve_koji_build_creation_time(
+                    rule_context.subject.identifier, koji_url
+                )
+            )
             if self.valid_since and subject_creation_time < self.valid_since:
                 return []
             if self.valid_until and self.valid_until <= subject_creation_time:
@@ -739,14 +748,20 @@ class PassingTestCaseRule(Rule):
 
         if self.scenario is not None:
             matching_results = [
-                result for result in matching_results
-                if self.scenario in result['data'].get('scenario', [])]
+                result
+                for result in matching_results
+                if self.scenario in result["data"].get("scenario", [])
+            ]
 
         # Investigate the absence of result first.
         if not matching_results:
             return [
                 TestResultMissing(
-                    rule_context.subject, self.test_case_name, self.scenario, policy.source)
+                    rule_context.subject,
+                    self.test_case_name,
+                    self.scenario,
+                    policy.source,
+                )
             ]
 
         # If we find multiple matching results, we always use the first one which
@@ -758,51 +773,72 @@ class PassingTestCaseRule(Rule):
         ]
 
     def matches(self, policy, **attributes):
-        testcase = attributes.get('testcase')
+        testcase = attributes.get("testcase")
         return not testcase or testcase == self.test_case_name
 
     def to_json(self):
         return {
-            'rule': self.__class__.__name__,
-            'test_case_name': self.test_case_name,
-            'scenario': self.scenario,
+            "rule": self.__class__.__name__,
+            "test_case_name": self.test_case_name,
+            "scenario": self.scenario,
         }
 
     def _answer_for_result(self, result, subject, source):
-        outcome = result['outcome']
+        outcome = result["outcome"]
 
-        additional_keys = current_app.config['DISTINCT_LATEST_RESULTS_ON']
-        data = {
-            key: (result['data'].get(key) or [None])[0]
-            for key in additional_keys
-        }
+        additional_keys = current_app.config["DISTINCT_LATEST_RESULTS_ON"]
+        data = {key: (result["data"].get(key) or [None])[0] for key in additional_keys}
 
-        if outcome in current_app.config['OUTCOMES_PASSED']:
-            log.debug('Test result passed for the result_id %s and testcase %s,'
-                      ' because the outcome is %s', result['id'], self.test_case_name,
-                      outcome)
-            return TestResultPassed(subject, self.test_case_name, source, result['id'], data)
+        if outcome in current_app.config["OUTCOMES_PASSED"]:
+            log.debug(
+                "Test result passed for the result_id %s and testcase %s,"
+                " because the outcome is %s",
+                result["id"],
+                self.test_case_name,
+                outcome,
+            )
+            return TestResultPassed(
+                subject, self.test_case_name, source, result["id"], data
+            )
 
-        if outcome in current_app.config['OUTCOMES_INCOMPLETE']:
-            log.debug('Test result MISSING for the %s and '
-                      'testcase %s, because the outcome is %s', subject,
-                      self.test_case_name, outcome)
-            return TestResultIncomplete(subject, self.test_case_name, source, result['id'], data)
+        if outcome in current_app.config["OUTCOMES_INCOMPLETE"]:
+            log.debug(
+                "Test result MISSING for the %s and "
+                "testcase %s, because the outcome is %s",
+                subject,
+                self.test_case_name,
+                outcome,
+            )
+            return TestResultIncomplete(
+                subject, self.test_case_name, source, result["id"], data
+            )
 
-        if outcome in current_app.config['OUTCOMES_ERROR']:
-            error_reason = result.get('error_reason')
-            log.debug('Test result ERROR for the %s and '
-                      'testcase %s, because the outcome is %s; error reason: %s',
-                      subject, self.test_case_name, outcome, error_reason)
+        if outcome in current_app.config["OUTCOMES_ERROR"]:
+            error_reason = result.get("error_reason")
+            log.debug(
+                "Test result ERROR for the %s and "
+                "testcase %s, because the outcome is %s; error reason: %s",
+                subject,
+                self.test_case_name,
+                outcome,
+                error_reason,
+            )
             return TestResultErrored(
-                subject, self.test_case_name, source, result['id'], data,
-                error_reason)
+                subject, self.test_case_name, source, result["id"], data, error_reason
+            )
 
-        log.debug('Test result failed for the %s and '
-                  'testcase %s, because the outcome is %s and it didn\'t match any of the '
-                  'previous cases', subject, self.test_case_name, outcome)
+        log.debug(
+            "Test result failed for the %s and "
+            "testcase %s, because the outcome is %s and it didn't match any of the "
+            "previous cases",
+            subject,
+            self.test_case_name,
+            outcome,
+        )
 
-        return TestResultFailed(subject, self.test_case_name, source, result['id'], data)
+        return TestResultFailed(
+            subject, self.test_case_name, source, result["id"], data
+        )
 
 
 class ObsoleteRule(Rule):
@@ -810,47 +846,48 @@ class ObsoleteRule(Rule):
     The base class for an obsolete rule.
     When these rules are parsed, a SafeYAMLError exception will be raised.
     """
-    advice = 'Please refer to the documentation for more information.'
+
+    advice = "Please refer to the documentation for more information."
     safe_yaml_attributes = {}
 
     def __init__(self):
-        tag = self.yaml_tag or '!' + type(self).__name__
-        raise SafeYAMLError('{} is obsolete. {}'.format(tag, self.advice))
+        tag = self.yaml_tag or "!" + type(self).__name__
+        raise SafeYAMLError(f"{tag} is obsolete. {self.advice}")
 
     def check(self, policy, rule_context):
-        raise ValueError('This rule is obsolete and can\'t be checked')
+        raise ValueError("This rule is obsolete and can't be checked")
 
 
 class PackageSpecificBuild(ObsoleteRule):
-    yaml_tag = '!PackageSpecificBuild'
+    yaml_tag = "!PackageSpecificBuild"
     advice = 'Please use the "packages" allowlist instead.'
 
 
 class FedoraAtomicCi(PackageSpecificBuild):
-    yaml_tag = '!FedoraAtomicCi'
+    yaml_tag = "!FedoraAtomicCi"
 
 
 class Policy(SafeYAMLObject):
-    root_yaml_tag: Optional[str] = '!Policy'
+    root_yaml_tag: str | None = "!Policy"
 
     safe_yaml_attributes = {
-        'id': SafeYAMLString(),
-        'product_versions': SafeYAMLList(str),
-        'decision_context': SafeYAMLString(optional=True),
-        'decision_contexts': SafeYAMLList(str, optional=True, default=list()),
-        'subject_type': SafeYAMLString(),
-        'rules': SafeYAMLList(Rule),
-        'excluded_packages': SafeYAMLList(str, optional=True),
-        'packages': SafeYAMLList(str, optional=True),
-        'relevance_key': SafeYAMLString(optional=True),
-        'relevance_value': SafeYAMLString(optional=True),
+        "id": SafeYAMLString(),
+        "product_versions": SafeYAMLList(str),
+        "decision_context": SafeYAMLString(optional=True),
+        "decision_contexts": SafeYAMLList(str, optional=True, default=[]),
+        "subject_type": SafeYAMLString(),
+        "rules": SafeYAMLList(Rule),
+        "excluded_packages": SafeYAMLList(str, optional=True),
+        "packages": SafeYAMLList(str, optional=True),
+        "relevance_key": SafeYAMLString(optional=True),
+        "relevance_value": SafeYAMLString(optional=True),
     }
 
     source = None
 
     def validate(self):
         if not self.decision_context and not self.decision_contexts:
-            raise SafeYAMLError('No decision contexts provided')
+            raise SafeYAMLError("No decision contexts provided")
         if self.decision_context and self.decision_contexts:
             raise SafeYAMLError(
                 'Both properties "decision_contexts" and "decision_context" were set'
@@ -867,28 +904,33 @@ class Policy(SafeYAMLObject):
 
         There must be at least one matching rule or no rules in the policy.
         """
-        decision_contexts = attributes.get('decision_context')
+        decision_contexts = attributes.get("decision_context")
         if decision_contexts and not isinstance(decision_contexts, list):
             decision_contexts = [decision_contexts]
-        if decision_contexts and not any(context in self.all_decision_contexts
-                                         for context in decision_contexts):
+        if decision_contexts and not any(
+            context in self.all_decision_contexts for context in decision_contexts
+        ):
             return False
 
-        product_version = attributes.get('product_version')
+        product_version = attributes.get("product_version")
         if product_version and not self.matches_product_version(product_version):
             return False
 
         if not self.matches_subject_type(**attributes):
             return False
 
-        return not self.rules or any(rule.matches(self, **attributes) for rule in self.rules)
+        return not self.rules or any(
+            rule.matches(self, **attributes) for rule in self.rules
+        )
 
     def matches_subject_type(self, **attributes):
-        subject = attributes.get('subject')
+        subject = attributes.get("subject")
         return not subject or subject.subject_type.matches(self.subject_type)
 
     def matches_sub_policy(self, sub_policy):
-        return set(sub_policy.all_decision_contexts).intersection(self.all_decision_contexts)
+        return set(sub_policy.all_decision_contexts).intersection(
+            self.all_decision_contexts
+        )
 
     def check(self, rule_context):
         name = rule_context.subject.package_name
@@ -896,7 +938,9 @@ class Policy(SafeYAMLObject):
             for exclude in self.excluded_packages:
                 if fnmatch(name, exclude):
                     return [ExcludedInPolicy(rule_context.subject.identifier, self)]
-            if self.packages and not any(fnmatch(name, package) for package in self.packages):
+            if self.packages and not any(
+                fnmatch(name, package) for package in self.packages
+            ):
                 # If the `packages` allowlist is set and this package isn't in the
                 # `packages` allowlist, then the policy doesn't apply to it
                 return []
@@ -907,11 +951,13 @@ class Policy(SafeYAMLObject):
         return answers
 
     def matches_product_version(self, product_version):
-        return any(fnmatch(product_version, version) for version in self.product_versions)
+        return any(
+            fnmatch(product_version, version) for version in self.product_versions
+        )
 
     @property
     def safe_yaml_label(self):
-        return 'Policy {!r}'.format(self.id or 'untitled')
+        return "Policy {!r}".format(self.id or "untitled")
 
     @property
     def all_decision_contexts(self):
@@ -919,7 +965,7 @@ class Policy(SafeYAMLObject):
             return self.decision_contexts
         if self.decision_context:
             return [self.decision_context]
-        raise SafeYAMLError('No decision contexts provided')
+        raise SafeYAMLError("No decision contexts provided")
 
 
 class OnDemandPolicy(Policy):
@@ -929,42 +975,44 @@ class OnDemandPolicy(Policy):
     def create_from_json(cls, data):
         try:
             data2 = {
-                'id': 'on-demand-policy',
-                'product_versions': [data['product_version']],
-                'decision_context': 'on-demand-policy',
-                'subject_type': 'unused',
+                "id": "on-demand-policy",
+                "product_versions": [data["product_version"]],
+                "decision_context": "on-demand-policy",
+                "subject_type": "unused",
             }
             data2.update(data)
             result = cls.from_value(data2)
             return result
         except SafeYAMLError as e:
-            raise BadRequest('Failed to parse on demand policy: {}'.format(e))
+            raise BadRequest(f"Failed to parse on demand policy: {e}")
 
     def matches_subject_type(self, **attributes):
         return True
 
     def matches_sub_policy(self, sub_policy):
-        return any(sub_policy.matches_product_version(pv) for pv in self.product_versions)
+        return any(
+            sub_policy.matches_product_version(pv) for pv in self.product_versions
+        )
 
 
 class RemotePolicy(Policy):
-    root_yaml_tag = '!Policy'
+    root_yaml_tag = "!Policy"
 
     safe_yaml_attributes = {
-        'id': SafeYAMLString(optional=True),
-        'product_versions': SafeYAMLList(str, default=['*'], optional=True),
-        'subject_type': SafeYAMLString(optional=True, default='koji_build'),
-        'decision_context': SafeYAMLString(optional=True),
-        'decision_contexts': SafeYAMLList(str, optional=True),
-        'rules': SafeYAMLList(Rule),
-        'excluded_packages': SafeYAMLList(str, optional=True),
-        'packages': SafeYAMLList(str, optional=True),
+        "id": SafeYAMLString(optional=True),
+        "product_versions": SafeYAMLList(str, default=["*"], optional=True),
+        "subject_type": SafeYAMLString(optional=True, default="koji_build"),
+        "decision_context": SafeYAMLString(optional=True),
+        "decision_contexts": SafeYAMLList(str, optional=True),
+        "rules": SafeYAMLList(Rule),
+        "excluded_packages": SafeYAMLList(str, optional=True),
+        "packages": SafeYAMLList(str, optional=True),
     }
 
     def validate(self):
         for rule in self.rules:
             if isinstance(rule, RemoteRule):
-                raise SafeYAMLError('RemoteRule is not allowed in remote policies')
+                raise SafeYAMLError("RemoteRule is not allowed in remote policies")
         super().validate()
 
 
@@ -973,10 +1021,14 @@ def _applicable_decision_context_product_version_pairs(policies, **attributes):
         policy for policy in policies if policy.matches(**attributes)
     ]
 
-    log.debug("found %i applicable policies of %i for: %r",
-              len(applicable_policies), len(policies), attributes)
+    log.debug(
+        "found %i applicable policies of %i for: %r",
+        len(applicable_policies),
+        len(policies),
+        attributes,
+    )
 
-    product_version = attributes.get('product_version')
+    product_version = attributes.get("product_version")
     if product_version:
         for policy in applicable_policies:
             for decision_context in policy.all_decision_contexts:
@@ -990,9 +1042,9 @@ def _applicable_decision_context_product_version_pairs(policies, **attributes):
 
 
 def applicable_decision_context_product_version_pairs(policies, **attributes):
-    contexts_product_versions = sorted(set(
-        _applicable_decision_context_product_version_pairs(
-            policies, **attributes)))
+    contexts_product_versions = sorted(
+        set(_applicable_decision_context_product_version_pairs(policies, **attributes))
+    )
 
     log.debug("found %i decision contexts", len(contexts_product_versions))
     return contexts_product_versions
@@ -1001,7 +1053,7 @@ def applicable_decision_context_product_version_pairs(policies, **attributes):
 def _missing_decision_contexts_in_parent_policies(policies):
     missing_decision_contexts = set()
     parent_dcs = set()
-    for parent_policy in current_app.config['policies']:
+    for parent_policy in current_app.config["policies"]:
         parent_dcs.update(set(parent_policy.all_decision_contexts))
     for policy in policies:
         missing_decision_contexts.update(

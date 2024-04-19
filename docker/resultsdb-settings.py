@@ -1,12 +1,14 @@
 import os
 
-SECRET_KEY = 'resultsdb'
-SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://resultsdb:resultsdb@resultsdb-db:5432/resultsdb'
+SECRET_KEY = "resultsdb"  # nosec
+SQLALCHEMY_DATABASE_URI = (
+    "postgresql+psycopg2://resultsdb:resultsdb@resultsdb-db:5432/resultsdb"  # notsecret
+)
 FILE_LOGGING = False
-LOGFILE = '/var/log/resultsdb/resultsdb.log'
+LOGFILE = "/var/log/resultsdb/resultsdb.log"
 SYSLOG_LOGGING = False
 STREAM_LOGGING = True
-RUN_HOST = '0.0.0.0'
+RUN_HOST = "127.0.0.1"
 RUN_PORT = 5001
 ADDITIONAL_RESULT_OUTCOMES = ("RUNNING", "QUEUED", "ERROR")
 

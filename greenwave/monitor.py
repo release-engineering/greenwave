@@ -13,9 +13,9 @@ from statsd import StatsClient
 # Note: StatsClient instances are thread-safe.
 @lru_cache
 def stats_client():
-    statsd_url = os.environ.get('GREENWAVE_STATSD_HOST')
+    statsd_url = os.environ.get("GREENWAVE_STATSD_HOST")
     if statsd_url:
-        server, port = statsd_url.split(':')
+        server, port = statsd_url.split(":")
         return StatsClient(server, int(port))
 
     return None
@@ -30,11 +30,8 @@ class Stat:
         if not self.labeldict:
             return self.name
 
-        labels = ','.join(
-            f'{name}={value}'
-            for name, value in self.labeldict.items()
-        )
-        return f'{self.name}[{labels}]'
+        labels = ",".join(f"{name}={value}" for name, value in self.labeldict.items())
+        return f"{self.name}[{labels}]"
 
 
 class Counter(Stat):
@@ -50,6 +47,7 @@ class Counter(Stat):
 
     def count_exceptions(self):
         """Returns function decorator to increase counter on exception."""
+
         def decorator(fn):
             @wraps(fn)
             def wrapper(*args, **kwargs):
@@ -58,13 +56,16 @@ class Counter(Stat):
                 except BaseException:
                     self.inc()
                     raise
+
             return wrapper
+
         return decorator
 
 
 class Histogram(Stat):
     def time(self):
         """Returns function decorator to that sends recorder call time."""
+
         def decorator(fn):
             @wraps(fn)
             def wrapper(*args, **kwargs):
@@ -73,31 +74,33 @@ class Histogram(Stat):
                     with client.timer(str(self)):
                         return fn(*args, **kwargs)
                 return fn(*args)
+
             return wrapper
+
         return decorator
 
 
 # Total number of messages received
-messaging_rx_counter = Counter('messaging_rx')
+messaging_rx_counter = Counter("messaging_rx")
 # Number of received messages, which were ignored
-messaging_rx_ignored_counter = Counter('messaging_rx_ignored')
+messaging_rx_ignored_counter = Counter("messaging_rx_ignored")
 # Number of received messages, which were processed successfully
-messaging_rx_processed_ok_counter = Counter('messaging_rx_processed_ok')
+messaging_rx_processed_ok_counter = Counter("messaging_rx_processed_ok")
 # Number of received messages, which failed during processing
-messaging_rx_failed_counter = Counter('messaging_rx_failed')
+messaging_rx_failed_counter = Counter("messaging_rx_failed")
 
 # Number of messages, which were sent successfully
-messaging_tx_sent_ok_counter = Counter('messaging_tx_sent_ok')
+messaging_tx_sent_ok_counter = Counter("messaging_tx_sent_ok")
 # Number of messages, for which the sender failed
-messaging_tx_failed_counter = Counter('messaging_tx_failed')
+messaging_tx_failed_counter = Counter("messaging_tx_failed")
 
 # All exceptions occurred in Greenwave "decision" API
-decision_exception_counter = Counter('total_decision_exceptions')
+decision_exception_counter = Counter("total_decision_exceptions")
 # Decision latency
-decision_request_duration_seconds = Histogram('decision_request_duration_seconds')
+decision_request_duration_seconds = Histogram("decision_request_duration_seconds")
 # New result/waiver caused specific decision to change
-decision_changed_counter = Counter('decision_changed')
+decision_changed_counter = Counter("decision_changed")
 # New result/waiver did not cause specific decision to change
-decision_unchanged_counter = Counter('decision_unchanged')
+decision_unchanged_counter = Counter("decision_unchanged")
 # Failed to retrieve decision for a new result/waiver
-decision_failed_counter = Counter('decision_failed')
+decision_failed_counter = Counter("decision_failed")

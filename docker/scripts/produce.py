@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import json
-import proton
 import os
 import sys
 
+import proton
 from rhmsg.activemq.producer import AMQProducer
 
 TOPIC = "VirtualTopic.eng.resultsdb.result.new"
@@ -12,13 +12,8 @@ URLS = ["amqp://localhost:5671"]
 SUBJECT = f"test_message_{sys.argv[1]}"
 MESSAGE = {
     "submit_time": "2019-08-27T13:57:53.490376",
-    "testcase": {
-        "name": "example_test"
-    },
-    "data": {
-        "type": ["brew-build"],
-        "item": ["example-container"]
-    }
+    "testcase": {"name": "example_test"},
+    "data": {"type": ["brew-build"], "item": ["example-container"]},
 }
 MESSAGE = {
     "data": {
@@ -33,11 +28,11 @@ MESSAGE = {
         "log": ["https://jenkins.example.com/job/x/build/y/console"],
         "publisher_id": ["msg-greenwave-segment-test"],
         "type": ["koji_build"],
-        "version": ["3.5.202110051331.w9756"]
+        "version": ["3.5.202110051331.w9756"],
     },
     "groups": ["52c6b84b-b617-4b79-af47-8975d11bb635"],
     "href": "http://resultsdb/api/v2.0/results/123",
-    "id": 123,
+    "id": "123",
     "note": "",
     "outcome": "PASSED",
     "ref_url": "https://jenkins.example.com/job/x/build/y",
@@ -45,13 +40,13 @@ MESSAGE = {
     "testcase": {
         "href": "http://resultsdb/api/v2.0/testcases/dist.abicheck",
         "name": "dist.abicheck",
-        "ref_url": "https://jenkins.example.com/job/x/build/y"
-    }
+        "ref_url": "https://jenkins.example.com/job/x/build/y",
+    },
 }
 
 
 def main():
-    os.environ['PN_TRACE_FRM'] = '1'
+    os.environ["PN_TRACE_FRM"] = "1"
 
     with AMQProducer(urls=URLS) as producer:
         # Disable SSL
@@ -59,11 +54,9 @@ def main():
 
         producer.through_topic(TOPIC)
         body = json.dumps(MESSAGE)
-        message = proton.Message(
-            subject=SUBJECT,
-            body=body)
+        message = proton.Message(subject=SUBJECT, body=body)
         producer.send(message)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

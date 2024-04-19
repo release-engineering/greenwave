@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import re
-from typing import Union
 
 from greenwave.subjects.subject_type import GenericSubjectType, SubjectType
 
@@ -9,11 +8,11 @@ from greenwave.subjects.subject_type import GenericSubjectType, SubjectType
 def _to_dict(format_dict, item):
     result = {}
 
-    item_key = format_dict.get('item_key')
+    item_key = format_dict.get("item_key")
     if item_key:
         result[item_key] = item
 
-    keys = format_dict.get('keys', {})
+    keys = format_dict.get("keys", {})
     for key, value in keys.items():
         result[key] = value
 
@@ -28,16 +27,20 @@ class Subject:
 
     Item or identifier should uniquely identify the artefact (test subject).
     """
-    subject_type: Union[GenericSubjectType, SubjectType]
+
+    subject_type: GenericSubjectType | SubjectType
     item: str
 
-    def __init__(self, type_: Union[GenericSubjectType, SubjectType], item: str):
+    def __init__(self, type_: GenericSubjectType | SubjectType, item: str):
         self.subject_type = type_
         self.item = item
 
     def product_versions_from_koji_build_target(self, target):
-        return sorted(self._matching_product_versions(
-            target, self.subject_type.product_version_from_koji_build_target))
+        return sorted(
+            self._matching_product_versions(
+                target, self.subject_type.product_version_from_koji_build_target
+            )
+        )
 
     @property
     def type(self):
@@ -72,11 +75,14 @@ class Subject:
 
     @property
     def product_versions(self):
-        pvs = sorted({
-            pv.lower()
-            for pv in self._matching_product_versions(
-                self.item, self.subject_type.product_version_match)
-        })
+        pvs = sorted(
+            {
+                pv.lower()
+                for pv in self._matching_product_versions(
+                    self.item, self.subject_type.product_version_match
+                )
+            }
+        )
         if pvs:
             return pvs
 
@@ -114,17 +120,13 @@ class Subject:
 
     def _matching_product_versions(self, text, match_dict):
         return {
-            re.sub(pv_match['match'], pv_match['product_version'], text)
+            re.sub(pv_match["match"], pv_match["product_version"], text)
             for pv_match in match_dict
-            if re.match(pv_match['match'], text)
+            if re.match(pv_match["match"], text)
         }
 
     def __str__(self):
-        return "subject_type {!r}, subject_identifier {!r}".format(
-            self.type, self.item
-        )
+        return f"subject_type {self.type!r}, subject_identifier {self.item!r}"
 
     def __repr__(self):
-        return "Subject({!r}, {!r})".format(
-            self.subject_type, self.item
-        )
+        return f"Subject({self.subject_type!r}, {self.item!r})"

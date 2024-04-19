@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-2.0+
 """
 The "resultsdb handler".
@@ -14,8 +13,8 @@ import logging
 from greenwave.consumers.consumer import Consumer
 from greenwave.product_versions import subject_product_versions
 from greenwave.subjects.factory import (
-    create_subject_from_data,
     UnknownSubjectDataError,
+    create_subject_from_data,
 )
 
 log = logging.getLogger(__name__)
@@ -32,11 +31,11 @@ def _unpack_value(value):
 
 
 def _get_brew_task_id(msg):
-    data = msg.get('data')
+    data = msg.get("data")
     if not data:
         return None
 
-    task_id = _unpack_value(data.get('brew_task_id'))
+    task_id = _unpack_value(data.get("brew_task_id"))
     try:
         return int(task_id)
     except (ValueError, TypeError):
@@ -52,14 +51,14 @@ class ResultsDBHandler(Consumer):
         this consumer listens to.
     """
 
-    config_key = 'resultsdb_handler'
-    hub_config_prefix = 'resultsdb_'
-    default_topic = 'taskotron.result.new'
-    monitor_labels = {'handler': 'resultsdb_consumer'}
+    config_key = "resultsdb_handler"
+    hub_config_prefix = "resultsdb_"
+    default_topic = "taskotron.result.new"
+    monitor_labels = {"handler": "resultsdb_consumer"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.koji_base_url = self.flask_app.config['KOJI_BASE_URL']
+        self.koji_base_url = self.flask_app.config["KOJI_BASE_URL"]
 
     @staticmethod
     def announcement_subject(message):
@@ -72,14 +71,11 @@ class ResultsDBHandler(Consumer):
         """
 
         try:
-            data = message['msg']['data']  # New format
+            data = message["msg"]["data"]  # New format
         except KeyError:
-            data = message['msg']['task']  # Old format
+            data = message["msg"]["task"]  # Old format
 
-        unpacked = {
-            k: _unpack_value(v)
-            for k, v in data.items()
-        }
+        unpacked = {k: _unpack_value(v) for k, v in data.items()}
 
         try:
             subject = create_subject_from_data(unpacked)
@@ -95,27 +91,27 @@ class ResultsDBHandler(Consumer):
         # https://pagure.io/taskotron/resultsdb/issue/92
         # https://pagure.io/taskotron/resultsdb/pull-request/101
         # https://pagure.io/greenwave/pull-request/262#comment-70350
-        if subject.type == 'compose' and 'productmd.compose.id' not in data:
+        if subject.type == "compose" and "productmd.compose.id" not in data:
             return None
 
         return subject
 
     def _consume_message(self, message):
-        msg = message['msg']
+        msg = message["msg"]
 
         try:
-            testcase = msg['testcase']['name']
+            testcase = msg["testcase"]["name"]
         except KeyError:
-            testcase = msg['task']['name']
+            testcase = msg["task"]["name"]
 
         try:
-            submit_time = msg['submit_time']
+            submit_time = msg["submit_time"]
         except KeyError:
-            submit_time = msg['result']['submit_time']
+            submit_time = msg["result"]["submit_time"]
 
-        outcome = msg.get('outcome')
-        if outcome in self.flask_app.config['OUTCOMES_INCOMPLETE']:
-            log.debug('Assuming no decision change on outcome %r', outcome)
+        outcome = msg.get("outcome")
+        if outcome in self.flask_app.config["OUTCOMES_INCOMPLETE"]:
+            log.debug("Assuming no decision change on outcome %r", outcome)
             return
 
         brew_task_id = _get_brew_task_id(msg)
@@ -124,7 +120,7 @@ class ResultsDBHandler(Consumer):
         if subject is None:
             return
 
-        log.debug('Considering subject: %r', subject)
+        log.debug("Considering subject: %r", subject)
 
         product_versions = subject_product_versions(
             subject,
@@ -132,7 +128,7 @@ class ResultsDBHandler(Consumer):
             brew_task_id,
         )
 
-        log.debug('Guessed product versions: %r', product_versions)
+        log.debug("Guessed product versions: %r", product_versions)
 
         if not product_versions:
             product_versions = [None]
