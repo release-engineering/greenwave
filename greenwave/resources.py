@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0+
-""" Greenwave resources.
+"""Greenwave resources.
 
 This module contains routines for interacting with other services (resultsdb,
 waiverdb, etc..).
@@ -9,14 +9,12 @@ waiverdb, etc..).
 import datetime
 import logging
 import re
-import socket
 import threading
-from typing import List, Optional
+from urllib.parse import urlparse
 
 from dateutil import tz
 from dateutil.parser import parse
 from defusedxml.xmlrpc import xmlrpc_client
-from urllib.parse import urlparse
 from flask import current_app
 from opentelemetry import trace
 from werkzeug.exceptions import BadGateway, NotFound
@@ -45,7 +43,7 @@ def _koji(uri: str):
 
 
 def _requests_timeout():
-    timeout = current_app.config['REQUESTS_TIMEOUT']
+    timeout = current_app.config["REQUESTS_TIMEOUT"]
     if isinstance(timeout, tuple):
         return timeout[1]
     return timeout
@@ -64,28 +62,28 @@ def _raise_for_status(response):
 
 
 class BaseRetriever:
-    ignore_ids: List[int]
+    ignore_ids: list[int]
     url: str
-    since: Optional[str]
+    since: str | None
 
-    def __init__(self, ignore_ids: List[int], when: str, url: str):
+    def __init__(self, ignore_ids: list[int], when: str, url: str):
         self.ignore_ids = ignore_ids
         self.url = url
 
         if when:
-            self.since = '1900-01-01T00:00:00.000000,{}'.format(when)
+            self.since = f"1900-01-01T00:00:00.000000,{when}"
         else:
             self.since = None
 
     @tracer.start_as_current_span("retrieve")
     def retrieve(self, *args, **kwargs):
         items = self._retrieve_all(*args, **kwargs)
-        return [item for item in items if item['id'] not in self.ignore_ids]
+        return [item for item in items if item["id"] not in self.ignore_ids]
 
     def _retrieve_data(self, params):
         response = self._make_request(params)
         _raise_for_status(response)
-        return response.json()['data']
+        return response.json()["data"]
 
 
 class ResultsRetriever(BaseRetriever):
@@ -95,8 +93,7 @@ class ResultsRetriever(BaseRetriever):
 
     def __init__(self, **args):
         super().__init__(**args)
-        self._distinct_on = ','.join(
-            current_app.config['DISTINCT_LATEST_RESULTS_ON'])
+        self._distinct_on = ",".join(current_app.config["DISTINCT_LATEST_RESULTS_ON"])
         self.cache = {}
 
     def _retrieve_all(self, subject, testcase=None):
@@ -104,25 +101,28 @@ class ResultsRetriever(BaseRetriever):
         # retrieved for given Subject.
         cache_key = (subject.type, subject.identifier)
         if testcase and cache_key in self.cache:
-            return [res for res in self.cache[cache_key] if res['testcase']['name'] == testcase]
+            return [
+                res
+                for res in self.cache[cache_key]
+                if res["testcase"]["name"] == testcase
+            ]
 
         # Try to get passing test case result from external cache.
         external_cache_key = None
         if testcase:
             external_cache_key = (
                 "greenwave.resources:ResultsRetriever|"
-                f"{subject.type} {subject.identifier} {testcase}")
+                f"{subject.type} {subject.identifier} {testcase}"
+            )
             results = self.get_external_cache(external_cache_key)
             if results and self._results_match_time(results):
                 return results
 
-        params = {
-            '_distinct_on': self._distinct_on
-        }
+        params = {"_distinct_on": self._distinct_on}
         if self.since:
-            params.update({'since': self.since})
+            params.update({"since": self.since})
         if testcase:
-            params.update({'testcases': testcase})
+            params.update({"testcases": testcase})
 
         results = []
         for query in subject.result_queries():
@@ -135,24 +135,24 @@ class ResultsRetriever(BaseRetriever):
         # Store test case results in external cache if all are passing,
         # otherwise retrieve from ResultsDB again later.
         if external_cache_key and all(
-                result.get('outcome') in current_app.config['OUTCOMES_PASSED']
-                for result in results):
+            result.get("outcome") in current_app.config["OUTCOMES_PASSED"]
+            for result in results
+        ):
             self.set_external_cache(external_cache_key, results)
 
         return results
 
     def _make_request(self, params, **request_args):
         return requests_session.get(
-            self.url + '/results/latest',
-            params=params,
-            **request_args)
+            self.url + "/results/latest", params=params, **request_args
+        )
 
     def _results_match_time(self, results):
         if not self.since:
             return True
 
-        until = self.since.split(',')[1]
-        return all(result['submit_time'] < until for result in results)
+        until = self.since.split(",")[1]
+        return all(result["submit_time"] < until for result in results)
 
     def get_external_cache(self, key):
         return current_app.cache.get(key)
@@ -169,15 +169,14 @@ class WaiversRetriever(BaseRetriever):
     def _retrieve_all(self, filters):
         if self.since:
             for filter_ in filters:
-                filter_.update({'since': self.since})
+                filter_.update({"since": self.since})
         waivers = self._retrieve_data(filters)
-        return [waiver for waiver in waivers if waiver['waived']]
+        return [waiver for waiver in waivers if waiver["waived"]]
 
     def _make_request(self, params, **request_args):
         return requests_session.post(
-            self.url + '/waivers/+filtered',
-            json={'filters': params},
-            **request_args)
+            self.url + "/waivers/+filtered", json={"filters": params}, **request_args
+        )
 
 
 class NoSourceException(RuntimeError):
@@ -188,18 +187,16 @@ class KojiScmUrlParseError(BadGateway):
     """
     Exception raised when parsing SCM revision from Koji build fails.
     """
-    pass
 
 
 @cached
 def retrieve_koji_build_target(task_id, koji_url: str):
-    log.debug('Getting Koji task request ID %r', task_id)
+    log.debug("Getting Koji task request ID %r", task_id)
     proxy = _koji(koji_url)
     try:
         task_request = proxy.getTaskRequest(task_id)
     except xmlrpc_client.Fault as e:
-        error = (
-            f'Failed to get Koji task request ID {task_id}: {e.faultString} (code: {e.faultCode})')
+        error = f"Failed to get Koji task request ID {task_id}: {e.faultString} (code: {e.faultCode})"
         log.debug(error)
         raise BadGateway(error)
 
@@ -212,7 +209,7 @@ def retrieve_koji_build_target(task_id, koji_url: str):
 
 @cached
 def _retrieve_koji_build_attributes(nvr: str, koji_url: str):
-    log.debug('Getting Koji build %r', nvr)
+    log.debug("Getting Koji build %r", nvr)
     proxy = _koji(koji_url)
 
     try:
@@ -223,9 +220,7 @@ def _retrieve_koji_build_attributes(nvr: str, koji_url: str):
         raise BadGateway(error)
 
     if not build:
-        raise NotFound(
-            'Failed to find Koji build for "{}" at "{}"'.format(nvr, koji_url)
-        )
+        raise NotFound(f'Failed to find Koji build for "{nvr}" at "{koji_url}"')
 
     task_id = build.get("task_id")
 
@@ -236,7 +231,7 @@ def _retrieve_koji_build_attributes(nvr: str, koji_url: str):
         except (TypeError, KeyError, AttributeError):
             source = None
 
-    creation_time = build.get('creation_time')
+    creation_time = build.get("creation_time")
 
     return (task_id, source, creation_time)
 
@@ -258,8 +253,7 @@ def retrieve_koji_build_creation_time(nvr: str, koji_url: str):
         return time
     except ValueError:
         log.warning(
-            'Could not parse Koji build creation_time %r for nvr %r',
-            creation_time, nvr
+            "Could not parse Koji build creation_time %r for nvr %r", creation_time, nvr
         )
 
     return datetime.datetime.now(tz.tzutc())
@@ -270,8 +264,8 @@ def retrieve_scm_from_koji(nvr: str):
     koji_url = current_app.config["KOJI_BASE_URL"]
     try:
         source = retrieve_koji_build_source(nvr, koji_url)
-    except (xmlrpc_client.ProtocolError, socket.error) as err:
-        raise ConnectionError("Could not reach Koji: {}".format(err))
+    except (xmlrpc_client.ProtocolError, OSError) as err:
+        raise ConnectionError(f"Could not reach Koji: {err}")
     return retrieve_scm_from_koji_build(nvr, source, koji_url)
 
 
@@ -284,7 +278,7 @@ def retrieve_scm_from_koji_build(nvr: str, source: str, koji_url: str):
 
     url = urlparse(source)
 
-    path_components = url.path.rsplit('/', 2)
+    path_components = url.path.rsplit("/", 2)
     if len(path_components) < 3:
         namespace = ""
     else:
@@ -294,22 +288,24 @@ def retrieve_scm_from_koji_build(nvr: str, source: str, koji_url: str):
     if not rev:
         raise KojiScmUrlParseError(
             'Failed to parse SCM URL "{}" from Koji build "{}" at "{}" '
-            '(missing URL fragment with SCM revision information)'.format(source, nvr, koji_url)
+            "(missing URL fragment with SCM revision information)".format(
+                source, nvr, koji_url
+            )
         )
 
-    pkg_name = url.path.split('/')[-1]
-    pkg_name = re.sub(r'\.git$', '', pkg_name)
+    pkg_name = url.path.split("/")[-1]
+    pkg_name = re.sub(r"\.git$", "", pkg_name)
     return namespace, pkg_name, rev
 
 
 @cached
 def retrieve_yaml_remote_rule(url: str):
-    """ Retrieve a remote rule file content from the git web UI. """
-    timeout = current_app.config['REMOTE_RULE_GIT_TIMEOUT']
+    """Retrieve a remote rule file content from the git web UI."""
+    timeout = current_app.config["REMOTE_RULE_GIT_TIMEOUT"]
     response = requests_session.get(url, timeout=timeout)
 
     if response.status_code == 404:
-        log.debug('Remote rule not found: %s', url)
+        log.debug("Remote rule not found: %s", url)
         return None
 
     _raise_for_status(response)

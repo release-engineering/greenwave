@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import datetime
 import functools
+import hashlib
 import logging
 import os
-import hashlib
-import datetime
 
-from flask import jsonify, current_app, request
-from flask.config import Config
 import requests
+from flask import current_app, jsonify, request
+from flask.config import Config
 from werkzeug.exceptions import HTTPException
 
 log = logging.getLogger(__name__)
@@ -26,18 +26,18 @@ def json_error(error):
     if isinstance(error, HTTPException):
         msg = error.description
         status_code = error.code
-        current_app.logger.info('HTTP request failed: %s', error)
+        current_app.logger.info("HTTP request failed: %s", error)
     elif isinstance(error, (ConnectionError, requests.ConnectionError)):
-        current_app.logger.exception('Connection error: %s', error)
-        msg = 'Error connecting to upstream server: {}'.format(error)
+        current_app.logger.exception("Connection error: %s", error)
+        msg = f"Error connecting to upstream server: {error}"
         status_code = 502
     elif isinstance(error, requests.Timeout):
-        current_app.logger.exception('Timeout error: %s', error)
-        msg = 'Timeout connecting to upstream server: {}'.format(error)
+        current_app.logger.exception("Timeout error: %s", error)
+        msg = f"Timeout connecting to upstream server: {error}"
         status_code = 504
     else:
-        current_app.logger.exception('Unexpected server error: %s', error)
-        msg = 'Server encountered unexpected error'
+        current_app.logger.exception("Unexpected server error: %s", error)
+        msg = "Server encountered unexpected error"
         status_code = 500
 
     response = jsonify(message=msg)
@@ -50,19 +50,20 @@ def json_error(error):
 
 def jsonp(func):
     """Wraps Jsonified output for JSONP requests."""
+
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
-        callback = request.args.get('callback', False)
+        callback = request.args.get("callback", False)
         if callback:
             resp = func(*args, **kwargs)
-            resp.set_data('{}({});'.format(
-                str(callback),
-                resp.get_data().decode('utf-8')
-            ))
-            resp.mimetype = 'application/javascript'
+            resp.set_data(
+                "{}({});".format(str(callback), resp.get_data().decode("utf-8"))
+            )
+            resp.mimetype = "application/javascript"
             return resp
         else:
             return func(*args, **kwargs)
+
     return wrapped
 
 
@@ -75,55 +76,54 @@ def load_config(config_obj=None):
     # Load default config, then override that with a config file
     config = Config(__name__)
     if config_obj is None:
-        if os.getenv('TEST') == 'true':
-            config_obj = 'greenwave.config.TestingConfig'
-        elif os.getenv('DEV') == 'true' or os.getenv('DOCS') == 'true':
-            config_obj = 'greenwave.config.DevelopmentConfig'
+        if os.getenv("TEST") == "true":
+            config_obj = "greenwave.config.TestingConfig"
+        elif os.getenv("DEV") == "true" or os.getenv("DOCS") == "true":
+            config_obj = "greenwave.config.DevelopmentConfig"
         else:
-            config_obj = 'greenwave.config.ProductionConfig'
+            config_obj = "greenwave.config.ProductionConfig"
 
-    if os.getenv('TEST') == 'true':
-        default_config_file = os.path.join(os.getcwd(), 'conf', 'settings.py.example')
-    elif os.getenv('DEV') == 'true':
-        default_config_file = os.path.join(os.getcwd(), 'conf', 'settings.py')
-    elif os.getenv('DOCS') == 'true':
+    if os.getenv("TEST") == "true":
+        default_config_file = os.path.join(os.getcwd(), "conf", "settings.py.example")
+    elif os.getenv("DEV") == "true":
+        default_config_file = os.path.join(os.getcwd(), "conf", "settings.py")
+    elif os.getenv("DOCS") == "true":
         default_config_file = os.path.normpath(
-            os.path.join(os.getcwd(), '..', 'conf', 'settings.py.example')
+            os.path.join(os.getcwd(), "..", "conf", "settings.py.example")
         )
     else:
-        default_config_file = '/etc/greenwave/settings.py'
+        default_config_file = "/etc/greenwave/settings.py"
 
     # 1. Load default configuration.
     log.debug("config: Loading config from %r", config_obj)
     config.from_object(config_obj)
 
     # 2. Override default configuration with environment variables.
-    if os.environ.get('GREENWAVE_SUBJECT_TYPES_DIR'):
-        config['SUBJECT_TYPES_DIR'] = os.environ['GREENWAVE_SUBJECT_TYPES_DIR']
+    if os.environ.get("GREENWAVE_SUBJECT_TYPES_DIR"):
+        config["SUBJECT_TYPES_DIR"] = os.environ["GREENWAVE_SUBJECT_TYPES_DIR"]
 
-    if os.environ.get('GREENWAVE_POLICIES_DIR'):
-        config['POLICIES_DIR'] = os.environ['GREENWAVE_POLICIES_DIR']
+    if os.environ.get("GREENWAVE_POLICIES_DIR"):
+        config["POLICIES_DIR"] = os.environ["GREENWAVE_POLICIES_DIR"]
 
     # 3. Override default configuration and environment variables with custom config file.
-    config_file = os.environ.get('GREENWAVE_CONFIG', default_config_file)
+    config_file = os.environ.get("GREENWAVE_CONFIG", default_config_file)
     log.debug("config: Extending config with %r", config_file)
     config.from_pyfile(config_file)
 
-    if os.environ.get('SECRET_KEY'):
-        config['SECRET_KEY'] = os.environ['SECRET_KEY']
+    if os.environ.get("SECRET_KEY"):
+        config["SECRET_KEY"] = os.environ["SECRET_KEY"]
 
     return config
 
 
 def insert_headers(response):
-    """ Insert the CORS headers for the give reponse if there are any
+    """Insert the CORS headers for the give reponse if there are any
     configured for the application.
     """
-    if current_app.config.get('CORS_URL'):
-        response.headers['Access-Control-Allow-Origin'] = \
-            current_app.config['CORS_URL']
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        response.headers['Access-Control-Allow-Method'] = 'POST, OPTIONS'
+    if current_app.config.get("CORS_URL"):
+        response.headers["Access-Control-Allow-Origin"] = current_app.config["CORS_URL"]
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Allow-Method"] = "POST, OPTIONS"
     return response
 
 
@@ -133,7 +133,7 @@ def mangle_key(key):
     Python 3 with str keys (which must be encoded to bytes before passing them
     to hashlib.sha1()).
     """
-    return hashlib.sha256(key.encode('utf-8')).hexdigest()
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
 def add_to_timestamp(timestamp, **kwargs):
@@ -146,17 +146,17 @@ def add_to_timestamp(timestamp, **kwargs):
     """
     delta = datetime.timedelta(**kwargs)
 
-    date_format = '%Y-%m-%dT%H:%M:%S.%f'
+    date_format = "%Y-%m-%dT%H:%M:%S.%f"
 
-    if timestamp.endswith(' UTC'):
+    if timestamp.endswith(" UTC"):
         # date/time format submitted by resultsdb using fedora-messaging
-        from_date_format = '%Y-%m-%d %H:%M:%S UTC'
+        from_date_format = "%Y-%m-%d %H:%M:%S UTC"
     else:
         from_date_format = date_format
 
     return datetime.datetime.strftime(
-        datetime.datetime.strptime(timestamp, from_date_format) + delta,
-        date_format)
+        datetime.datetime.strptime(timestamp, from_date_format) + delta, date_format
+    )
 
 
 def right_before_this_time(timestamp):

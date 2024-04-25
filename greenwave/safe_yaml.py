@@ -2,13 +2,12 @@
 """
 Provides a way of defining type-safe YAML parsing.
 """
-from typing import Dict
 
+import yaml
 from dateutil import tz
 from dateutil.parser import parse
-import yaml
 
-safe_yaml_tag_to_class: Dict[str, object] = {}
+safe_yaml_tag_to_class: dict[str, object] = {}
 
 
 class SafeYAMLError(RuntimeError):
@@ -18,7 +17,7 @@ class SafeYAMLError(RuntimeError):
     """
 
 
-class SafeYAMLAttribute(object):
+class SafeYAMLAttribute:
     """
     Base class for SafeYAMLObject attributes (in SafeYAMLObject.safe_yaml_attributes dict).
     """
@@ -44,6 +43,7 @@ class SafeYAMLDict(SafeYAMLAttribute):
     """
     YAML object attribute representing a dict.
     """
+
     def __init__(self, **args):
         super().__init__(**args)
 
@@ -55,7 +55,7 @@ class SafeYAMLDict(SafeYAMLAttribute):
         if isinstance(value, dict):
             return value
 
-        raise SafeYAMLError('Expected a dict value, got: {}'.format(value))
+        raise SafeYAMLError(f"Expected a dict value, got: {value}")
 
     def to_json(self, value):
         return value
@@ -69,6 +69,7 @@ class SafeYAMLBool(SafeYAMLAttribute):
     """
     YAML object attribute representing a boolean value.
     """
+
     def __init__(self, default=False, **args):
         super().__init__(**args)
         self.default = default
@@ -82,7 +83,7 @@ class SafeYAMLBool(SafeYAMLAttribute):
         if isinstance(value, bool):
             return value
 
-        raise SafeYAMLError('Expected a boolean value, got: {}'.format(value))
+        raise SafeYAMLError(f"Expected a boolean value, got: {value}")
 
     def to_json(self, value):
         return value
@@ -96,6 +97,7 @@ class SafeYAMLString(SafeYAMLAttribute):
     """
     YAML object attribute representing a string value.
     """
+
     def __init__(self, default=None, **args):
         super().__init__(**args)
         self.default = default
@@ -119,6 +121,7 @@ class SafeYAMLDateTime(SafeYAMLAttribute):
     """
     YAML object attribute representing a date/time value.
     """
+
     def from_yaml(self, loader, node):
         value = loader.construct_scalar(node)
         return self.from_value(value)
@@ -127,8 +130,7 @@ class SafeYAMLDateTime(SafeYAMLAttribute):
         try:
             time = parse(str(value))
         except ValueError:
-            raise SafeYAMLError(
-                'Could not parse string as date/time, got: {}'.format(value))
+            raise SafeYAMLError(f"Could not parse string as date/time, got: {value}")
 
         if time.tzinfo is None:
             time = time.replace(tzinfo=tz.tzutc())
@@ -146,6 +148,7 @@ class SafeYAMLList(SafeYAMLAttribute):
     """
     YAML object attribute represeting a list of values.
     """
+
     def __init__(self, item_type, default=None, **kwargs):
         if default is None:
             default = []
@@ -164,14 +167,15 @@ class SafeYAMLList(SafeYAMLAttribute):
                 results.append(item)
                 continue
 
-            item_type = item.get('type')
+            item_type = item.get("type")
             if not item_type:
                 raise SafeYAMLError("Key 'type' is required for each list item")
 
             cls = safe_yaml_tag_to_class.get(item_type)
             if cls is None:
                 raise SafeYAMLError(
-                    "Key 'type' for an list item is not valid: {}".format(item_type))
+                    f"Key 'type' for an list item is not valid: {item_type}"
+                )
 
             results.append(cls.from_value(item))
 
@@ -181,7 +185,8 @@ class SafeYAMLList(SafeYAMLAttribute):
         for value in values:
             if not isinstance(value, self.item_type):
                 raise SafeYAMLError(
-                    'Expected list of {} objects'.format(self.item_type.__name__))
+                    f"Expected list of {self.item_type.__name__} objects"
+                )
         return values
 
     @property
@@ -203,11 +208,13 @@ class SafeYAMLObjectMetaclass(yaml.YAMLObjectMetaclass):
 
     Enabled YAML loader to accept only root objects of specific type.
     """
+
     def __init__(cls, name, bases, kwds):
         super().__init__(name, bases, kwds)
 
-        root_yaml_tag = getattr(cls, 'root_yaml_tag', None)
+        root_yaml_tag = getattr(cls, "root_yaml_tag", None)
         if root_yaml_tag:
+
             class Loader(cls.yaml_loader):
                 def get_node(self):
                     node = super().get_node()
@@ -217,16 +224,17 @@ class SafeYAMLObjectMetaclass(yaml.YAMLObjectMetaclass):
 
                     if not isinstance(node, yaml.MappingNode):
                         raise SafeYAMLError(
-                            'Expected mapping for {} tagged object'.format(root_yaml_tag))
+                            f"Expected mapping for {root_yaml_tag} tagged object"
+                        )
 
                     return node
 
             Loader.add_constructor(root_yaml_tag, cls.from_yaml)
             cls.yaml_loader = Loader
 
-        yaml_tag = getattr(cls, 'yaml_tag', None)
+        yaml_tag = getattr(cls, "yaml_tag", None)
         if yaml_tag:
-            safe_yaml_tag_to_class[yaml_tag.lstrip('!')] = cls
+            safe_yaml_tag_to_class[yaml_tag.lstrip("!")] = cls
 
 
 class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
@@ -241,9 +249,10 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
     Define class attribute safe_yaml_attributes which is dict mapping attribute
     name to a SafeYAMLAttribute object.
     """
+
     yaml_loader = yaml.SafeLoader
 
-    safe_yaml_attributes: Dict[str, SafeYAMLAttribute]
+    safe_yaml_attributes: dict[str, SafeYAMLAttribute]
 
     @classmethod
     def __new__(cls, *args, **kwargs):
@@ -257,33 +266,32 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
 
     @classmethod
     def from_yaml(cls, loader, node):
-        nodes = {
-            name_node.value: value_node
-            for name_node, value_node in node.value
-        }
+        nodes = {name_node.value: value_node for name_node, value_node in node.value}
         result = cls()
 
         for attribute_name, yaml_attribute in cls.safe_yaml_attributes.items():
             child_node = nodes.get(attribute_name)
             if child_node is None:
                 if not yaml_attribute.optional:
-                    msg = '{}: Attribute {!r} is required'.format(
-                        result.safe_yaml_label, attribute_name)
+                    msg = "{}: Attribute {!r} is required".format(
+                        result.safe_yaml_label, attribute_name
+                    )
                     raise SafeYAMLError(msg)
                 value = yaml_attribute.default_value
             else:
                 try:
                     value = yaml_attribute.from_yaml(loader, child_node)
                 except (SafeYAMLError, yaml.YAMLError) as e:
-                    msg = '{}: Attribute {!r}: {}'.format(
-                        result.safe_yaml_label, attribute_name, str(e))
+                    msg = "{}: Attribute {!r}: {}".format(
+                        result.safe_yaml_label, attribute_name, str(e)
+                    )
                     raise SafeYAMLError(msg)
             setattr(result, attribute_name, value)
 
         try:
             result.validate()
         except SafeYAMLError as e:
-            msg = '{}: {}'.format(result.safe_yaml_label, str(e))
+            msg = f"{result.safe_yaml_label}: {str(e)}"
             raise SafeYAMLError(msg)
 
         return result
@@ -300,7 +308,7 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
             values = yaml.load_all(file_or_content, Loader=cls.yaml_loader)
             values = list(values)
         except yaml.YAMLError as e:
-            raise SafeYAMLError('YAML Parser Error: {}'.format(e))
+            raise SafeYAMLError(f"YAML Parser Error: {e}")
 
         return values
 
@@ -312,14 +320,14 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
             value = data.get(attribute_name)
             if value is None:
                 if not yaml_attribute.optional:
-                    msg = 'Attribute {!r} is required'.format(attribute_name)
+                    msg = f"Attribute {attribute_name!r} is required"
                     raise SafeYAMLError(msg)
                 value = yaml_attribute.default_value
             else:
                 try:
                     value = yaml_attribute.from_value(value)
                 except SafeYAMLError as e:
-                    msg = 'Attribute {!r}: {}'.format(attribute_name, str(e))
+                    msg = f"Attribute {attribute_name!r}: {str(e)}"
                     raise SafeYAMLError(msg)
 
             setattr(result, attribute_name, value)
@@ -328,14 +336,13 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
 
     @property
     def safe_yaml_label(self):
-        return 'YAML object {}'.format(self.yaml_tag)
+        return f"YAML object {self.yaml_tag}"
 
     def validate(self):
         pass
 
     def to_json(self):
         return {
-            attribute_name: yaml_attribute.to_json(
-                getattr(self, attribute_name, None))
+            attribute_name: yaml_attribute.to_json(getattr(self, attribute_name, None))
             for attribute_name, yaml_attribute in self.safe_yaml_attributes.items()
         }

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-2.0+
 """
 The "waiverdb handler".
@@ -22,18 +21,18 @@ class WaiverDBHandler(Consumer):
         this consumer listens to.
     """
 
-    config_key = 'waiverdb_handler'
-    hub_config_prefix = 'waiverdb_'
-    default_topic = 'waiver.new'
-    monitor_labels = {'handler': 'waiverdb_consumer'}
+    config_key = "waiverdb_handler"
+    hub_config_prefix = "waiverdb_"
+    default_topic = "waiver.new"
+    monitor_labels = {"handler": "waiverdb_consumer"}
 
     def _consume_message(self, message):
-        msg = message['msg']
+        msg = message["msg"]
 
-        product_version = msg['product_version']
-        testcase = msg['testcase']
-        subject = create_subject(msg['subject_type'], msg['subject_identifier'])
-        submit_time = msg['timestamp']
+        product_version = msg["product_version"]
+        testcase = msg["testcase"]
+        subject = create_subject(msg["subject_type"], msg["subject_identifier"])
+        submit_time = msg["timestamp"]
 
         self._publish_decision_change(
             submit_time=submit_time,

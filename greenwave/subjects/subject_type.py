@@ -16,47 +16,39 @@ from greenwave.safe_yaml import (
 
 
 class SubjectType(SafeYAMLObject):
-    root_yaml_tag = '!SubjectType'
+    root_yaml_tag = "!SubjectType"
 
     safe_yaml_attributes = {
-        'id': SafeYAMLString(),
-
-        'aliases': SafeYAMLList(item_type=str, optional=True),
-
+        "id": SafeYAMLString(),
+        "aliases": SafeYAMLList(item_type=str, optional=True),
         # Key name to load from decision 'subject' list or ResultsDB result
         # data ("item" will be used if the key is empty or not found).
-        'item_key': SafeYAMLString(optional=True),
-
+        "item_key": SafeYAMLString(optional=True),
         # A build for subject identifier can be found on Koji/Brew.
-        'is_koji_build': SafeYAMLBool(optional=True, default=False),
-
+        "is_koji_build": SafeYAMLBool(optional=True, default=False),
         # Is identifier in NVR format? If true, package name and short product
         # version can be parsed for identifier.
-        'is_nvr': SafeYAMLBool(optional=True),
-
+        "is_nvr": SafeYAMLBool(optional=True),
         # Omit responding with HTTP 404 if there is no applicable policy.
-        'ignore_missing_policy': SafeYAMLBool(optional=True, default=False),
-
+        "ignore_missing_policy": SafeYAMLBool(optional=True, default=False),
         # List of dicts. Each dict must have:
         # - 'match' field containing regular expression to match subject ID
         # - 'product_version' field containing product version (can contain
         #   '\1', '\2' etc, expanded to matched groups)
-        'product_version_match': SafeYAMLList(item_type=dict, optional=True),
-
+        "product_version_match": SafeYAMLList(item_type=dict, optional=True),
         # Same as product_version_match, but to match build target from Koji
         # instead of subject ID.
-        'product_version_from_koji_build_target': SafeYAMLList(item_type=dict, optional=True),
-
+        "product_version_from_koji_build_target": SafeYAMLList(
+            item_type=dict, optional=True
+        ),
         # Fixed product version for the subject type used if
         # product_version_match is undefined or does not match subject ID.
-        'product_version': SafeYAMLString(optional=True),
-
+        "product_version": SafeYAMLString(optional=True),
         # Serialization dict for decision.
-        'item_dict': SafeYAMLDict(optional=True),
-
+        "item_dict": SafeYAMLDict(optional=True),
         # List of serialization dicts for ResultsDB requests.
         # If not defined, defaults to single request with item_dict value.
-        'result_queries': SafeYAMLList(item_type=dict, optional=True),
+        "result_queries": SafeYAMLList(item_type=dict, optional=True),
     }
 
     def matches(self, id_):
@@ -64,10 +56,10 @@ class SubjectType(SafeYAMLObject):
 
     @property
     def safe_yaml_label(self):
-        return 'SubjectType {!r}'.format(self.id)
+        return f"SubjectType {self.id!r}"
 
     def __repr__(self):
-        return '<SubjectType {!r}>'.format(self.id)
+        return f"<SubjectType {self.id!r}>"
 
 
 class GenericSubjectType:
@@ -85,7 +77,7 @@ class GenericSubjectType:
         return id_ == self.id or id_ in self.aliases
 
     def __repr__(self):
-        return '<GenericSubjectType {!r}>'.format(self.id)
+        return f"<GenericSubjectType {self.id!r}>"
 
 
 def load_subject_types(subject_types_dir):
@@ -95,10 +87,10 @@ def load_subject_types(subject_types_dir):
     :param str subject_types_dir: A path points to the policies directory.
     :return: A list of subject_types.
     """
-    paths = glob.glob(os.path.join(subject_types_dir, '*.yaml'))
+    paths = glob.glob(os.path.join(subject_types_dir, "*.yaml"))
     subject_types = []
     for path in paths:
-        with open(path, 'r') as f:
+        with open(path) as f:
             subject_types.extend(SubjectType.safe_load_all(f))
 
     return subject_types

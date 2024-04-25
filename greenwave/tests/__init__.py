@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GPL-2.0+
 """
 Greenwave uses the Python `unittest`_ framework for unit tests.

@@ -8,6 +8,9 @@ import uuid
 
 import stomp
 from opentelemetry.context import Context
+from opentelemetry.trace.propagation.tracecontext import (
+    TraceContextTextMapPropagator,
+)
 from requests.exceptions import HTTPError
 
 import greenwave.app_factory
@@ -23,11 +26,10 @@ from greenwave.monitor import (
     messaging_tx_failed_counter,
     messaging_tx_sent_ok_counter,
 )
-from greenwave.policies import applicable_decision_context_product_version_pairs
+from greenwave.policies import (
+    applicable_decision_context_product_version_pairs,
+)
 from greenwave.utils import right_before_this_time
-
-from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
-
 
 GREENWAVE_LISTENER_PREFIX = "greenwave"
 
@@ -99,7 +101,7 @@ class BaseListener(stomp.ConnectionListener):
                 _send_nack(self, frame.headers)
                 return
 
-        self.app.logger.debug("Received a message ID: %s", frame.headers['message-id'])
+        self.app.logger.debug("Received a message ID: %s", frame.headers["message-id"])
         _send_ack(self, frame.headers)
         self._inc(messaging_rx_counter)
 
@@ -258,7 +260,6 @@ class BaseListener(stomp.ConnectionListener):
     def _publish_decision_change(
         self, submit_time, subject, testcase, product_version, publish_testcase
     ):
-
         policy_attributes = dict(
             subject=subject,
             testcase=testcase,
@@ -281,7 +282,9 @@ class BaseListener(stomp.ConnectionListener):
                 subject_identifier=subject.identifier,
             )
             if decision is None or old_decision is None:
-                self._inc(decision_failed_counter.labels(decision_context=decision_context))
+                self._inc(
+                    decision_failed_counter.labels(decision_context=decision_context)
+                )
                 continue
 
             log_label = (
@@ -297,10 +300,14 @@ class BaseListener(stomp.ConnectionListener):
                 )
 
             if _is_decision_unchanged(old_decision, decision):
-                self._inc(decision_unchanged_counter.labels(decision_context=decision_context))
+                self._inc(
+                    decision_unchanged_counter.labels(decision_context=decision_context)
+                )
                 continue
 
-            self._inc(decision_changed_counter.labels(decision_context=decision_context))
+            self._inc(
+                decision_changed_counter.labels(decision_context=decision_context)
+            )
 
             decision.update(
                 {
@@ -316,5 +323,7 @@ class BaseListener(stomp.ConnectionListener):
             if publish_testcase:
                 decision["testcase"] = testcase
 
-            self.app.logger.info("Publishing decision change message for: %s", log_label)
+            self.app.logger.info(
+                "Publishing decision change message for: %s", log_label
+            )
             self._publish_decision_update(decision)

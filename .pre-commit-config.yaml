@@ -1,0 +1,80 @@
+---
+ci:
+  skip:
+    - hadolint-docker
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-yaml
+        args:
+          - --allow-multiple-documents
+          - --unsafe
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  # Sort imports
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort
+        args:
+          - --line-length=79
+          - --profile=black
+
+  # Remove unused imports, variables, statements
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.3.1
+    hooks:
+      - id: autoflake
+
+  # Auto-update syntax
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.2
+    hooks:
+      - id: pyupgrade
+        args:
+          - --py311-plus
+
+  # Linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.5
+    hooks:
+      - id: ruff
+        args:
+          # ignore: E501 Line too long
+          - --ignore=E501
+      - id: ruff-format
+
+  # Linter and formatter
+  - repo: https://github.com/Instagram/Fixit
+    rev: v2.1.0
+    hooks:
+      - id: fixit-fix
+
+  # Type linter
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.9.0
+    hooks:
+      - id: mypy
+        args:
+          - --disable-error-code=import-untyped
+          - --ignore-missing-imports
+
+  # Security linter
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        name: bandit
+        exclude: tests/
+
+  # Dockerfile linter
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.1-beta
+    hooks:
+      - id: hadolint-docker

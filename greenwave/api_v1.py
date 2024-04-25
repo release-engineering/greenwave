@@ -1,27 +1,28 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import logging
-from flask import Blueprint, request, current_app, jsonify, url_for, redirect
+
+from flask import Blueprint, current_app, jsonify, redirect, request, url_for
 from werkzeug.exceptions import BadRequest
+
+import greenwave.decision
 from greenwave import __version__
+from greenwave.monitor import (
+    decision_exception_counter,
+    decision_request_duration_seconds,
+)
 from greenwave.policies import (
     RemotePolicy,
     _missing_decision_contexts_in_parent_policies,
 )
 from greenwave.safe_yaml import SafeYAMLError
 from greenwave.utils import insert_headers, jsonp
-from greenwave.monitor import (
-    decision_exception_counter,
-    decision_request_duration_seconds,
-)
-import greenwave.decision
 
-
-api = (Blueprint('api_v1', __name__))
+api = Blueprint("api_v1", __name__)
 log = logging.getLogger(__name__)
 
 
-@api.route('/', methods=['GET'])
+@api.route("/", methods=["GET"])
 def landing_page():
     """
     Landing page with links to documentation and other APIs and interpretation
@@ -54,33 +55,35 @@ def landing_page():
        }
     """  # noqa: E501
     return (
-        jsonify({
-            "documentation": current_app.config["DOCUMENTATION_URL"],
-            "api_v1": current_app.config["GREENWAVE_API_URL"],
-            "resultsdb_api": current_app.config["RESULTSDB_API_URL"],
-            "waiverdb_api": current_app.config["WAIVERDB_API_URL"],
-            "koji_api": current_app.config["KOJI_BASE_URL"],
-            "outcomes_passed": current_app.config["OUTCOMES_PASSED"],
-            "outcomes_error": current_app.config["OUTCOMES_ERROR"],
-            "outcomes_incomplete": current_app.config["OUTCOMES_INCOMPLETE"],
-            "remote_rule_policies": current_app.config["REMOTE_RULE_POLICIES"],
-        }),
+        jsonify(
+            {
+                "documentation": current_app.config["DOCUMENTATION_URL"],
+                "api_v1": current_app.config["GREENWAVE_API_URL"],
+                "resultsdb_api": current_app.config["RESULTSDB_API_URL"],
+                "waiverdb_api": current_app.config["WAIVERDB_API_URL"],
+                "koji_api": current_app.config["KOJI_BASE_URL"],
+                "outcomes_passed": current_app.config["OUTCOMES_PASSED"],
+                "outcomes_error": current_app.config["OUTCOMES_ERROR"],
+                "outcomes_incomplete": current_app.config["OUTCOMES_INCOMPLETE"],
+                "remote_rule_policies": current_app.config["REMOTE_RULE_POLICIES"],
+            }
+        ),
         200,
     )
 
 
-@api.route('/version', methods=['GET'])
+@api.route("/version", methods=["GET"])
 def version():
     """
     Deprecated in favour of (and redirected to) :http:get:`/api/v1.0/about`.
     """
-    return redirect(url_for('api_v1.about'))
+    return redirect(url_for("api_v1.about"))
 
 
-@api.route('/about', methods=['GET'])
+@api.route("/about", methods=["GET"])
 @jsonp
 def about():
-    """ Returns the current running version.
+    """Returns the current running version.
 
     **Sample response**:
 
@@ -98,16 +101,16 @@ def about():
 
     :statuscode 200: Currently running greenwave software version is returned.
     """
-    resp = jsonify({'version': __version__})
+    resp = jsonify({"version": __version__})
     resp = insert_headers(resp)
     resp.status_code = 200
     return resp
 
 
-@api.route('/policies', methods=['GET'])
+@api.route("/policies", methods=["GET"])
 @jsonp
 def get_policies():
-    """ Returns all currently loaded policies.
+    """Returns all currently loaded policies.
 
     **Sample response**:
 
@@ -147,34 +150,34 @@ def get_policies():
 
     :statuscode 200: Currently loaded policies are returned.
     """
-    policies = [policy.to_json() for policy in current_app.config['policies']]
-    resp = jsonify({'policies': policies})
+    policies = [policy.to_json() for policy in current_app.config["policies"]]
+    resp = jsonify({"policies": policies})
     resp = insert_headers(resp)
     resp.status_code = 200
     return resp
 
 
-@api.route('/subject_types', methods=['GET'])
+@api.route("/subject_types", methods=["GET"])
 @jsonp
 def get_subject_types():
-    """ Returns all currently loaded subject_types (sorted by "id")."""
-    subject_types = [type_.to_json() for type_ in current_app.config['subject_types']]
-    subject_types.sort(key=lambda x: x['id'])
-    resp = jsonify({'subject_types': subject_types})
+    """Returns all currently loaded subject_types (sorted by "id")."""
+    subject_types = [type_.to_json() for type_ in current_app.config["subject_types"]]
+    subject_types.sort(key=lambda x: x["id"])
+    resp = jsonify({"subject_types": subject_types})
     resp = insert_headers(resp)
     resp.status_code = 200
     return resp
 
 
-@api.route('/decision', methods=['OPTIONS'])
+@api.route("/decision", methods=["OPTIONS"])
 @jsonp
 def make_decision_options():
-    """ Handles the OPTIONS requests to the /decision endpoint. """
+    """Handles the OPTIONS requests to the /decision endpoint."""
     resp = current_app.make_default_options_response()
     return insert_headers(resp)
 
 
-@api.route('/decision', methods=['POST'])
+@api.route("/decision", methods=["POST"])
 @decision_exception_counter.count_exceptions()
 @decision_request_duration_seconds.time()
 @jsonp
@@ -422,14 +425,14 @@ def make_decision():
     """  # noqa: E501
     data = request.get_json()
     response = greenwave.decision.make_decision(data, current_app.config)
-    log.debug('Response: %s', response)
+    log.debug("Response: %s", response)
     resp = jsonify(response)
     resp = insert_headers(resp)
     resp.status_code = 200
     return resp
 
 
-@api.route('/validate-gating-yaml', methods=['POST'])
+@api.route("/validate-gating-yaml", methods=["POST"])
 @jsonp
 def validate_gating_yaml_post():
     """
@@ -468,22 +471,27 @@ def validate_gating_yaml_post():
            "message": "All OK"
        }
     """
-    content = request.get_data().decode('utf-8')
+    content = request.get_data().decode("utf-8")
     try:
         policies = RemotePolicy.safe_load_all(content)
     except SafeYAMLError as e:
         raise BadRequest(str(e))
 
     if not policies:
-        raise BadRequest('No policies defined')
+        raise BadRequest("No policies defined")
 
     missing_decision_contexts = _missing_decision_contexts_in_parent_policies(policies)
     if missing_decision_contexts:
-        msg = {'message': ('Greenwave could not find a parent policy(ies) for following decision'
-                           ' context(s): {}. Please change your policy so that it will match a '
-                           'decision context in the parent policies.'.format(
-                               ', '.join(sorted(missing_decision_contexts))))}
+        msg = {
+            "message": (
+                "Greenwave could not find a parent policy(ies) for following decision"
+                " context(s): {}. Please change your policy so that it will match a "
+                "decision context in the parent policies.".format(
+                    ", ".join(sorted(missing_decision_contexts))
+                )
+            )
+        }
     else:
-        msg = {'message': 'All OK'}
+        msg = {"message": "All OK"}
 
     return jsonify(msg)

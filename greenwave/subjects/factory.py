@@ -14,7 +14,7 @@ class UnknownSubjectDataError(RuntimeError):
 
 
 def subject_types():
-    return current_app.config['subject_types']
+    return current_app.config["subject_types"]
 
 
 def create_subject_from_data(data):
