@@ -1943,13 +1943,13 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "stomp-py"
-version = "8.1.0"
+version = "8.1.2"
 description = "Python STOMP client, supporting versions 1.0, 1.1 and 1.2 of the protocol"
 optional = false
-python-versions = ">=3.6,<4.0"
+python-versions = "<4.0,>=3.7"
 files = [
-    {file = "stomp.py-8.1.0-py3-none-any.whl", hash = "sha256:49bc4cf5a4b17b6dce6dc2da0cb869f6522f77eff5ba46ee3e26ceb4793be0df"},
-    {file = "stomp.py-8.1.0.tar.gz", hash = "sha256:b4737d002684639753fbf12dedecb8aa85e5e260749c947acd49c482db42a594"},
+    {file = "stomp_py-8.1.2-py3-none-any.whl", hash = "sha256:61200b85442a0f374155820f122518371c9c3dc77bb320ae9052d5a840fc5875"},
+    {file = "stomp_py-8.1.2.tar.gz", hash = "sha256:b56e62da090863cc65e5fbf832230318cd53e99dc777de19ecb04e83914f1371"},
 ]
 
 [package.dependencies]
@@ -2247,4 +2247,4 @@ test = ["mock", "pytest", "pytest-cov", "requests-mock"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.13"
-content-hash = "21f9fdc2a88e4b068f88682e34e76a166dfba1afbd829c0d65301ee5d43d9e91"
+content-hash = "1858f764002fbfeabba893ef5522831fd9df79059ef6fe95c1c084f2cbc5ce9a"
