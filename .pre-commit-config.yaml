@@ -35,7 +35,7 @@ repos:
 
   # Auto-update syntax
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.16.0
+    rev: v3.17.0
     hooks:
       - id: pyupgrade
         args:
@@ -43,7 +43,7 @@ repos:
 
   # Linter and formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.0
+    rev: v0.5.6
     hooks:
       - id: ruff
         args:
@@ -59,7 +59,7 @@ repos:
 
   # Type linter
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.1
+    rev: v1.11.1
     hooks:
       - id: mypy
         args:
