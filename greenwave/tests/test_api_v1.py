@@ -333,3 +333,11 @@ def test_subject_types(client):
         "redhat-container-image",
         "redhat-module",
     ]
+
+
+def test_strict_trasport_security(client):
+    response = client.get("/api/v1.0/version")
+    sts = response.headers.get("Strict-Transport-Security")
+    assert sts, response.headers
+    assert "max-age" in sts
+    assert "includeSubDomains" in sts
