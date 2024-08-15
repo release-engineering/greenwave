@@ -467,64 +467,13 @@ def test_make_a_decision_on_failed_result(
     assert res_data["unsatisfied_requirements"] == expected_unsatisfied_requirements
 
 
-def test_make_a_decision_on_queued_result(
-    requests_session, greenwave_server, testdatabuilder
+@pytest.mark.parametrize("outcome", ("QUEUED", "RUNNING"))
+def test_make_a_decision_on_incomplete_result(
+    requests_session, greenwave_server, testdatabuilder, outcome
 ):
     nvr = testdatabuilder.unique_nvr()
     result = testdatabuilder.create_result(
-        item=nvr, testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0], outcome="QUEUED"
-    )
-    data = {
-        "decision_context": "bodhi_update_push_stable",
-        "product_version": "fedora-26",
-        "subject_type": "koji_build",
-        "subject_identifier": nvr,
-    }
-    r = requests_session.post(greenwave_server + "api/v1.0/decision", json=data)
-    assert r.status_code == 200
-    res_data = r.json()
-    assert res_data["policies_satisfied"] is False
-    assert "taskotron_release_critical_tasks" in res_data["applicable_policies"]
-    assert (
-        "taskotron_release_critical_tasks_with_blocklist"
-        in res_data["applicable_policies"]
-    )
-    expected_summary = "Of 3 required tests, 2 results missing, 1 test incomplete"
-    assert res_data["summary"] == expected_summary
-    expected_unsatisfied_requirements = [
-        {
-            "item": {"item": nvr, "type": "koji_build"},
-            "subject_identifier": result["data"]["item"][0],
-            "subject_type": result["data"]["type"][0],
-            "testcase": TASKTRON_RELEASE_CRITICAL_TASKS[0],
-            "result_id": result["id"],
-            "scenario": None,
-            "system_architecture": None,
-            "system_variant": None,
-            "source": None,
-            "type": "test-result-missing",
-        },
-    ] + [
-        {
-            "item": {"item": nvr, "type": "koji_build"},
-            "subject_type": "koji_build",
-            "subject_identifier": nvr,
-            "testcase": name,
-            "type": "test-result-missing",
-            "scenario": None,
-            "source": None,
-        }
-        for name in TASKTRON_RELEASE_CRITICAL_TASKS[1:]
-    ]
-    assert res_data["unsatisfied_requirements"] == expected_unsatisfied_requirements
-
-
-def test_make_a_decision_on_running_result(
-    requests_session, greenwave_server, testdatabuilder
-):
-    nvr = testdatabuilder.unique_nvr()
-    result = testdatabuilder.create_result(
-        item=nvr, testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0], outcome="RUNNING"
+        item=nvr, testcase_name=TASKTRON_RELEASE_CRITICAL_TASKS[0], outcome=outcome
     )
     data = {
         "decision_context": "bodhi_update_push_stable",

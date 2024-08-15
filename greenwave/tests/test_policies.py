@@ -329,12 +329,59 @@ def test_product_versions_pattern(product_version, applies, tmpdir):
     )
 
 
-@pytest.mark.parametrize("namespace", ["rpms", ""])
-def test_remote_rule_policy(tmpdir, namespace):
+@pytest.mark.parametrize(
+    (
+        "subject_type",
+        "subject_id",
+        "namespace",
+        "expected_url",
+        "expected_retrieve_scm_from_koji_call",
+    ),
+    (
+        (
+            "koji_build",
+            "nethack-1.2.3-1.el9000",
+            "rpms",
+            (
+                "https://src.fedoraproject.org/rpms/"
+                "nethack/raw/c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml"
+            ),
+            True,
+        ),
+        (
+            "koji_build",
+            "nethack-1.2.3-1.el9000",
+            "",
+            (
+                "https://src.fedoraproject.org/"
+                "nethack/raw/c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml"
+            ),
+            True,
+        ),
+        (
+            "brew-build-group",
+            "sha256:0f41e56a1c32519e189ddbcb01d2551e861bd74e603d01769ef5f70d4b30a2dd",
+            "rpms",
+            (
+                "https://git.example.com/devops/greenwave-policies/side-tags/raw/"
+                "master/0f41e56a1c32519e189ddbcb01d2551e861bd74e603d01769ef5f70d4b30a2dd.yaml"
+            ),
+            False,
+        ),
+    ),
+)
+def test_remote_rule_policy(
+    mock_retrieve_scm_from_koji,
+    tmpdir,
+    subject_type,
+    subject_id,
+    namespace,
+    expected_url,
+    expected_retrieve_scm_from_koji_call,
+):
     """Testing the RemoteRule with the koji interaction.
     In this case we are just mocking koji"""
-
-    subject = create_subject("koji_build", "nethack-1.2.3-1.el9000")
+    subject = create_subject(subject_type, subject_id)
 
     serverside_fragment = dedent("""
         --- !Policy
@@ -342,10 +389,10 @@ def test_remote_rule_policy(tmpdir, namespace):
         product_versions:
           - fedora-26
         decision_context: bodhi_update_push_stable_with_remoterule
-        subject_type: koji_build
+        subject_type: {}
         rules:
-          - !RemoteRule {}
-        """)
+          - !RemoteRule
+        """).format(subject_type)
 
     remote_fragment = dedent("""
         --- !Policy
@@ -359,8 +406,10 @@ def test_remote_rule_policy(tmpdir, namespace):
 
     p = tmpdir.join("gating.yaml")
     p.write(serverside_fragment)
-    with mock.patch("greenwave.resources.retrieve_scm_from_koji") as scm:
-        scm.return_value = (
+
+    app = create_app("greenwave.config.FedoraTestingConfig")
+    with app.app_context():
+        mock_retrieve_scm_from_koji.return_value = (
             namespace,
             "nethack",
             "c3c47a08a66451cb9686c49f040776ed35a0d1bb",
@@ -395,12 +444,11 @@ def test_remote_rule_policy(tmpdir, namespace):
                 "fetched-gating-yaml",
                 "test-result-failed",
             ]
-            f.assert_called_with(
-                "https://src.fedoraproject.org/{}".format(
-                    "" if not namespace else namespace + "/"
-                )
-                + "nethack/raw/c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml"
-            )
+            f.assert_called_with(expected_url)
+            if expected_retrieve_scm_from_koji_call:
+                mock_retrieve_scm_from_koji.assert_called()
+            else:
+                mock_retrieve_scm_from_koji.assert_not_called()
 
 
 def test_remote_rule_policy_old_config(tmpdir):

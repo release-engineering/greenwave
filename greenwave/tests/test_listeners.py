@@ -18,6 +18,8 @@ from greenwave.policies import Policy
 from greenwave.product_versions import subject_product_versions
 from greenwave.subjects.factory import create_subject
 
+from .conftest import DUMMY_NVR
+
 DECISION_UPDATE_TOPIC = "/topic/VirtualTopic.eng.greenwave.decision.update"
 RESULTSDB_QUEUE = (
     "/queue/Consumer.client-greenwave.dev-resultsdb"
@@ -29,8 +31,7 @@ WAIVERDB_QUEUE = (
 )
 CONFIG_NAME = "greenwave.config.TestingConfig"
 
-POLICIES_DEFAULT = dedent(
-    """
+POLICIES_DEFAULT = dedent("""
     --- !Policy
     id: test_policy
     product_versions: [fedora-rawhide]
@@ -38,11 +39,9 @@ POLICIES_DEFAULT = dedent(
     subject_type: koji_build
     rules:
       - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
-"""
-)
+""")
 
-POLICIES_WITH_REMOTE_RULE = dedent(
-    """
+POLICIES_WITH_REMOTE_RULE = dedent("""
     --- !Policy
     id: test_policy
     product_versions: [fedora-rawhide]
@@ -50,10 +49,7 @@ POLICIES_WITH_REMOTE_RULE = dedent(
     subject_type: koji_build
     rules:
       - !RemoteRule {}
-"""
-)
-
-DUMMY_NVR = "nethack-1.2.3-1.rawhide"
+""")
 
 
 class DummyMessage:
@@ -105,40 +101,6 @@ def waiverdb_listener():
     return listener
 
 
-@pytest.fixture(autouse=True)
-def mock_retrieve_decision():
-    with mock.patch("greenwave.decision.make_decision") as mocked:
-
-        def retrieve_decision(data, _config):
-            if "when" in data:
-                return {
-                    "policies_satisfied": False,
-                    "summary": "1 of 1 required test results missing",
-                }
-            return {
-                "policies_satisfied": True,
-                "summary": "All required tests passed",
-            }
-
-        mocked.side_effect = retrieve_decision
-        yield mocked
-
-
-@pytest.fixture
-def mock_retrieve_results():
-    with mock.patch("greenwave.resources.ResultsRetriever.retrieve") as mocked:
-        mocked.return_value = [
-            {
-                "id": 1,
-                "testcase": {"name": "dist.rpmdeplint"},
-                "outcome": "PASSED",
-                "data": {"item": DUMMY_NVR, "type": "koji_build"},
-                "submit_time": "2019-03-25T16:34:41.882620",
-            }
-        ]
-        yield mocked
-
-
 @pytest.fixture
 def mock_connection():
     with mock.patch(
@@ -168,7 +130,8 @@ class TestListenerAnnouncementSubject:
         }
 
     def test_no_announcement_subjects_for_empty_nvr(self):
-        """The CI pipeline submits a lot of results for the test
+        """
+        The CI pipeline submits a lot of results for the test
         'org.centos.prod.ci.pipeline.allpackages-build.package.ignored'
         with the 'original_spec_nvr' key present, but the value just an
         empty string. To avoid unpredictable consequences, we should not
@@ -198,7 +161,8 @@ class TestListenerAnnouncementSubject:
         }
 
     def test_announcement_subjects_for_new_compose_message(self):
-        """Ensure we are producing the right subjects for compose decisions
+        """
+        Ensure we are producing the right subjects for compose decisions
         as this has caused a lot of confusion in the past. The only
         reliable way to make a compose decision is by looking for the key
         productmd.compose.id with value of the compose ID. This is only
@@ -228,7 +192,8 @@ class TestListenerAnnouncementSubject:
         }
 
     def test_no_announcement_subjects_for_old_compose_message(self):
-        """With an old-style 'taskotron' message like this one, it is not
+        """
+        With an old-style 'taskotron' message like this one, it is not
         possible to reliably make a compose decision - see
         https://pagure.io/greenwave/issue/122 etc. So we should NOT
         produce any subjects for this kind of message.
@@ -465,6 +430,7 @@ def test_decision_does_not_change_on_invalid_subject_id(
 def test_remote_rule_decision_change(
     mock_retrieve_yaml_remote_rule,
     mock_retrieve_scm_from_koji,
+    mock_retrieve_decision,
     mock_retrieve_results,
     mock_connection,
     koji_proxy,
@@ -473,15 +439,13 @@ def test_remote_rule_decision_change(
     Test publishing decision change message for test cases mentioned in
     gating.yaml.
     """
-    gating_yaml = dedent(
-        """
+    gating_yaml = dedent("""
         --- !Policy
         product_versions: [fedora-rawhide, notexisting_prodversion]
         decision_context: test_context
         rules:
           - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
-    """
-    )
+    """)
     mock_retrieve_yaml_remote_rule.return_value = gating_yaml
 
     mock_retrieve_scm_from_koji.return_value = (
@@ -550,15 +514,13 @@ def test_remote_rule_decision_change_not_matching(
 
     mock_retrieve_decision.side_effect = retrieve_decision
 
-    gating_yaml = dedent(
-        """
+    gating_yaml = dedent("""
         --- !Policy
         product_versions: [fedora-rawhide]
         decision_context: another_test_context
         rules:
           - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
-    """
-    )
+    """)
     mock_retrieve_yaml_remote_rule.return_value = gating_yaml
 
     mock_retrieve_scm_from_koji.return_value = (
@@ -593,14 +555,14 @@ def test_guess_product_version(mock_connection, koji_proxy):
 def test_decision_change_for_modules(
     mock_retrieve_yaml_remote_rule,
     mock_retrieve_scm_from_koji,
+    mock_retrieve_decision,
     mock_retrieve_results,
     mock_connection,
 ):
     """
     Test publishing decision change message for a module.
     """
-    gating_yaml = dedent(
-        """
+    gating_yaml = dedent("""
         --- !Policy
         product_versions:
           - rhel-8
@@ -608,12 +570,10 @@ def test_decision_change_for_modules(
         subject_type: redhat-module
         rules:
           - !PassingTestCaseRule {test_case_name: baseos-ci.redhat-module.tier1.functional}
-    """
-    )
+    """)
     mock_retrieve_yaml_remote_rule.return_value = gating_yaml
 
-    policies = dedent(
-        """
+    policies = dedent("""
     --- !Policy
         id: "osci_compose_modules"
         product_versions:
@@ -623,8 +583,7 @@ def test_decision_change_for_modules(
         excluded_packages: []
         rules:
           - !RemoteRule {}
-    """
-    )
+    """)
 
     nsvc = "python36-3.6-820181204160430.17efdbc7"
     result = {
@@ -687,13 +646,12 @@ def test_decision_change_for_modules(
 
 
 def test_decision_change_for_composes(
-    koji_proxy, mock_retrieve_results, mock_connection
+    koji_proxy, mock_retrieve_decision, mock_retrieve_results, mock_connection
 ):
     """
     Test publishing decision change message for a compose.
     """
-    policies = dedent(
-        """
+    policies = dedent("""
         --- !Policy
         id: "osci_rhel8_development_nightly_compose_gate"
         product_versions:
@@ -703,8 +661,7 @@ def test_decision_change_for_composes(
         rules:
           - !PassingTestCaseRule {test_case_name: rtt.installability.validation}
           - !PassingTestCaseRule {test_case_name: rtt.beaker-acceptance.validation}
-    """
-    )
+    """)
 
     result_data = {
         "item": ["RHEL-9000/unknown/x86_64"],
@@ -763,83 +720,9 @@ def test_decision_change_for_composes(
     }
 
 
-def test_fake_fedora_messaging_msg(mock_retrieve_results, mock_connection):
-    message = {
-        "task": {
-            "type": "bodhi_update",
-            "item": "FEDORA-2019-9244c8b209",
-            "name": "update.advisory_boot",
-        },
-        "result": {
-            "id": 23523568,
-            "submit_time": "2019-04-24 13:06:12 UTC",
-            "prev_outcome": None,
-            "outcome": "PASSED",
-            "log_url": "https://openqa.stg.fedoraproject.org/tests/528801",
-        },
-    }
-
-    policies = dedent(
-        """
-        --- !Policy
-        id: test_policy
-        product_versions: [fedora-rawhide]
-        decision_context: test_context
-        subject_type: bodhi_update
-        rules:
-          - !PassingTestCaseRule {test_case_name: update.advisory_boot}
-    """
-    )
-
-    result = {
-        "id": 1,
-        "testcase": {"name": "dist.rpmdeplint"},
-        "outcome": "PASSED",
-        "data": {"item": "FEDORA-2019-9244c8b209", "type": "bodhi_update"},
-        "submit_time": "2019-04-24 13:06:12.135146",
-    }
-    mock_retrieve_results.return_value = [result]
-
-    listener = resultsdb_listener()
-
-    listener.koji_base_url = None
-    listener.app.config["policies"] = Policy.safe_load_all(policies)
-    with listener.app.app_context():
-        listener.on_message(DummyMessage(message=message))
-
-    assert len(mock_connection.send.mock_calls) == 1
-    mock_call = mock_connection.send.mock_calls[0][2]
-    assert mock_call["destination"] == DECISION_UPDATE_TOPIC
-    assert json.loads(mock_call["body"]) == {
-        "msg": {
-            "decision_context": "test_context",
-            "product_version": "fedora-rawhide",
-            "subject": [
-                {"item": "FEDORA-2019-9244c8b209", "type": "bodhi_update"},
-            ],
-            "subject_type": "bodhi_update",
-            "subject_identifier": "FEDORA-2019-9244c8b209",
-            "policies_satisfied": True,
-            "previous": {
-                "policies_satisfied": False,
-                "summary": "1 of 1 required test results missing",
-            },
-            "summary": "All required tests passed",
-        },
-        # Duplication of the topic in the body for datanommer, for message backwards compat
-        "topic": DECISION_UPDATE_TOPIC,
-    }
-    assert mock_call["headers"] == {
-        "subject_type": "bodhi_update",
-        "subject_identifier": "FEDORA-2019-9244c8b209",
-        "product_version": "fedora-rawhide",
-        "decision_context": "test_context",
-        "policies_satisfied": "true",
-        "summary": "All required tests passed",
-    }
-
-
-def test_container_brew_build(mock_retrieve_results, koji_proxy, mock_connection):
+def test_container_brew_build(
+    mock_retrieve_decision, mock_retrieve_results, koji_proxy, mock_connection
+):
     message = {
         "submit_time": "2019-08-27T13:57:53.490376",
         "testcase": {
@@ -852,8 +735,7 @@ def test_container_brew_build(mock_retrieve_results, koji_proxy, mock_connection
         },
     }
 
-    policies = dedent(
-        """
+    policies = dedent("""
         --- !Policy
         id: test_policy
         product_versions: [example_product_version]
@@ -861,8 +743,7 @@ def test_container_brew_build(mock_retrieve_results, koji_proxy, mock_connection
         subject_type: koji_build
         rules:
           - !PassingTestCaseRule {test_case_name: example_test}
-    """
-    )
+    """)
 
     result = {
         "id": 1,
@@ -920,7 +801,7 @@ def test_container_brew_build(mock_retrieve_results, koji_proxy, mock_connection
     }
 
 
-def test_waiverdb_message(mock_connection):
+def test_waiverdb_message(mock_retrieve_decision, mock_connection):
     waiver = dict(
         subject_identifier=DUMMY_NVR,
         subject_type="koji_build",
@@ -930,8 +811,7 @@ def test_waiverdb_message(mock_connection):
         timestamp="2019-04-24T13:07:00.000000",
     )
 
-    policies = dedent(
-        """
+    policies = dedent("""
         --- !Policy
         id: test_policy
         product_versions: [rawhide]
@@ -939,8 +819,7 @@ def test_waiverdb_message(mock_connection):
         subject_type: koji_build
         rules:
           - !PassingTestCaseRule {test_case_name: example_test}
-    """
-    )
+    """)
 
     listener = waiverdb_listener()
 
@@ -1018,7 +897,9 @@ def test_listener_unique_ids(mock_connection):
     assert listener2.uid.startswith("greenwave-waiverdb-")
 
 
-def test_listener_reconnect(mock_retrieve_results, mock_connection, koji_proxy):
+def test_listener_reconnect(
+    mock_retrieve_decision, mock_retrieve_results, mock_connection, koji_proxy
+):
     """
     Test reconnect on send failure.
     """
@@ -1038,7 +919,7 @@ def test_listener_reconnect(mock_retrieve_results, mock_connection, koji_proxy):
     assert len(mock_connection.ack.mock_calls) == 1
 
 
-def test_listener_send_failure(mock_connection, koji_proxy):
+def test_listener_send_failure(mock_retrieve_decision, mock_connection, koji_proxy):
     """
     Test exception on send.
     """
