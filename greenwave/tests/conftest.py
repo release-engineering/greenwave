@@ -33,3 +33,15 @@ def koji_proxy():
     mock_proxy = Mock()
     with patch("greenwave.resources.get_server_proxy", return_value=mock_proxy):
         yield mock_proxy
+
+
+@fixture
+def mock_retrieve_scm_from_koji():
+    with patch("greenwave.resources.retrieve_scm_from_koji") as mocked:
+        yield mocked
+
+
+@fixture
+def mock_retrieve_yaml_remote_rule():
+    with patch("greenwave.resources.retrieve_yaml_remote_rule") as mocked:
+        yield mocked

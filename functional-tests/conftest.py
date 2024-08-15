@@ -10,14 +10,13 @@ import sys
 import textwrap
 import time
 from contextlib import contextmanager
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import requests
 from sqlalchemy import create_engine
 
 from greenwave.logger import init_logging
-from greenwave.tests.conftest import *  # noqa: F403
 
 log = logging.getLogger(__name__)
 
@@ -116,7 +115,7 @@ def server_subprocess(
         log.debug("Started %s server as pid %s", name, p.pid)
         wait_for_listen(port)
 
-        yield f"http://localhost:{port}/"
+        yield f"http://localhost:{port}/"  # NOSONAR
 
         log.debug("Terminating %s server pid %s", name, p.pid)
         p.terminate()
@@ -372,3 +371,15 @@ def testdatabuilder(
     return TestDataBuilder(
         requests_session, resultsdb_server, waiverdb_server, distgit_server
     )
+
+
+@pytest.fixture(autouse=True)
+def set_environment_variable(monkeypatch):
+    monkeypatch.setenv("TEST", "true")
+
+
+@pytest.fixture
+def koji_proxy():
+    mock_proxy = Mock()
+    with patch("greenwave.resources.get_server_proxy", return_value=mock_proxy):
+        yield mock_proxy

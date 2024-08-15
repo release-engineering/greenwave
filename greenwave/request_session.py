@@ -64,7 +64,7 @@ def get_requests_session():
         allowed_methods=Retry.DEFAULT_ALLOWED_METHODS.union(("POST",)),
     )
     adapter = HTTPAdapter(max_retries=retry)
-    session.mount("http://", adapter)
+    session.mount("http://", adapter)  # NOSONAR
     session.mount("https://", adapter)
     session.headers["User-Agent"] = f"greenwave {__version__}"
     return session

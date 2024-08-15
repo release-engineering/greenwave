@@ -40,7 +40,7 @@ def landing_page():
        Server: Werkzeug/3.0.1 Python/3.12.0
 
        {
-           "api_v1": "http://greenwave.example.com/api/v1.0",
+           "api_v1": "https://greenwave.example.com/api/v1.0",
            "documentation": "https://gating-greenwave.readthedocs.io",
            "koji_api": "https://koji.example.com/kojihub",
            "outcomes_error": ["ERROR"],
@@ -51,7 +51,7 @@ def landing_page():
                "brew-build-group": "https://git.example.com/side-tags/{pkg_namespace}{pkg_name}.yaml"
            },
            "resultsdb_api": "https://resultsdb.example.com/api/v2.0",
-           "waiverdb_api": "http://waiverdb.example.com/api/v1.0"
+           "waiverdb_api": "https://waiverdb.example.com/api/v1.0"
        }
     """  # noqa: E501
     return (
@@ -248,7 +248,7 @@ def make_decision():
                    "testcase": {
                        "href": "https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/testcases/dist.abicheck",
                        "name": "dist.abicheck",
-                       "ref_url": "http://faketestcasesRus.com/scratch.abicheck"
+                       "ref_url": "https://faketestcases.example.com/scratch.abicheck"
                    }
                }
            ],

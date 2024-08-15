@@ -127,6 +127,8 @@ htmlhelp_basename = "Greenwavedoc"
 # 'figure_align': 'htbp',
 # }
 
+DESCRIPTION = "Greenwave Documentation"
+
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
@@ -134,7 +136,7 @@ latex_documents = [
     (
         master_doc,
         "Greenwave.tex",
-        "Greenwave Documentation",
+        DESCRIPTION,
         "Red Hat, Inc. and others",
         "manual",
     ),
@@ -145,7 +147,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "greenwave", "Greenwave Documentation", [author], 1)]
+man_pages = [(master_doc, "greenwave", DESCRIPTION, [author], 1)]
 
 
 # -- Options for Texinfo output -------------------------------------------
@@ -157,7 +159,7 @@ texinfo_documents = [
     (
         master_doc,
         "Greenwave",
-        "Greenwave Documentation",
+        DESCRIPTION,
         author,
         "Greenwave",
         "One line description of project.",

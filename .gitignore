@@ -23,6 +23,7 @@ greenwave-image-build.sh
 .coverage
 .cache
 coverage.xml
+report.xml
 htmlcov
 greenwave-test-cache.dbm*
 .pytest_cache

@@ -17,7 +17,7 @@ from greenwave.utils import json_error, load_config, mangle_key
 log = logging.getLogger(__name__)
 
 
-# applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
+# application factory https://flask.palletsprojects.com/en/3.0.x/patterns/appfactories/
 def create_app(config_obj=None):
     app = Flask(__name__)
 

@@ -1,6 +1,14 @@
 # SPDX-License-Identifier: GPL-2.0+
 import os
 
+DEFAULT_RESULTSDB_API_URL = "http://localhost:5001/api/v2.0"  # NOSONAR
+DEFAULT_WAIVERDB_API_URL = "http://localhost:5004/api/v1.0"  # NOSONAR
+DEFAULT_GREENWAVE_API_URL = "http://localhost:5005/api/v1.0"  # NOSONAR
+DEFAULT_KOJI_BASE_URL = "http://localhost:5006/kojihub"  # NOSONAR
+DEFAULT_DIST_GIT_URL_TEMPLATE = (
+    "https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml"
+)
+
 
 def _local_conf_dir(subdir):
     basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,13 +35,13 @@ class Config:
     # NOTE: DIST_GIT_URL_TEMPLATE is obsolete and used here only for
     # backward compatibility. They maybe removed in future versions. Use REMOTE_RULE_POLICIES['*']
     # instead
-    DIST_GIT_URL_TEMPLATE = "https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml"
+    DIST_GIT_URL_TEMPLATE = DEFAULT_DIST_GIT_URL_TEMPLATE
     REMOTE_RULE_POLICIES = {
         "brew-build-group": (
             "https://git.example.com/devops/greenwave-policies/side-tags/raw/master/"
             "{subject_id}.yaml"
         ),
-        "*": "https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml",
+        "*": DEFAULT_DIST_GIT_URL_TEMPLATE,
     }
     REMOTE_RULE_GIT_TIMEOUT = 30
     KOJI_BASE_URL = "https://koji.fedoraproject.org/kojihub"
@@ -109,11 +117,9 @@ class ProductionConfig(Config):
 
 
 class DevelopmentConfig(Config):
-    # RESULTSDB_API_URL = 'https://taskotron.stg.fedoraproject.org/resultsdb_api/api/v2.0'
-    RESULTSDB_API_URL = "http://localhost:5001/api/v2.0"
-    # WAIVERDB_API_URL = 'http://waiverdb-dev.fedorainfracloud.org/api/v1.0'
-    WAIVERDB_API_URL = "http://localhost:5004/api/v1.0"
-    GREENWAVE_API_URL = "http://localhost:5005/api/v1.0"
+    RESULTSDB_API_URL = DEFAULT_RESULTSDB_API_URL
+    WAIVERDB_API_URL = DEFAULT_WAIVERDB_API_URL
+    GREENWAVE_API_URL = DEFAULT_GREENWAVE_API_URL
     POLICIES_DIR = _local_conf_dir("policies")
     SUBJECT_TYPES_DIR = _local_conf_dir("subject_types")
     REMOTE_RULE_POLICIES = {
@@ -121,22 +127,22 @@ class DevelopmentConfig(Config):
             "https://git.example.com/devops/greenwave-policies/side-tags/raw/master/{pkg_namespace}"
             "{pkg_name}.yaml"
         ),
-        "*": "https://src.fedoraproject.org/{pkg_namespace}{pkg_name}/raw/{rev}/f/gating.yaml",
+        "*": DEFAULT_DIST_GIT_URL_TEMPLATE,
     }
 
 
 class TestingConfig(Config):
-    RESULTSDB_API_URL = "http://localhost:5001/api/v2.0"
-    WAIVERDB_API_URL = "http://localhost:5004/api/v1.0"
-    GREENWAVE_API_URL = "http://localhost:5005/api/v1.0"
-    KOJI_BASE_URL = "http://localhost:5006/kojihub"
+    RESULTSDB_API_URL = DEFAULT_RESULTSDB_API_URL
+    WAIVERDB_API_URL = DEFAULT_WAIVERDB_API_URL
+    GREENWAVE_API_URL = DEFAULT_GREENWAVE_API_URL
+    KOJI_BASE_URL = DEFAULT_KOJI_BASE_URL
     POLICIES_DIR = _local_conf_dir("policies")
     SUBJECT_TYPES_DIR = _local_conf_dir("subject_types")
 
 
 class FedoraTestingConfig(Config):
-    RESULTSDB_API_URL = "http://localhost:5001/api/v2.0"
-    WAIVERDB_API_URL = "http://localhost:5004/api/v1.0"
-    GREENWAVE_API_URL = "http://localhost:5005/api/v1.0"
-    KOJI_BASE_URL = "http://localhost:5006/kojihub"
+    RESULTSDB_API_URL = DEFAULT_RESULTSDB_API_URL
+    WAIVERDB_API_URL = DEFAULT_WAIVERDB_API_URL
+    GREENWAVE_API_URL = DEFAULT_GREENWAVE_API_URL
+    KOJI_BASE_URL = DEFAULT_KOJI_BASE_URL
     POLICIES_DIR = _local_conf_dir("policies")

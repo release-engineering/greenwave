@@ -527,7 +527,7 @@ def test_consume_new_result_container_image(
                 "testcase": {
                     "ref_url": "https://example.com",
                     "href": (
-                        "http://resultsdb-test-9999-api-yuxzhu.cloud.paas.upshift.redhat."
+                        "https://resultsdb-test-9999-api-yuxzhu.cloud.paas.upshift.redhat."
                         "com/api/v2.0/testcases/baseos-qe.baseos-ci.tier1.functional"
                     ),
                     "name": "baseos-qe.baseos-ci.tier1.functional",
@@ -535,7 +535,7 @@ def test_consume_new_result_container_image(
                 "ref_url": "https://somewhere.com/job/ci-openstack/4794",
                 "note": "",
                 "href": (
-                    "http://resultsdb-test-9999-api-yuxzhu.cloud.paas.upshift.redhat."
+                    "https://resultsdb-test-9999-api-yuxzhu.cloud.paas.upshift.redhat."
                     "com/api/v2.0/results/58"
                 ),
                 "groups": ["341d4cba-ffe2-4d83-b36c-5d819181e86d"],
