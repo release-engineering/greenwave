@@ -96,6 +96,10 @@ class Config:
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "Lax"
 
+    RESPONSE_HEADERS = {
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+    }
+
     DOCUMENTATION_URL = "https://gating-greenwave.readthedocs.io"
 
 

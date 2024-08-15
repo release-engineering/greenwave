@@ -47,12 +47,9 @@ def create_app(config_obj=None):
             "DIST_GIT_URL_TEMPLATE"
         ].replace("{DIST_GIT_BASE_URL}", app.config["DIST_GIT_BASE_URL"])
 
-    # register error handlers
-    for code in default_exceptions.keys():
-        app.register_error_handler(code, json_error)
-    app.register_error_handler(ConnectionError, json_error)
-    app.register_error_handler(requests.ConnectionError, json_error)
-    app.register_error_handler(requests.Timeout, json_error)
+    register_handlers(app)
+
+    register_error_handlers(app)
 
     # register blueprints
     app.register_blueprint(api, url_prefix="/api/v1.0")
@@ -64,6 +61,24 @@ def create_app(config_obj=None):
     app.cache.configure(**app.config["CACHE"])
 
     return app
+
+
+def register_handlers(app):
+    headers = app.config["RESPONSE_HEADERS"]
+    if headers:
+
+        @app.after_request
+        def add_headers(response):
+            response.headers.update(headers)
+            return response
+
+
+def register_error_handlers(app):
+    for code in default_exceptions.keys():
+        app.register_error_handler(code, json_error)
+    app.register_error_handler(ConnectionError, json_error)
+    app.register_error_handler(requests.ConnectionError, json_error)
+    app.register_error_handler(requests.Timeout, json_error)
 
 
 def healthcheck():
