@@ -84,32 +84,35 @@ class DummyResultsRetriever(ResultsRetriever):
 
 
 def test_summarize_answers():
-    testSubject = create_subject("koji_build", "nvr")
-    testResultPassed = RuleSatisfied()
-    testResultFailed = TestResultFailed(testSubject, "test", None, 1, {})
-    testResultMissing = TestResultMissing(testSubject, "test", None, None)
+    test_subject = create_subject("koji_build", "nvr")
+    test_result_passed = RuleSatisfied()
+    test_result_failed = TestResultFailed(test_subject, "test", None, 1, {})
+    test_result_missing = TestResultMissing(test_subject, "test", None, None)
 
     assert (
-        summarize_answers([testResultPassed])
+        summarize_answers([test_result_passed])
         == "All required tests (1 total) have passed or been waived"
     )
     assert (
-        summarize_answers([testResultFailed, testResultPassed])
+        summarize_answers([test_result_failed, test_result_passed])
         == "Of 2 required tests, 1 test failed"
     )
     assert (
-        summarize_answers([testResultMissing]) == "Of 1 required test, 1 result missing"
+        summarize_answers([test_result_missing])
+        == "Of 1 required test, 1 result missing"
     )
     assert (
-        summarize_answers([testResultFailed, testResultMissing])
+        summarize_answers([test_result_failed, test_result_missing])
         == "Of 2 required tests, 1 result missing, 1 test failed"
     )
     assert (
-        summarize_answers([testResultFailed, testResultMissing, testResultMissing])
+        summarize_answers(
+            [test_result_failed, test_result_missing, test_result_missing]
+        )
         == "Of 3 required tests, 2 results missing, 1 test failed"
     )
     assert (
-        summarize_answers([testResultMissing, testResultPassed])
+        summarize_answers([test_result_missing, test_result_passed])
         == "Of 2 required tests, 1 result missing"
     )
 
@@ -436,7 +439,7 @@ def test_remote_rule_policy_old_config(tmpdir):
         delattr(Config, "REMOTE_RULE_POLICIES")
 
         config = TestingConfig()
-        config.DIST_GIT_BASE_URL = "http://localhost.localdomain/"
+        config.DIST_GIT_BASE_URL = "https://localhost.localdomain/"
         config.DIST_GIT_URL_TEMPLATE = "{DIST_GIT_BASE_URL}{pkg_name}/{rev}/gating.yaml"
 
         app = create_app(config)
@@ -464,7 +467,7 @@ def test_remote_rule_policy_old_config(tmpdir):
                     ]
 
                     call = mock.call(
-                        "http://localhost.localdomain/nethack/"
+                        "https://localhost.localdomain/nethack/"
                         "c3c47a08a66451cb9686c49f040776ed35a0d1bb/gating.yaml"
                     )
                     assert f.mock_calls == [call]
@@ -911,7 +914,7 @@ def test_get_sub_policies_scm_error(tmpdir):
 
 def test_redhat_container_image_subject_type():
     nvr = "389-ds-1.4-820181127205924.9edba152"
-    rdb_url = "http://results.db"
+    rdb_url = "https://results.db"
     cur_time = time.strftime("%Y-%m-%dT%H:%M:%S.00")
     testcase_name = "testcase1"
     rh_img_subject = create_subject("redhat-container-image", nvr)

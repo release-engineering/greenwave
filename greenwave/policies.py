@@ -60,6 +60,22 @@ def _remote_url_templates(subject):
     return cur_subject_urls
 
 
+def _remote_urls_template_params_from_koji(subject) -> dict:
+    pkg_namespace, pkg_name, rev = greenwave.resources.retrieve_scm_from_koji(
+        subject.identifier
+    )
+
+    # if the element is actually a container and not a pkg there will be a "-container"
+    # string at the end of the "pkg_name" and it will not match with the one in the
+    # remote rule file URL
+    if pkg_namespace == "containers":
+        pkg_name = re.sub("-container$", "", pkg_name)
+    if pkg_namespace:
+        pkg_namespace += "/"
+
+    return {"rev": rev, "pkg_name": pkg_name, "pkg_namespace": pkg_namespace}
+
+
 def _remote_urls(subject, url_templates):
     """
     Returns generator with possible remote rule URLs.
@@ -72,21 +88,10 @@ def _remote_urls(subject, url_templates):
             or "{rev}" in current_url
         ):
             try:
-                pkg_namespace, pkg_name, rev = (
-                    greenwave.resources.retrieve_scm_from_koji(subject.identifier)
-                )
+                url_params.update(_remote_urls_template_params_from_koji(subject))
             except greenwave.resources.NoSourceException as e:
                 log.warning(e)
                 continue
-
-            # if the element is actually a container and not a pkg there will be a "-container"
-            # string at the end of the "pkg_name" and it will not match with the one in the
-            # remote rule file URL
-            if pkg_namespace == "containers":
-                pkg_name = re.sub("-container$", "", pkg_name)
-            if pkg_namespace:
-                pkg_namespace += "/"
-            url_params.update(rev=rev, pkg_name=pkg_name, pkg_namespace=pkg_namespace)
 
         if "{subject_id}" in current_url:
             subj_id = subject.identifier
@@ -165,6 +170,8 @@ class TestResultMissing(RuleNotSatisfied):
     ResultsDB with a matching item and test case name).
     """
 
+    __test__ = False  # ignore in pytest
+
     summary_text = "result{s} missing"
 
     def __init__(self, subject, test_case_name, scenario, source):
@@ -194,6 +201,8 @@ class TestResultIncomplete(RuleNotSatisfied):
     A required test case is incomplete (that is, we did not find any completed
     result outcomes in ResultsDB with a matching item and test case name).
     """
+
+    __test__ = False  # ignore in pytest
 
     summary_text = "test{s} incomplete"
 
@@ -235,6 +244,8 @@ class TestResultWaived(RuleSatisfied):
     suffix. Also, the deprecated "item" field is dropped.
     """
 
+    __test__ = False  # ignore in pytest
+
     def __init__(self, unsatisfied_rule, waiver_id):
         self.unsatisfied_rule = unsatisfied_rule
         self.waiver_id = waiver_id
@@ -255,6 +266,8 @@ class TestResultFailed(RuleNotSatisfied):
     A required test case did not pass (that is, its outcome in ResultsDB was
     not passing).
     """
+
+    __test__ = False  # ignore in pytest
 
     summary_text = "test{s} failed"
 
@@ -295,6 +308,8 @@ class TestResultErrored(RuleNotSatisfied):
     testing process and could not finish the testing (outcome in ResultsDB
     was an error).
     """
+
+    __test__ = False  # ignore in pytest
 
     summary_text = "test{s} errored"
 
@@ -445,6 +460,8 @@ class TestResultPassed(RuleSatisfied):
     A required test case passed (that is, its outcome in ResultsDB was passing)
     or a corresponding waiver was found.
     """
+
+    __test__ = False  # ignore in pytest
 
     def __init__(self, subject, test_case_name, source, result_id, data):
         self.subject = subject

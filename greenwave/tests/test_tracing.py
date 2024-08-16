@@ -93,14 +93,14 @@ def test_init_tracing_with_valid_config(
 ):
     app = MagicMock()
     app.config.get.side_effect = {
-        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://example.com",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://example.com",
         "OTEL_EXPORTER_SERVICE_NAME": "example_service",
     }.get
 
     init_tracing(app)
 
     mock_provider.assert_called_once_with(resource=mock_resource.create.return_value)
-    mock_span_exporter.assert_called_once_with(endpoint="http://example.com")
+    mock_span_exporter.assert_called_once_with(endpoint="https://example.com")
     mock_provider.return_value.add_span_processor.assert_called_once_with(
         mock_batch.return_value
     )
@@ -115,7 +115,7 @@ def test_init_tracing_with_valid_config(
 def test_init_tracing_with_invalid_config_name(mock_provider):
     app = MagicMock()
     app.config.get.side_effect = {
-        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://example.com",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "https://example.com",
     }.get
 
     init_tracing(app)

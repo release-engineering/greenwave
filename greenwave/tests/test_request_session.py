@@ -13,6 +13,6 @@ def test_retry_handler(mocked_request):
     msg_text = "It happens..."
     mocked_request.side_effect = ConnectionError(msg_text)
     session = get_requests_session()
-    resp = session.get("http://localhost.localdomain")
+    resp = session.get("https://localhost.localdomain")
     assert resp.status_code == 502
     assert loads(resp.content) == {"message": msg_text}

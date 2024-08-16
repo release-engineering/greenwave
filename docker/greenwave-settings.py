@@ -3,8 +3,8 @@ HOST = "127.0.0.1"
 PORT = 8080
 DEBUG = True
 POLICIES_DIR = "/etc/greenwave/policies/"
-WAIVERDB_API_URL = "http://waiverdb:5004/api/v1.0"
-RESULTSDB_API_URL = "http://resultsdb:5001/api/v2.0"
+WAIVERDB_API_URL = "http://waiverdb:5004/api/v1.0"  # NOSONAR
+RESULTSDB_API_URL = "http://resultsdb:5001/api/v2.0"  # NOSONAR
 LISTENER_HOSTS = "umb:61612"
 LISTENER_CONNECTION_SSL = None
 LISTENER_CONNECTION = {
@@ -56,5 +56,5 @@ LOGGING = {
     },
 }
 
-OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "http://jaeger:4318/v1/traces"
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "http://jaeger:4318/v1/traces"  # NOSONAR
 OTEL_EXPORTER_SERVICE_NAME = "greenwave"

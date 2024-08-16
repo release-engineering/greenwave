@@ -17,6 +17,18 @@ from greenwave.resources import (
 log = logging.getLogger(__name__)
 
 
+def _product_version_number_or_none(toparse) -> int | None:
+    # seperate the prefix from the number
+    result = list(filter(None, "-".join(re.split(r"(\d+)", toparse)).split("-")))
+    if len(result) >= 2:
+        try:
+            return int(result[1])
+        except ValueError:
+            pass
+
+    return None
+
+
 def _guess_product_versions(toparse, koji_build=False) -> list[str]:
     if toparse == "rawhide" or toparse.startswith("Fedora-Rawhide"):
         return ["fedora-rawhide"]
@@ -33,18 +45,15 @@ def _guess_product_versions(toparse, koji_build=False) -> list[str]:
     elif toparse.startswith("fc") or toparse.startswith("Fedora"):
         product_version = "fedora-"
 
-    if product_version:
-        # seperate the prefix from the number
-        result = list(filter(None, "-".join(re.split(r"(\d+)", toparse)).split("-")))
-        if len(result) >= 2:
-            try:
-                int(result[1])
-                product_version += result[1]
-                return [product_version]
-            except ValueError:
-                pass
+    if not product_version:
+        log.warning("Failed to guess the product version for %s", toparse)
+        return []
 
-    log.warning("Failed to guess the product version for %s", toparse)
+    number = _product_version_number_or_none(toparse)
+    if number:
+        return [f"{product_version}{number}"]
+
+    log.warning("Failed to get the product version number for %s", toparse)
     return []
 
 

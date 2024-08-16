@@ -3,7 +3,7 @@
 .vscode/
 .venv/
 .*_cache/
-__pycache__/
+**/__pycache__/
 build/
 docker/home/
 dist/

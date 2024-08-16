@@ -105,7 +105,7 @@ def test_invalid_nvr_iden(koji, mock_retrieve_yaml_remote_rule):
             f'Failed to get Koji build for "{nvr}": invalid format (code: 1000)'
         )
         with pytest.raises(BadGateway, match=expected_error):
-            sub_policies, answers = rule._get_sub_policies(policy, subject)
+            rule._get_sub_policies(policy, subject)
 
 
 @mock.patch("greenwave.resources.retrieve_yaml_remote_rule")
@@ -378,8 +378,8 @@ def test_passing_test_case_rule_replace_using_valid_times(
 
 @mock.patch("greenwave.resources.retrieve_yaml_remote_rule")
 def test_remote_rule_custom_sources(mock_retrieve_yaml_remote_rule, app):
-    url1 = "http://gating.example.com/gating1.yml"
-    url2 = "http://gating.example.com/gating2.yml"
+    url1 = "https://gating.example.com/gating1.yml"
+    url2 = "https://gating.example.com/gating2.yml"
     policy_yaml = dedent(f"""
         ---
         id: "some_policy"
@@ -429,8 +429,8 @@ def test_remote_rule_custom_sources(mock_retrieve_yaml_remote_rule, app):
 def test_remote_rule_custom_sources_multiple_rules(
     mock_retrieve_scm_from_koji, mock_retrieve_yaml_remote_rule, app
 ):
-    url1 = "http://gating.example.com/gating1.yml"
-    url2 = "http://gating.example.com/gating2.yml"
+    url1 = "https://gating.example.com/gating1.yml"
+    url2 = "https://gating.example.com/gating2.yml"
     policy_yaml = dedent(f"""
         ---
         id: "some_policy"

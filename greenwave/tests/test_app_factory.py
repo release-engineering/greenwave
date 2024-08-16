@@ -29,7 +29,7 @@ def test_remote_rules_base_url(mock_load_policies):
     mock_load_policies.return_value = policies
 
     config = TestingConfig()
-    config.DIST_GIT_BASE_URL = "http://localhost.localdomain/"
+    config.DIST_GIT_BASE_URL = "https://localhost.localdomain/"
     config.DIST_GIT_URL_TEMPLATE = (
         "{DIST_GIT_BASE_URL}{other_params}/blablabla/gating.yaml"
     )
@@ -38,5 +38,5 @@ def test_remote_rules_base_url(mock_load_policies):
     app = create_app(config)
 
     assert app.config["DIST_GIT_URL_TEMPLATE"] == (
-        "http://localhost.localdomain/{other_params}/blablabla/gating.yaml"
+        "https://localhost.localdomain/{other_params}/blablabla/gating.yaml"
     )

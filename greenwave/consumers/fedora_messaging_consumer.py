@@ -85,7 +85,7 @@ def fedora_messaging_callback(message):
         except Exception:
             messaging_rx_failed_counter.labels(handler="waiverdb").inc()
             log.exception(
-                "Could not correctly consume the message with " "WaiverDBHandler"
+                "Could not correctly consume the message with WaiverDBHandler"
             )
             raise
     else:

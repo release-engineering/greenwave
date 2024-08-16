@@ -1,9 +1,7 @@
 import os
 
 SECRET_KEY = "resultsdb"  # nosec
-SQLALCHEMY_DATABASE_URI = (
-    "postgresql+psycopg2://resultsdb:resultsdb@resultsdb-db:5432/resultsdb"  # notsecret
-)
+SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://resultsdb:resultsdb@resultsdb-db:5432/resultsdb"  # notsecret # NOSONAR
 FILE_LOGGING = False
 LOGFILE = "/var/log/resultsdb/resultsdb.log"
 SYSLOG_LOGGING = False

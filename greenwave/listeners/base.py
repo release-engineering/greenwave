@@ -115,7 +115,7 @@ class BaseListener(stomp.ConnectionListener):
         try:
             with self.app.app_context():
                 processed = self._consume_message(data)
-        except BaseException:
+        except BaseException:  # NOSONAR
             self._inc(messaging_rx_failed_counter)
             raise
 
@@ -133,7 +133,7 @@ class BaseListener(stomp.ConnectionListener):
             self.connecting = True
             try:
                 self.connection.connect(wait=True)
-            except BaseException:
+            except BaseException:  # NOSONAR
                 self.app.logger.exception("Failed to connect")
                 self._terminate()
             finally:
@@ -198,7 +198,7 @@ class BaseListener(stomp.ConnectionListener):
 
     def _terminate(self):
         self.disconnect()
-        os.kill(os.getpid(), signal.SIGQUIT)
+        os.kill(os.getpid(), signal.SIGQUIT)  # NOSONAR
 
     def _consume_message(self, message):
         """
