@@ -1,19 +1,15 @@
-FROM registry.fedoraproject.org/fedora:38 AS builder
+FROM quay.io/fedora/python-312:20240814@sha256:e919ecb1ce0956c2a61d492191e45dd214ac4a544aaf0a001f74d274f720755f AS builder
+
+# builder should use root to install/create all files
+USER root
 
 # hadolint ignore=DL3033,DL4006,SC2039,SC3040
 RUN set -exo pipefail \
     && mkdir -p /mnt/rootfs \
-    # install builder dependencies
-    && yum install -y \
-        --setopt install_weak_deps=false \
-        --nodocs \
-        --disablerepo=* \
-        --enablerepo=fedora,updates \
-        python3 \
     # install runtime dependencies
     && yum install -y \
         --installroot=/mnt/rootfs \
-        --releasever=38 \
+        --releasever=/ \
         --setopt install_weak_deps=false \
         --nodocs \
         --disablerepo=* \
@@ -60,6 +56,9 @@ RUN set -ex \
     && mkdir -p /mnt/rootfs/src/docker \
     && cp -v docker/docker-entrypoint.sh /mnt/rootfs/src/docker \
     && cp -vr conf /mnt/rootfs/src
+
+# This is just to satisfy linters
+USER 1001
 
 # --- Final image
 FROM scratch
