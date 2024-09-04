@@ -39,7 +39,6 @@ COPY docker ./docker
 COPY \
     pyproject.toml \
     poetry.lock \
-    requirements.txt \
     README.md \
     ./
 
@@ -47,7 +46,6 @@ COPY \
 RUN set -ex \
     && export PATH=/root/.local/bin:"$PATH" \
     && . /venv/bin/activate \
-    && pip install --no-cache-dir -r requirements.txt \
     && poetry build --format=wheel \
     && version=$(poetry version --short) \
     && pip install --no-cache-dir dist/greenwave-"$version"-py3*.whl \
