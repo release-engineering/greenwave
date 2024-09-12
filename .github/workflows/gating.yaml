@@ -169,3 +169,11 @@ jobs:
           podman-compose up -d &&
           tox -e functional -- --no-cov functional-tests &&
           podman-compose down
+
+      - name: Print Logs on Failure
+        if: failure()
+        run: |
+          podman-compose logs greenwave &&
+          podman-compose logs resultsdb &&
+          podman-compose logs waiverdb &&
+          podman-compose down
