@@ -37,7 +37,9 @@ def _koji(uri: str):
     try:
         return data.koji_server_proxy_cache
     except AttributeError:
-        proxy = get_server_proxy(uri, _requests_timeout())
+        timeout = current_app.config["KOJI_TIMEOUT"]
+        retry = current_app.config["KOJI_RETRY"]
+        proxy = get_server_proxy(uri, timeout=timeout, retry=retry)
         data.koji_server_proxy_cache = proxy
         return proxy
 

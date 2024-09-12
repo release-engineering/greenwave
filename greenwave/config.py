@@ -45,6 +45,8 @@ class Config:
     }
     REMOTE_RULE_GIT_TIMEOUT = 30
     KOJI_BASE_URL = "https://koji.fedoraproject.org/kojihub"
+    KOJI_TIMEOUT = 15
+    KOJI_RETRY = 3
     # Options for outbound HTTP requests made by python-requests
     REQUESTS_TIMEOUT = (6.1, 15)
     REQUESTS_VERIFY = True
