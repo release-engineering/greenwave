@@ -1,0 +1,29 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+    ":enablePreCommit",
+    "group:all",
+    ":gitSignOff",
+    ":disableDependencyDashboard",
+    "schedule:weekly"
+  ],
+  "packageRules": [
+    {
+      "description": "Patch and digest updates",
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "groupName": "all dependencies",
+      "automerge": true,
+      "platformAutomerge": true
+    }
+  ],
+  "constraints": {
+    "python": ">=3.9,<3.14"
+  },
+  "configMigration": true
+}
