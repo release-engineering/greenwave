@@ -30,13 +30,13 @@ services:
       - statsd
 
   statsd:
-    image: quay.io/prometheus/statsd-exporter
+    image: quay.io/prometheus/statsd-exporter@sha256:4e7a1f00b9b23ef0c5b4fdbb7f4748bdc218cfdff04acc8033bc5b9f7c15009d
     ports:
       - 127.0.0.1:9102:9102  # http
       - 127.0.0.1:9125:9125  # statsd
 
   resultsdb-db: &resultsdb-db
-    image: postgres:14.7-alpine
+    image: postgres:14.7-alpine@sha256:07985c5c5e01ee550b30c67a2cf806f8b08b32f74e3f24c4cbef31305ef5776d
     restart: always
     env_file: ["docker/resultsdb-db.env"]
     healthcheck:
@@ -44,7 +44,7 @@ services:
       test: "pg_isready -U postgres || exit 1"
 
   resultsdb:
-    image: quay.io/factory2/resultsdb
+    image: quay.io/factory2/resultsdb@sha256:627da20292f062c59dcdb8a0efd73900f430facad6d2c71b44bb281a67089a69
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
@@ -68,7 +68,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb
+    image: quay.io/factory2/waiverdb@sha256:4e3b8c380bea13ed30f19f0108b6cc64d9264ae7dab45a89d0431cdf0160a0b3
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
@@ -90,7 +90,7 @@ services:
       - waiverdb-db
 
   memcached:
-    image: "quay.io/factory2/memcached"
+    image: "quay.io/factory2/memcached@sha256:49d8e413ff528ce4be6320d432e3fcd7f691a8ad2c9b5784dc58b1054a1b45fb"
     ports:
       - 127.0.0.1:11211:11211
 
@@ -129,7 +129,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   umb:
-    image: images.paas.redhat.com/exd-sp-guild-c3i/umb:latest
+    image: images.paas.redhat.com/exd-sp-guild-c3i/umb:latest@sha256:4a543596c310fe1b21480dd4ca25bc54390831434376b97040bc8da11cd840ac
     restart: unless-stopped
     command:
       - "java"
@@ -145,7 +145,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   jaeger:
-    image: quay.io/jaegertracing/all-in-one:latest
+    image: quay.io/jaegertracing/all-in-one:latest@sha256:7e9591218e7ddd51e568ef892e3ea190ae420ecf97c4d718910a3f57e076c216
     ports:
       - 127.0.0.1:6831:6831/udp
       - 127.0.0.1:6832:6832/udp
