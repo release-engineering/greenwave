@@ -36,7 +36,7 @@ services:
       - 127.0.0.1:9125:9125  # statsd
 
   resultsdb-db: &resultsdb-db
-    image: postgres:17.2-alpine@sha256:d37d2c160d34430877c802e5adc22824a2ad453499db9bab1a2ceb2be6c1a46f
+    image: postgres:17.2-alpine@sha256:0bcc5bbbb2aa9c9b4c6505845918c7eb55d783cf5c1f434fac33012579fb149d
     restart: always
     env_file: ["docker/resultsdb-db.env"]
     healthcheck:
@@ -44,7 +44,7 @@ services:
       test: "pg_isready -U postgres || exit 1"
 
   resultsdb:
-    image: quay.io/factory2/resultsdb@sha256:88d3132f686d5e9be93a0cf4a155db9259bbb3e5e8d016fba5a06f5bb1f89b35
+    image: quay.io/factory2/resultsdb@sha256:6eb4c4a5104cc407e5766c78e9b8f30bc3d01f438694256271164b0558743312
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
@@ -68,7 +68,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb@sha256:a7e9956110c69d321a3f33ec153b98f0481ca758bef63296a6e5a0e3085ac8ab
+    image: quay.io/factory2/waiverdb@sha256:273c035ca72fee174166ea1f23143b27780b120d9b143980e8d0c956a05c66db
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
@@ -145,7 +145,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   jaeger:
-    image: quay.io/jaegertracing/all-in-one:latest@sha256:7e9591218e7ddd51e568ef892e3ea190ae420ecf97c4d718910a3f57e076c216
+    image: quay.io/jaegertracing/all-in-one:latest@sha256:12fa17a231abded2c3b5b715bd252a043678495c588cbe772173991fbdcdf7c8
     ports:
       - 127.0.0.1:6831:6831/udp
       - 127.0.0.1:6832:6832/udp
