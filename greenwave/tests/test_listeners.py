@@ -26,8 +26,7 @@ RESULTSDB_QUEUE = (
     ".VirtualTopic.eng.resultsdb.result.new"
 )
 WAIVERDB_QUEUE = (
-    "/queue/Consumer.client-greenwave.dev-waiverdb"
-    ".VirtualTopic.eng.waiverdb.waiver.new"
+    "/queue/Consumer.client-greenwave.dev-waiverdb.VirtualTopic.eng.waiverdb.waiver.new"
 )
 CONFIG_NAME = "greenwave.config.TestingConfig"
 
