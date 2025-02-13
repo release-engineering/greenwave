@@ -3,6 +3,8 @@
 Provides a way of defining type-safe YAML parsing.
 """
 
+from collections.abc import Callable
+
 import yaml
 from dateutil import tz
 from dateutil.parser import parse
@@ -149,10 +151,8 @@ class SafeYAMLList(SafeYAMLAttribute):
     YAML object attribute represeting a list of values.
     """
 
-    def __init__(self, item_type, default=None, **kwargs):
-        if default is None:
-            default = []
-        self.default = default
+    def __init__(self, item_type, default_factory: Callable[[], list] = list, **kwargs):
+        self.default = default_factory()
         super().__init__(**kwargs)
         self.item_type = item_type
 
@@ -288,6 +288,8 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
                     raise SafeYAMLError(msg)
             setattr(result, attribute_name, value)
 
+        result.post_process()
+
         try:
             result.validate()
         except SafeYAMLError as e:
@@ -339,7 +341,14 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
         return f"YAML object {self.yaml_tag}"
 
     def validate(self):
-        pass
+        """
+        Called after parsing YAML and post_process() to verify the data.
+
+        Raises SafeYAMLError exception if data are invalid.
+        """
+
+    def post_process(self):
+        """Called after parsing YAML so any parsed data can be updated"""
 
     def to_json(self):
         return {

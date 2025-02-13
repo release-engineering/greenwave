@@ -23,7 +23,7 @@ Greenwave policies need the following parameters:
 
 - decision_contexts
 - product_versions
-- subject_type
+- subject_types
 - rules
 - id
 
@@ -98,7 +98,7 @@ The document is a map (dictionary) with the following keys:
 
 .. _subject_type:
 
-``subject_type``
+``subject_types`` (list) or ``subject_type`` (single value)
    When you ask Greenwave for a decision, you ask it about a specific software
    artefact (the "subject" of the decision). Each policy applies to some type
    of software artefact -- in this example, the policy applies to Bodhi
@@ -336,7 +336,9 @@ Here's an example of a RemoteRule:
    product_versions:
      - fedora-29
    decision_contexts: [osci_compose_gate]
-   subject_type: koji_build
+   subject_types:
+     - koji_build
+     - bodhi_update
    excluded_packages: []
    rules:
      - !RemoteRule {}

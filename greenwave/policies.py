@@ -693,6 +693,7 @@ class RemoteRule(Rule):
             if remote_policy.matches(
                 decision_context=rule_context.decision_context,
                 product_version=rule_context.product_version,
+                subject=rule_context.subject,
             ):
                 response = remote_policy.check(rule_context)
 
@@ -891,8 +892,9 @@ class Policy(SafeYAMLObject):
         "id": SafeYAMLString(),
         "product_versions": SafeYAMLList(str),
         "decision_context": SafeYAMLString(optional=True),
-        "decision_contexts": SafeYAMLList(str, optional=True, default=[]),
-        "subject_type": SafeYAMLString(),
+        "decision_contexts": SafeYAMLList(str, optional=True),
+        "subject_type": SafeYAMLString(optional=True),
+        "subject_types": SafeYAMLList(str, optional=True),
         "rules": SafeYAMLList(Rule),
         "excluded_packages": SafeYAMLList(str, optional=True),
         "packages": SafeYAMLList(str, optional=True),
@@ -903,12 +905,20 @@ class Policy(SafeYAMLObject):
     source = None
 
     def validate(self):
+        if self.subject_type is None and not self.subject_types:
+            raise SafeYAMLError("No subject types provided")
+        if self.subject_type is not None and self.subject_types:
+            raise SafeYAMLError(
+                'Both properties "subject_types" and "subject_type" were set'
+            )
+
         if not self.decision_context and not self.decision_contexts:
             raise SafeYAMLError("No decision contexts provided")
         if self.decision_context and self.decision_contexts:
             raise SafeYAMLError(
                 'Both properties "decision_contexts" and "decision_context" were set'
             )
+
         super().validate()
 
     def matches(self, **attributes):
@@ -942,7 +952,9 @@ class Policy(SafeYAMLObject):
 
     def matches_subject_type(self, **attributes):
         subject = attributes.get("subject")
-        return not subject or subject.subject_type.matches(self.subject_type)
+        return not subject or any(
+            subject.subject_type.matches(type_) for type_ in self.all_subject_types
+        )
 
     def matches_sub_policy(self, sub_policy):
         return set(sub_policy.all_decision_contexts).intersection(
@@ -984,6 +996,14 @@ class Policy(SafeYAMLObject):
             return [self.decision_context]
         raise SafeYAMLError("No decision contexts provided")
 
+    @property
+    def all_subject_types(self):
+        if self.subject_types:
+            return self.subject_types
+        if self.subject_type:
+            return [self.subject_type]
+        raise SafeYAMLError("No subject types provided")
+
 
 class OnDemandPolicy(Policy):
     root_yaml_tag = None
@@ -1017,8 +1037,11 @@ class RemotePolicy(Policy):
 
     safe_yaml_attributes = {
         "id": SafeYAMLString(optional=True),
-        "product_versions": SafeYAMLList(str, default=["*"], optional=True),
-        "subject_type": SafeYAMLString(optional=True, default="koji_build"),
+        "product_versions": SafeYAMLList(
+            str, default_factory=lambda: ["*"], optional=True
+        ),
+        "subject_type": SafeYAMLString(optional=True),
+        "subject_types": SafeYAMLList(str, optional=True),
         "decision_context": SafeYAMLString(optional=True),
         "decision_contexts": SafeYAMLList(str, optional=True),
         "rules": SafeYAMLList(Rule),
@@ -1026,11 +1049,19 @@ class RemotePolicy(Policy):
         "packages": SafeYAMLList(str, optional=True),
     }
 
+    def post_process(self):
+        if self.subject_type is None and not self.subject_types:
+            self.subject_type = "*"
+        super().post_process()
+
     def validate(self):
         for rule in self.rules:
             if isinstance(rule, RemoteRule):
                 raise SafeYAMLError("RemoteRule is not allowed in remote policies")
         super().validate()
+
+    def matches_subject_type(self, **attributes):
+        return self.subject_type == "*" or super().matches_subject_type(**attributes)
 
 
 def _applicable_decision_context_product_version_pairs(policies, **attributes):

@@ -1271,6 +1271,21 @@ def test_parse_policies_missing_decision_context(policy_class):
         )
 
 
+def test_parse_policies_missing_subject_type():
+    expected_error = "No subject types provided"
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        Policy.safe_load_all(
+            dedent("""
+            --- !Policy
+            id: test
+            product_versions: [fedora-rawhide]
+            decision_context: test1
+            rules:
+              - !PassingTestCaseRule {test_case_name: compose.cloud.all}
+        """)
+        )
+
+
 @pytest.mark.parametrize("policy_class", [Policy, RemotePolicy])
 def test_parse_policies_both_decision_contexts_set(policy_class):
     expected_error = (
@@ -1286,6 +1301,27 @@ def test_parse_policies_both_decision_contexts_set(policy_class):
             excluded_packages: []
             decision_context: test1
             decision_contexts:
+            - test1
+            - test2
+            rules:
+              - !PassingTestCaseRule {test_case_name: compose.cloud.all}
+        """)
+        )
+
+
+@pytest.mark.parametrize("policy_class", [Policy, RemotePolicy])
+def test_parse_policies_both_subject_types_set(policy_class):
+    expected_error = 'Both properties "subject_types" and "subject_type" were set'
+    with pytest.raises(SafeYAMLError, match=expected_error):
+        policy_class.safe_load_all(
+            dedent("""
+            --- !Policy
+            id: test
+            product_versions: [fedora-rawhide]
+            excluded_packages: []
+            decision_context: test1
+            subject_type: test1
+            subject_types:
             - test1
             - test2
             rules:
@@ -1478,7 +1514,7 @@ def test_parse_policies_remote_missing_subject_type_is_ok():
     """)
     )
     assert len(policies) == 1
-    assert policies[0].subject_type == "koji_build"
+    assert policies[0].subject_type == "*"
 
 
 def test_parse_policies_remote_recursive():
@@ -1599,6 +1635,7 @@ def test_policies_to_json():
         "decision_context": "test",
         "decision_contexts": [],
         "subject_type": "compose",
+        "subject_types": [],
         "excluded_packages": [],
         "packages": [],
         "rules": [],
@@ -1758,6 +1795,52 @@ def test_on_demand_policy_match(two_rules, koji_proxy):
     decision.check(subject, [policy], results)
     if two_rules:
         assert answer_types(decision.answers) == ["test-result-passed"]
+
+
+@pytest.mark.parametrize("subject_type", ("koji_build", "bodhi_update"))
+def test_multiple_subject_types(subject_type, tmpdir):
+    nvr = "httpd-2.4.el9000"
+    subject = create_subject(subject_type, nvr)
+
+    serverside_fragment = dedent("""
+        --- !Policy
+        id: "taskotron_release_critical_tasks_with_remoterule"
+        product_versions:
+          - fedora-30
+        decision_context: test_policy
+        subject_types: [koji_build, bodhi_update]
+        rules:
+          - !PassingTestCaseRule {test_case_name: test1}
+          - !RemoteRule {sources: ["https://git.example.com/policies/remote.yml"]}
+        """)
+    remote_fragment = dedent("""
+        --- !Policy
+        id: remote-policy
+        product_versions:
+          - fedora-30
+        subject_types: [koji_build]
+        decision_context: test_policy
+        rules:
+          - !PassingTestCaseRule {test_case_name: remote_test}
+        """)
+
+    p = tmpdir.join("gating.yaml")
+    p.write(serverside_fragment)
+    with mock.patch("greenwave.resources.retrieve_yaml_remote_rule") as f:
+        f.return_value = remote_fragment
+
+        policies = load_policies(tmpdir.strpath)
+        assert len(policies) == 1
+        assert policies[0].matches(subject=subject) is True
+
+        results = DummyResultsRetriever(subject, "test1", "PASSED")
+        decision = Decision(None, "fedora-30")
+        decision.check(subject, policies, results)
+        expected_answers = ["test-result-passed", "fetched-gating-yaml"]
+        if subject_type == "koji_build":
+            expected_answers.append("test-result-missing")
+        assert answer_types(decision.answers) == expected_answers, decision.answers
+        assert all(answer.subject.type == subject_type for answer in decision.answers)
 
 
 def test_remote_rule_policy_on_demand_policy_required():
