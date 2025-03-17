@@ -3,7 +3,6 @@ version: '3'
 services:
   greenwave: &greenwave
     build: .
-    image: greenwave
     user: ${DEV_USER_ID:-1000}
     working_dir: /src
     env_file: ["docker/dev.env"]
@@ -30,13 +29,13 @@ services:
       - statsd
 
   statsd:
-    image: quay.io/prometheus/statsd-exporter@sha256:4e7a1f00b9b23ef0c5b4fdbb7f4748bdc218cfdff04acc8033bc5b9f7c15009d
+    image: quay.io/prometheus/statsd-exporter:latest@sha256:4e7a1f00b9b23ef0c5b4fdbb7f4748bdc218cfdff04acc8033bc5b9f7c15009d
     ports:
       - 127.0.0.1:9102:9102  # http
       - 127.0.0.1:9125:9125  # statsd
 
   resultsdb-db: &resultsdb-db
-    image: postgres:17.4-alpine@sha256:7062a2109c4b51f3c792c7ea01e83ed12ef9a980886e3b3d380a7d2e5f6ce3f5
+    image: docker.io/library/postgres:17.4-alpine@sha256:7062a2109c4b51f3c792c7ea01e83ed12ef9a980886e3b3d380a7d2e5f6ce3f5
     restart: always
     env_file: ["docker/resultsdb-db.env"]
     healthcheck:
@@ -44,7 +43,7 @@ services:
       test: "pg_isready -U postgres || exit 1"
 
   resultsdb:
-    image: quay.io/factory2/resultsdb@sha256:6f7722439a74aa6cab231f40a4432a8eddab8f951133cc2104fdca7232537beb
+    image: quay.io/factory2/resultsdb:latest@sha256:6f7722439a74aa6cab231f40a4432a8eddab8f951133cc2104fdca7232537beb
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
@@ -68,7 +67,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb@sha256:a8cd3a33a534d8719ca4f71d0a24fdbb97918ee1993019b77a32fe933e5f592a
+    image: quay.io/factory2/waiverdb:latest@sha256:a8cd3a33a534d8719ca4f71d0a24fdbb97918ee1993019b77a32fe933e5f592a
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
@@ -90,13 +89,12 @@ services:
       - waiverdb-db
 
   memcached:
-    image: "quay.io/factory2/memcached@sha256:49d8e413ff528ce4be6320d432e3fcd7f691a8ad2c9b5784dc58b1054a1b45fb"
+    image: "quay.io/factory2/memcached:latest@sha256:49d8e413ff528ce4be6320d432e3fcd7f691a8ad2c9b5784dc58b1054a1b45fb"
     ports:
       - 127.0.0.1:11211:11211
 
   resultsdb-listener:
     <<: *greenwave
-    image: greenwave
     command:
       - "gunicorn"
       - "--reload"
@@ -113,7 +111,6 @@ services:
 
   waiverdb-listener:
     <<: *greenwave
-    image: greenwave
     command:
       - "gunicorn"
       - "--reload"
@@ -129,7 +126,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   umb:
-    image: images.paas.redhat.com/exd-sp-guild-c3i/umb:latest@sha256:4a543596c310fe1b21480dd4ca25bc54390831434376b97040bc8da11cd840ac
+    image: images.paas.redhat.com/c3i/umb:latest@sha256:ce25d3204f439e4ece8633c474fc3152a77b589d4b6679ad62bdd315a1577a39
     restart: unless-stopped
     command:
       - "java"

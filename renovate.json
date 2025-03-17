@@ -25,5 +25,8 @@
   "constraints": {
     "python": ">=3.12,<3.14"
   },
+  "docker-compose": {
+    "ignorePaths": ["conf/subject_types/**"]
+  },
   "configMigration": true
 }
