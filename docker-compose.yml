@@ -43,7 +43,7 @@ services:
       test: "pg_isready -U postgres || exit 1"
 
   resultsdb:
-    image: quay.io/factory2/resultsdb:latest@sha256:6f7722439a74aa6cab231f40a4432a8eddab8f951133cc2104fdca7232537beb
+    image: quay.io/factory2/resultsdb:latest@sha256:3d2c7facc71fc43c1cc832ecd8a0280100d5a25d6245b3ae9876a5f4cd065132
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
@@ -67,7 +67,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb:latest@sha256:a8cd3a33a534d8719ca4f71d0a24fdbb97918ee1993019b77a32fe933e5f592a
+    image: quay.io/factory2/waiverdb:latest@sha256:d9c697f06f9525ef0b92f8344a71a4b49fe1cd1571d21c36a47caae2f5546520
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
@@ -126,7 +126,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   umb:
-    image: images.paas.redhat.com/c3i/umb:latest@sha256:ce25d3204f439e4ece8633c474fc3152a77b589d4b6679ad62bdd315a1577a39
+    image: images.paas.redhat.com/c3i/umb:latest@sha256:785f32c69b303da80ad217e9e4bea494804a1d3c236b7ebf11008bd5a0bb7121
     restart: unless-stopped
     command:
       - "java"
