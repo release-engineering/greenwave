@@ -92,7 +92,7 @@ def test_invalid_nvr_iden(koji, mock_retrieve_yaml_remote_rule):
         rules:
           - !RemoteRule {}
     """)
-    nvr = "nieco"
+    nvr = "nieco-1"
     koji().getBuild.side_effect = xmlrpc_client.Fault(1000, "invalid format")
 
     app = create_app("greenwave.config.TestingConfig")

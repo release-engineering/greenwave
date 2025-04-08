@@ -10,6 +10,7 @@ from werkzeug.exceptions import default_exceptions
 
 from greenwave.api_v1 import api, landing_page
 from greenwave.policies import load_policies
+from greenwave.subjects.factory import UnknownSubjectDataError
 from greenwave.subjects.subject_type import load_subject_types
 from greenwave.tracing import init_tracing
 from greenwave.utils import json_error, load_config, mangle_key
@@ -79,6 +80,7 @@ def register_error_handlers(app):
     app.register_error_handler(ConnectionError, json_error)
     app.register_error_handler(requests.ConnectionError, json_error)
     app.register_error_handler(requests.Timeout, json_error)
+    app.register_error_handler(UnknownSubjectDataError, json_error)
 
 
 def healthcheck():
