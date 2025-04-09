@@ -8,7 +8,6 @@ from werkzeug.exceptions import BadRequest, NotFound, UnsupportedMediaType
 from greenwave.policies import OnDemandPolicy, summarize_answers
 from greenwave.resources import ResultsRetriever, WaiversRetriever
 from greenwave.subjects.factory import (
-    UnknownSubjectDataError,
     create_subject,
     create_subject_from_data,
 )
@@ -141,15 +140,6 @@ class Decision:
         return [answer.to_json() for answer in self.answers if not answer.is_satisfied]
 
 
-def _decision_subject(data):
-    try:
-        subject = create_subject_from_data(data)
-    except UnknownSubjectDataError:
-        raise BadRequest("Could not detect subject_identifier.")
-
-    return subject
-
-
 def _decision_subjects_for_request(data):
     """
     Greenwave < 0.8 accepted a list of arbitrary dicts for the 'subject'.
@@ -170,7 +160,7 @@ def _decision_subjects_for_request(data):
             raise BadRequest("Invalid subject, must be a list of dicts")
 
         for subject in subjects:
-            yield _decision_subject(subject)
+            yield create_subject_from_data(subject)
     else:
         if "subject_type" not in data:
             raise BadRequest('Missing required "subject_type" parameter')

@@ -23,8 +23,19 @@ def test_subject_create_from_data(app):
 
 
 def test_subject_create_from_data_bad(app):
-    with pytest.raises(UnknownSubjectDataError):
+    expected_error = "Could not detect subject_identifier"
+    with pytest.raises(UnknownSubjectDataError, match=expected_error):
         create_subject_from_data({})
+
+
+def test_subject_create_from_data_bad_type(app):
+    data = {
+        "item": 123,
+        "type": "some_type",
+    }
+    expected_error = "Subject item/identificator must be a string"
+    with pytest.raises(UnknownSubjectDataError, match=expected_error):
+        create_subject_from_data(data)
 
 
 def test_subject_create_generic(app):

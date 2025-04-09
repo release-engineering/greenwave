@@ -321,6 +321,46 @@ def test_make_decision_multiple_contexts(mock_results, mock_waivers, make_decisi
     mock_waivers.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "data",
+    (
+        {"subject_identifier": None},
+        {"subject_identifier": 123},
+        {"subject": [{"item": 123, "type": "some_type"}]},
+    ),
+)
+def test_make_decision_with_bad_subject_data_type(make_decision, data):
+    response = make_decision(**data)
+    assert 400 == response.status_code, response.text
+    assert {"message": "Subject item/identificator must be a string"} == response.json
+
+
+@pytest.mark.parametrize(
+    "data",
+    (
+        {"subject": {"item": 123}},
+        {"subject": []},
+    ),
+)
+def test_make_decision_with_bad_subjects_list(make_decision, data):
+    response = make_decision(**data)
+    assert 400 == response.status_code, response.text
+    assert {"message": "Invalid subject, must be a list of dicts"} == response.json
+
+
+@pytest.mark.parametrize(
+    "data",
+    (
+        {"subject": [{"item": None}]},
+        {"subject": [{"item": None, "type": "some_type"}]},
+    ),
+)
+def test_make_decision_with_bad_subject(make_decision, data):
+    response = make_decision(**data)
+    assert 400 == response.status_code, response.text
+    assert {"message": "Could not detect subject_identifier"} == response.json
+
+
 def test_subject_types(client):
     response = client.get("/api/v1.0/subject_types")
     assert response.status_code == 200

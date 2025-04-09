@@ -11,6 +11,8 @@ from flask import current_app, jsonify, request
 from flask.config import Config
 from werkzeug.exceptions import HTTPException
 
+from greenwave.subjects.factory import UnknownSubjectDataError
+
 log = logging.getLogger(__name__)
 
 
@@ -35,6 +37,9 @@ def json_error(error):
         current_app.logger.exception("Timeout error: %s", error)
         msg = f"Timeout connecting to upstream server: {error}"
         status_code = 504
+    elif isinstance(error, UnknownSubjectDataError):
+        msg = str(error)
+        status_code = 400
     else:
         current_app.logger.exception("Unexpected server error: %s", error)
         msg = "Server encountered unexpected error"

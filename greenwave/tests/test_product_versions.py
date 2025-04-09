@@ -57,12 +57,12 @@ def test_guess_product_version_with_koji(koji_proxy, app):
         {},
     ]
 
-    subject = create_subject("container-build", "fake_koji_build")
+    subject = mock_subject()
     product_versions = subject_product_versions(
         subject, "https://localhost:5006/kojihub"
     )
 
-    koji_proxy.getBuild.assert_called_once_with("fake_koji_build")
+    koji_proxy.getBuild.assert_called_once_with(subject.item)
     koji_proxy.getTaskRequest.assert_called_once_with(666)
     assert product_versions == ["fedora-rawhide"]
 
@@ -70,12 +70,12 @@ def test_guess_product_version_with_koji(koji_proxy, app):
 def test_guess_product_version_with_koji_without_task_id(koji_proxy, app):
     koji_proxy.getBuild.return_value = {"task_id": None}
 
-    subject = create_subject("container-build", "fake_koji_build")
+    subject = create_subject("koji_build", "nethack-1.2.3-1.test")
     product_versions = subject_product_versions(
         subject, "https://localhost:5006/kojihub"
     )
 
-    koji_proxy.getBuild.assert_called_once_with("fake_koji_build")
+    koji_proxy.getBuild.assert_called_once_with(subject.item)
     koji_proxy.getTaskRequest.assert_not_called()
     assert product_versions == []
 
@@ -94,12 +94,12 @@ def test_guess_product_version_with_koji_and_unexpected_task_type(
     koji_proxy.getBuild.return_value = {"task_id": 666}
     koji_proxy.getTaskRequest.return_value = task_request
 
-    subject = create_subject("container-build", "fake_koji_build")
+    subject = create_subject("koji_build", "nethack-1.2.3-1.test")
     product_versions = subject_product_versions(
         subject, "https://localhost:5006/kojihub"
     )
 
-    koji_proxy.getBuild.assert_called_once_with("fake_koji_build")
+    koji_proxy.getBuild.assert_called_once_with(subject.item)
     koji_proxy.getTaskRequest.assert_called_once_with(666)
     assert product_versions == []
 

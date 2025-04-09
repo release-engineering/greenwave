@@ -17,7 +17,7 @@ from dateutil.parser import parse
 from defusedxml.xmlrpc import xmlrpc_client
 from flask import current_app
 from opentelemetry import trace
-from werkzeug.exceptions import BadGateway, NotFound
+from werkzeug.exceptions import BadGateway, BadRequest, NotFound
 
 from greenwave.cache import cached
 from greenwave.request_session import get_requests_session
@@ -211,6 +211,9 @@ def retrieve_koji_build_target(task_id, koji_url: str):
 
 @cached
 def _retrieve_koji_build_attributes(nvr: str, koji_url: str):
+    if not isinstance(nvr, str) or "-" not in nvr:
+        raise BadRequest(f"Invalid NVR format: {nvr!r}")
+
     log.debug("Getting Koji build %r", nvr)
     proxy = _koji(koji_url)
 

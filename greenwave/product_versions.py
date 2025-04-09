@@ -7,7 +7,7 @@ import logging
 import re
 
 from defusedxml.xmlrpc import xmlrpc_client
-from werkzeug.exceptions import BadGateway, NotFound
+from werkzeug.exceptions import BadGateway, BadRequest, NotFound
 
 from greenwave.resources import (
     retrieve_koji_build_target,
@@ -82,7 +82,7 @@ def _guess_koji_build_product_versions(
         return []
     except (xmlrpc_client.ProtocolError, OSError) as err:
         raise ConnectionError(f"Could not reach Koji: {err}")
-    except BadGateway:
+    except (BadGateway, BadRequest):
         log.warning("Failed to get product version from Koji")
         return []
 

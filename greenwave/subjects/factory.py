@@ -44,9 +44,12 @@ def create_subject_from_data(data):
     if type_id and item:
         return create_subject(type_id, item)
 
-    raise UnknownSubjectDataError()
+    raise UnknownSubjectDataError("Could not detect subject_identifier")
 
 
 def create_subject(type_id, item):
+    if not isinstance(item, str):
+        raise UnknownSubjectDataError("Subject item/identificator must be a string")
+
     type_ = create_subject_type(type_id, subject_types())
     return Subject(type_, item)
