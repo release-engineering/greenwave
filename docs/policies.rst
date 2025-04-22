@@ -282,7 +282,7 @@ passing ``rules`` to API :http:post:`/api/v1.0/decision` instead of the
          {"type": "PassingTestCaseRule", "test_case_name": "example2.test.case.name"},
          {
            "type": "RemoteRule",
-           "source": "https://gitlab.example.com/ci/policies/-/raw/master/{subject_id}.yml"
+           "sources": ["https://gitlab.example.com/ci/policies/-/raw/master/{subject_id}.yml"]
          }
        ]}'
 
