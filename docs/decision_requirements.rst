@@ -247,7 +247,7 @@ found and successfully retrieved, a satisfied requirement is created.
     {
         "type": "fetched-gating-yaml",
         "testcase": "fetched-gating-yaml",
-        "source": "http://dist-git.example.com/cgit/rpms/bash/plain/gating.yaml?id=abcdef01234",
+        "sources": ["https://dist-git.example.com/cgit/rpms/bash/plain/gating.yaml?id=abcdef01234"],
         "subject_identifier": "bash-4.4.20-1.el8_4",
         "subject_type": "koji_build"
     }
