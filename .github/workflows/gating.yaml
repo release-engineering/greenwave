@@ -104,6 +104,7 @@ jobs:
       IMAGE_NAME: greenwave
       REGISTRY: quay.io/factory2
       GH_REGISTRY: ghcr.io/${{ github.actor }}
+      HTTPS_PROXY: squid.corp.redhat.com:3128
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
