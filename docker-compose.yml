@@ -43,7 +43,7 @@ services:
       test: "pg_isready -U postgres || exit 1"
 
   resultsdb:
-    image: quay.io/factory2/resultsdb:latest@sha256:53310700500ae8342abf066b42d66e27d5c3f05454a388c5bba688a9a4dffbef
+    image: quay.io/factory2/resultsdb:latest@sha256:6b08077033d15d9f07ef7e5e0b9b729bd9b34d5007c374b47db82bddf7c0f066
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
@@ -67,7 +67,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb:latest@sha256:0592ec955d0b4706d63041a8b19dd0d3c8f798823ef9fe55f9d8f2143e45c71a
+    image: quay.io/factory2/waiverdb:latest@sha256:d7474a8f9a6ccbd20761bbe7151fd86131f35d0b62d20166cc95102a9738e283
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
