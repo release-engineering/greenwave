@@ -125,19 +125,15 @@ services:
     deploy:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
-  umb:
-    image: images.paas.redhat.com/c3i/umb:latest@sha256:dbdccbe73c2f7f210f42ee832e98ba3baecddc3562d8d163710263fedee4e13c
+  message-broker:
+    image: docker.io/apache/activemq-artemis:latest-alpine
     restart: unless-stopped
-    command:
-      - "java"
-      - "-jar"
-      - "/usr/share/umb/umb.jar"
-      - "--spring.config.location=/etc/umb.yml"
     volumes:
-      - ./docker/umb.yml:/etc/umb.yml:ro,z
+      - ./docker/broker.xml:/var/lib/artemis-instance/etc-override/broker.xml:ro,z
     ports:
       - 127.0.0.1:5671:5671    # amqp
       - 127.0.0.1:61612:61612  # stomp
+      - 127.0.0.1:8162:8161    # http
     deploy:
       replicas: ${GREENWAVE_LISTENERS:-1}
 

@@ -18,7 +18,7 @@ MESSAGE_PUBLISHER = "stomp"
 STOMP_CONFIGS = {
     "destination": "/topic/VirtualTopic.eng.waiverdb.waiver.new",
     "connection": {
-        "host_and_ports": [("umb", 61612)],
+        "host_and_ports": [("message-broker", 61612)],
         "use_ssl": False,
     },
 }

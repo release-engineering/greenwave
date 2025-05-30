@@ -16,7 +16,7 @@ MESSAGE_BUS_KWARGS = {
     "modname": "resultsdb",
     "destination": "/topic/VirtualTopic.eng.resultsdb.result.new",
     "connection": {
-        "host_and_ports": [("umb", 61612)],
+        "host_and_ports": [("message-broker", 61612)],
         "use_ssl": False,
     },
 }

@@ -5,7 +5,7 @@ DEBUG = True
 POLICIES_DIR = "/etc/greenwave/policies/"
 WAIVERDB_API_URL = "http://waiverdb:5004/api/v1.0"  # NOSONAR
 RESULTSDB_API_URL = "http://resultsdb:5001/api/v2.0"  # NOSONAR
-LISTENER_HOSTS = "umb:61612"
+LISTENER_HOSTS = "message-broker:61612"
 LISTENER_CONNECTION_SSL = None
 LISTENER_CONNECTION = {
     "heartbeats": (10000, 20000),
