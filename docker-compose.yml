@@ -126,7 +126,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   message-broker:
-    image: docker.io/apache/activemq-artemis:latest-alpine
+    image: docker.io/apache/activemq-artemis:latest-alpine@sha256:c28953391416f13c045a55816551ea2e6e879438da0dd021d03417aab8a839a3
     restart: unless-stopped
     volumes:
       - ./docker/broker.xml:/var/lib/artemis-instance/etc-override/broker.xml:ro,z
