@@ -12,8 +12,8 @@ import time
 from contextlib import contextmanager
 from unittest.mock import Mock, patch
 
-import pytest
 import requests
+from pytest import fixture
 from sqlalchemy import create_engine
 
 from greenwave.logger import init_logging
@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 TEST_HTTP_TIMEOUT = int(os.environ.get("TEST_HTTP_TIMEOUT", 2))
 
 
-@pytest.fixture(scope="session", autouse=True)
+@fixture(scope="session", autouse=True)
 def setup_logging():
     init_logging()
     # We don't configure any log handlers, let pytest capture the log
@@ -122,7 +122,7 @@ def server_subprocess(
         p.wait()
 
 
-@pytest.yield_fixture(scope="session")
+@fixture(scope="session")
 def resultsdb_server(tmpdir_factory):
     dbname = "resultsdb_for_greenwave_functest"
     settings_content = f"""
@@ -151,7 +151,7 @@ def resultsdb_server(tmpdir_factory):
         yield url
 
 
-@pytest.yield_fixture(scope="session")
+@fixture(scope="session")
 def waiverdb_server(tmpdir_factory):
     dbname = "waiverdb_for_greenwave_functest"
     settings_content = f"""
@@ -185,7 +185,7 @@ def waiverdb_server(tmpdir_factory):
         yield url
 
 
-@pytest.yield_fixture(scope="session")
+@fixture(scope="session")
 def distgit_server(tmpdir_factory):
     """Creating a fake dist-git process. It is just a serving some files in a tmp dir"""
     tmp_dir = tmpdir_factory.mktemp("distgit")
@@ -203,7 +203,7 @@ def distgit_server(tmpdir_factory):
         yield url
 
 
-@pytest.yield_fixture(scope="session")
+@fixture(scope="session")
 def cache_config(tmpdir_factory):
     cache_file = tmpdir_factory.mktemp("greenwave").join("cache.dbm")
     if "GREENWAVE_TEST_URL" in os.environ:
@@ -221,7 +221,7 @@ def cache_config(tmpdir_factory):
     }
 
 
-@pytest.yield_fixture(scope="session")
+@fixture(scope="session")
 def greenwave_server(tmpdir_factory, cache_config, resultsdb_server, waiverdb_server):
     settings_content = """
         CACHE = {}
@@ -247,7 +247,7 @@ def greenwave_server(tmpdir_factory, cache_config, resultsdb_server, waiverdb_se
         yield url
 
 
-@pytest.fixture(scope="session")
+@fixture(scope="session")
 def requests_session(request):
     s = requests.Session()
     request.addfinalizer(s.close)
@@ -364,7 +364,7 @@ class TestDataBuilder:
         return response.json()
 
 
-@pytest.fixture(scope="session")
+@fixture(scope="session")
 def testdatabuilder(
     requests_session, resultsdb_server, waiverdb_server, distgit_server
 ):
@@ -373,12 +373,12 @@ def testdatabuilder(
     )
 
 
-@pytest.fixture(autouse=True)
+@fixture(autouse=True)
 def set_environment_variable(monkeypatch):
     monkeypatch.setenv("TEST", "true")
 
 
-@pytest.fixture
+@fixture
 def koji_proxy():
     mock_proxy = Mock()
     with patch("greenwave.resources.get_server_proxy", return_value=mock_proxy):

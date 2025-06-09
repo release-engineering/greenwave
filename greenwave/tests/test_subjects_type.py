@@ -1,4 +1,4 @@
-import pytest
+from pytest import fixture
 
 from greenwave.config import TestingConfig
 from greenwave.subjects.subject_type import (
@@ -7,7 +7,7 @@ from greenwave.subjects.subject_type import (
 )
 
 
-@pytest.yield_fixture(scope="session")
+@fixture(scope="session")
 def subject_types():
     yield load_subject_types(TestingConfig.SUBJECT_TYPES_DIR)
 
