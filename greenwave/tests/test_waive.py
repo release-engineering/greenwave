@@ -10,15 +10,13 @@ from greenwave.subjects.subject import Subject
 from greenwave.subjects.subject_type import GenericSubjectType
 from greenwave.waivers import waive_answers
 
-
-def test_subject():
-    return Subject(GenericSubjectType("koji_build"), "nethack-1.2.3-1.rawhide")
+TEST_SUBJECT = Subject(GenericSubjectType("koji_build"), "nethack-1.2.3-1.rawhide")
 
 
 def test_waive_failed_result():
     answers = [
         TestResultFailed(
-            subject=test_subject(),
+            subject=TEST_SUBJECT,
             test_case_name="test1",
             source="https://greenwave_tests.example.com",
             result_id=99,
@@ -56,7 +54,7 @@ def test_waive_failed_result():
 def test_waive_missing_result():
     answers = [
         TestResultMissing(
-            subject=test_subject(),
+            subject=TEST_SUBJECT,
             test_case_name="test1",
             scenario="scenario1",
             source="https://greenwave_tests.example.com",
@@ -92,7 +90,7 @@ def test_waive_missing_result():
 def test_waive_incomplete_result():
     answers = [
         TestResultIncomplete(
-            subject=test_subject(),
+            subject=TEST_SUBJECT,
             test_case_name="test1",
             source="https://greenwave_tests.example.com",
             result_id=99,
@@ -130,7 +128,7 @@ def test_waive_incomplete_result():
 def test_waive_errored_result():
     answers = [
         TestResultErrored(
-            subject=test_subject(),
+            subject=TEST_SUBJECT,
             test_case_name="test1",
             source="https://greenwave_tests.example.com",
             result_id=99,
@@ -170,7 +168,7 @@ def test_waive_errored_result():
 def test_waive_invalid_gatin_yaml():
     answers = [
         InvalidRemoteRuleYaml(
-            subject=test_subject(),
+            subject=TEST_SUBJECT,
             test_case_name="invalid-gating-yaml",
             source="https://greenwave_tests.example.com",
             details="",
@@ -196,7 +194,7 @@ def test_waive_invalid_gatin_yaml():
 def test_waive_scenario():
     answers = [
         TestResultFailed(
-            subject=test_subject(),
+            subject=TEST_SUBJECT,
             test_case_name="test1",
             source="https://greenwave_tests.example.com",
             result_id=99,
@@ -245,14 +243,14 @@ def test_waive_scenario():
 def test_waive_scenarios_all():
     answers = [
         TestResultFailed(
-            subject=test_subject(),
+            subject=TEST_SUBJECT,
             test_case_name="test1",
             source="https://greenwave_tests.example.com",
             result_id=98,
             data={"scenario": "scenario1"},
         ),
         TestResultFailed(
-            subject=test_subject(),
+            subject=TEST_SUBJECT,
             test_case_name="test1",
             source="https://greenwave_tests.example.com",
             result_id=99,
@@ -297,7 +295,7 @@ def test_waive_scenarios_all():
 
 
 def test_waive_with_subject_type_alias():
-    subject = test_subject()
+    subject = TEST_SUBJECT
     subject.subject_type.aliases = ["brew-build"]
     answers = [
         TestResultMissing(
