@@ -18,7 +18,7 @@ Install development dependencies:
 
 .. code-block:: console
 
-   $ poetry install --no-root
+   $ uv sync
 
 Create a local configuration file:
 
@@ -30,7 +30,7 @@ Run the server:
 
 .. code-block:: console
 
-   $ DEV=true poetry run python3 run-dev-server.py
+   $ DEV=true uv run python3 run-dev-server.py
 
 The server is now running at <http://localhost:5005> and API calls can be sent to
 <http://localhost:5005/api/v1.0>.
