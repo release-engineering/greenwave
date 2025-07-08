@@ -12,7 +12,7 @@ if [[ -n "$GITHUB_SHA" ]]; then
     if [[ $GITHUB_REF =~ ^ref/tags/$name- ]]; then
         echo "${GITHUB_REF#refs/tags/$name-}"
     else
-        last_version=$(poetry version --short)
+        last_version=$(uv version --short)
         echo "$last_version+git.${GITHUB_SHA:0:7}"
     fi
     exit
