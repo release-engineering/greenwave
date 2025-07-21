@@ -43,7 +43,7 @@ services:
       test: "pg_isready -U postgres || exit 1"
 
   resultsdb:
-    image: quay.io/factory2/resultsdb:latest@sha256:61841e43879b23fe75d3c1aa4d19084732eec60d03cd97da386505e03b890b9b
+    image: quay.io/factory2/resultsdb:latest@sha256:1cf22088e7f164a129d86748d7ae5f9dc2a933f65b2d248f3cfda00194500f24
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
