@@ -35,7 +35,7 @@ services:
       - 127.0.0.1:9125:9125  # statsd
 
   resultsdb-db: &resultsdb-db
-    image: docker.io/library/postgres:17.5-alpine@sha256:fbe21607052bb5c298674f2fd8cf044a63aa3ddf50b81627f894f91f40f50bcb
+    image: docker.io/library/postgres:17.5-alpine@sha256:6567bca8d7bc8c82c5922425a0baee57be8402df92bae5eacad5f01ae9544daa
     restart: always
     env_file: ["docker/resultsdb-db.env"]
     healthcheck:
@@ -43,7 +43,7 @@ services:
       test: "pg_isready -U postgres || exit 1"
 
   resultsdb:
-    image: quay.io/factory2/resultsdb:latest@sha256:bf708ee5b16c4fa25ff1bda68319afa7a2d72d277d0aeb016acf2c03d49dc1ec
+    image: quay.io/factory2/resultsdb:latest@sha256:61841e43879b23fe75d3c1aa4d19084732eec60d03cd97da386505e03b890b9b
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
@@ -67,7 +67,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb:latest@sha256:322215389c39c69127c5e1e739f3a2e664ba4118b9aba1d01462372c97dc73f6
+    image: quay.io/factory2/waiverdb:latest@sha256:af543126d607b9146bf18185aa9c078e252fee95134217a21d8f0f908ad24f1f
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
@@ -126,7 +126,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   message-broker:
-    image: docker.io/apache/activemq-artemis:latest-alpine@sha256:c28953391416f13c045a55816551ea2e6e879438da0dd021d03417aab8a839a3
+    image: docker.io/apache/activemq-artemis:latest-alpine@sha256:8e226a9885333ea5140cbedca49ee2db9bd5a59bee80844f8cf984f8e5173276
     restart: unless-stopped
     volumes:
       - ./docker/broker.xml:/var/lib/artemis-instance/etc-override/broker.xml:ro,z
