@@ -116,10 +116,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install poetry podman-compose tox
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          pip install podman-compose tox
 
       - name: Update the Application Version
-        run: poetry version "$(./get-version.sh)"
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          NEW_VERSION="$(./get-version.sh)"
+          uv version "$NEW_VERSION"
 
       - name: Get image tag from git branch
         id: get-image-tag

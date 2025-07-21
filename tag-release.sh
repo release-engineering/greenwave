@@ -27,7 +27,7 @@ if ! grep -q --fixed-strings "$name ${version%.*}" "$release_notes_file"; then
     exit 1
 fi
 
-poetry version "$version$prerelease"
+uv version "$version$prerelease"
 
 git add "pyproject.toml"
 git commit -m "Automatic commit of release $version$prerelease"
