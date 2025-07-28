@@ -67,7 +67,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb:latest@sha256:af543126d607b9146bf18185aa9c078e252fee95134217a21d8f0f908ad24f1f
+    image: quay.io/factory2/waiverdb:latest@sha256:e4e185c2201cecbe0cdba1f3d3b3d139effcb74a6c0017896a66f2ff69e618e9
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
