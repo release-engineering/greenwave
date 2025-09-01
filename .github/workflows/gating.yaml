@@ -101,10 +101,9 @@ jobs:
           uv version "$NEW_VERSION"
 
       - name: Get image tag from git branch
-        id: get-image-tag
         run: |
           export TAG=$(sed 's/[^0-9a-zA-Z_.-]/__/g' <<< "$GITHUB_REF_NAME") &&
-          echo "::set-output name=tag::$TAG"
+          echo "GREENWAVE_TAG=$TAG" >> $GITHUB_ENV
 
       - name: Build Image
         id: build-image
@@ -112,7 +111,7 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: >-
-            ${{ steps.get-image-tag.outputs.tag }}
+            ${{ env.GREENWAVE_TAG }}
             ${{ github.ref == 'refs/heads/master' && 'latest' || '' }}
             ${{ github.sha }}
           containerfiles: Dockerfile
