@@ -43,7 +43,7 @@ services:
       test: "pg_isready -U postgres || exit 1"
 
   resultsdb:
-    image: quay.io/factory2/resultsdb:latest@sha256:d51fc182340f07a0dc95787539f9c5034105d6a54d36d492c6bfa126f6bbc060
+    image: quay.io/factory2/resultsdb:latest@sha256:5d30825e36b8f862acb72e15beaba9bfae7a462730767a6e0533b15774feecbd
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
     command: ["bash", "-c", "/start.sh"]
@@ -67,7 +67,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb:latest@sha256:ea43f75d4457d3706d2905ba3a86cfb003550a690596d6441f4865286f55cb60
+    image: quay.io/factory2/waiverdb:latest@sha256:38b92d9f29829aeafcebe616ec0f2dae0f43a7be3a3c2a7d02b5c90721bc0270
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
@@ -138,7 +138,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   jaeger:
-    image: quay.io/jaegertracing/all-in-one:latest@sha256:144b7028db6045b28b50c4728dd3bea14fa76ab024b64afeccec51c8cb1edd63
+    image: quay.io/jaegertracing/all-in-one:latest@sha256:fe884668a2bf8d586b6fb7697d48a6a19a02f9e78a1eddf09c5b0f08c27d63b9
     ports:
       - 127.0.0.1:6831:6831/udp
       - 127.0.0.1:6832:6832/udp
