@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 from defusedxml.xmlrpc import xmlrpc_client
-from werkzeug.exceptions import BadGateway, NotFound
+from werkzeug.exceptions import BadGateway, BadRequest, NotFound
 
 from greenwave.app_factory import create_app
 from greenwave.decision import Decision
@@ -515,3 +515,37 @@ def test_koji_failed(mock_retrieve_scm_from_koji, app):
         BadGateway, match="Unexpected error while fetching remote policies"
     ):
         decision.check(subject, policies, results_retriever=results_retriever)
+
+
+@mock.patch("greenwave.resources.retrieve_scm_from_koji")
+def test_koji_bad_request(mock_retrieve_scm_from_koji, app):
+    policy_yaml = dedent("""
+        ---
+        id: "some_policy"
+        product_versions: [rhel-9000]
+        decision_context: bodhi_update_push_stable
+        subject_type: koji_build
+        rules:
+          - !RemoteRule
+    """)
+    mock_retrieve_scm_from_koji.side_effect = BadRequest("Invalid NVR format: '$NVR'")
+
+    policies = Policy.safe_load_all(policy_yaml)
+    assert len(policies) == 1
+    assert len(policies[0].rules) == 1
+
+    nvr = "$NVR"
+    subject = create_subject("koji_build", nvr)
+
+    decision = Decision("bodhi_update_push_stable", "rhel-9000")
+    results_retriever = mock.MagicMock()
+    results_retriever.retrieve.return_value = []
+    decision.check(subject, policies, results_retriever=results_retriever)
+
+    assert len(decision.answers) == 1
+    answer = decision.answers[0].to_json()
+    assert answer["type"] == "failed-fetch-gating-yaml"
+    assert answer["sources"] == []
+    assert answer["error"] == (
+        "Failed to get remote policies: 400 Bad Request: Invalid NVR format: '$NVR'"
+    )
