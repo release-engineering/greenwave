@@ -8,7 +8,7 @@ from collections import defaultdict
 from fnmatch import fnmatch
 
 from flask import current_app
-from werkzeug.exceptions import BadGateway, BadRequest, NotFound
+from werkzeug.exceptions import BadGateway, BadRequest, HTTPException, NotFound
 
 import greenwave.resources
 from greenwave.safe_yaml import (
@@ -650,6 +650,9 @@ class RemoteRule(Rule):
             ]
         except BadGateway:
             raise
+        except HTTPException as e:
+            error = f"Failed to get remote policies: {e}"
+            return [], [FailedFetchRemoteRuleYaml(subject, remote_policies_urls, error)]
         except Exception:
             logging.exception("Failed to retrieve policies for %r", subject)
             error = "Unexpected error while fetching remote policies"
