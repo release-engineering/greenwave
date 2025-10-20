@@ -67,7 +67,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb:latest@sha256:6037a06a7f9fc94f6bb5734b42cac7bf009de1671817f2fdd0a92225f2f5caf6
+    image: quay.io/factory2/waiverdb:latest@sha256:25a27af76af544a995c86231d57a922af7a08f6cc816fc0bb7d049e48cba704e
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
@@ -126,7 +126,7 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   message-broker:
-    image: docker.io/apache/activemq-artemis:latest-alpine@sha256:8e226a9885333ea5140cbedca49ee2db9bd5a59bee80844f8cf984f8e5173276
+    image: docker.io/apache/activemq-artemis:latest-alpine@sha256:1c69f83082a4df74a866c8f5f603fa909b9375e20b3096a0532c79d59f995465
     restart: unless-stopped
     volumes:
       - ./docker/broker.xml:/var/lib/artemis-instance/etc-override/broker.xml:ro,z
