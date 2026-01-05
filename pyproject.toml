@@ -48,7 +48,7 @@ functional-test = [
     "psycopg2-binary>=2.9.9,<3.0",
 ]
 docs = [
-    "sphinx>=9.0.4,<9.1",
+    "sphinx>=9.1,<9.2",
     "sphinxcontrib-httpdomain>=1.8.1,<2.0",
 ]
 
