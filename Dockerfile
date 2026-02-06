@@ -41,10 +41,14 @@ COPY \
     README.md \
     ./
 
+ARG SHORT_COMMIT
+ARG COMMIT_TIMESTAMP
+
 # hadolint ignore=SC1091
 RUN set -ex \
     && export PATH=/root/.cargo/bin:"$PATH" \
     && . /venv/bin/activate \
+    && uv version "2.3.0.dev$COMMIT_TIMESTAMP+git.$SHORT_COMMIT" \
     && uv build --wheel \
     && version=$(uv version --short) \
     && pip install --no-cache-dir dist/greenwave-"$version"-py3*.whl \
@@ -59,18 +63,13 @@ USER 1001
 
 # --- Final image
 FROM scratch
-ARG GITHUB_SHA
-ARG EXPIRES_AFTER
 LABEL \
     summary="Greenwave application" \
     description="Decision-making service for gating in a software delivery pipeline." \
     maintainer="Red Hat, Inc." \
     license="GPLv2+" \
     url="https://github.com/release-engineering/greenwave" \
-    vcs-type="git" \
-    vcs-ref=$GITHUB_SHA \
-    io.k8s.display-name="Greenwave" \
-    quay.expires-after=$EXPIRES_AFTER
+    io.k8s.display-name="Greenwave"
 
 ENV \
     PYTHONFAULTHANDLER=1 \

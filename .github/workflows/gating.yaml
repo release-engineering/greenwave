@@ -83,8 +83,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: greenwave
-      REGISTRY: quay.io/factory2
-      GH_REGISTRY: ghcr.io/${{ github.actor }}
 
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
@@ -93,17 +91,7 @@ jobs:
         uses: astral-sh/setup-uv@803947b9bd8e9f986429fa0c5a41c367cd732b41 # v7
         with:
           python-version: "3.13"
-
-      - name: Update the Application Version
-        run: |
-          export PATH="$HOME/.cargo/bin:$PATH"
-          NEW_VERSION="$(./get-version.sh)"
-          uv version "$NEW_VERSION"
-
-      - name: Get image tag from git branch
-        run: |
-          export TAG=$(sed 's/[^0-9a-zA-Z_.-]/__/g' <<< "$GITHUB_REF_NAME") &&
-          echo "GREENWAVE_TAG=$TAG" >> $GITHUB_ENV
+          enable-cache: true
 
       - name: Build Image
         id: build-image
@@ -111,34 +99,18 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: >-
-            ${{ env.GREENWAVE_TAG }}
             ${{ github.ref == 'refs/heads/master' && 'latest' || '' }}
             ${{ github.sha }}
           containerfiles: Dockerfile
           build-args: |
-            GITHUB_SHA=${{ github.sha }}
+            SHORT_COMMIT=${{ github.sha }}
+            COMMIT_TIMESTAMP=1
             EXPIRES_AFTER=${{ github.ref == 'refs/heads/master' && 'never' || '30d' }}
-
-      - name: Log in to the image registry
-        if: github.event_name == 'push' && github.actor != 'dependabot[bot]'
-        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # v1
-        with:
-          registry: ${{ secrets.REGISTRY_USER && env.REGISTRY || env.GH_REGISTRY }}
-          username: ${{ secrets.REGISTRY_USER || github.actor }}
-          password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
-
-      - name: Push Image
-        if: github.event_name == 'push' && github.actor != 'dependabot[bot]'
-        uses: redhat-actions/push-to-registry@5ed88d269cf581ea9ef6dd6806d01562096bee9c # v2
-        with:
-          image: ${{ steps.build-image.outputs.image }}
-          tags: ${{ steps.build-image.outputs.tags }}
-          registry: ${{ secrets.REGISTRY_USER && env.REGISTRY || env.GH_REGISTRY }}
 
       - name: Test Image
         env:
           GREENWAVE_LISTENERS: '0'
+          SHORT_COMMIT: '${{ github.sha }}'
+          COMMIT_TIMESTAMP: '1'
         run: |
-          uvx --with podman-compose podman-compose up -d &&
-          uvx --with tox-uv tox -e functional -- --no-cov functional-tests &&
-          uvx --with podman-compose podman-compose down
+          .github/run-functional-tests.sh "${{ steps.build-image.outputs.image }}:${{ github.sha }}"
