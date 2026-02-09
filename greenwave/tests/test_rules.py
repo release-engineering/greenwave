@@ -398,8 +398,8 @@ def test_remote_rule_custom_sources(mock_retrieve_yaml_remote_rule, app):
         rules:
           - !PassingTestCaseRule {test_case_name: some_test_case}
     """)
-    mock_retrieve_yaml_remote_rule.side_effect = (
-        lambda url: gating_yaml if url == url2 else None
+    mock_retrieve_yaml_remote_rule.side_effect = lambda url: (
+        gating_yaml if url == url2 else None
     )
 
     policies = Policy.safe_load_all(policy_yaml)
@@ -452,8 +452,8 @@ def test_remote_rule_custom_sources_multiple_rules(
         rules:
           - !PassingTestCaseRule {test_case_name: some_test_case}
     """)
-    mock_retrieve_yaml_remote_rule.side_effect = (
-        lambda url: gating_yaml if url == url2 else None
+    mock_retrieve_yaml_remote_rule.side_effect = lambda url: (
+        gating_yaml if url == url2 else None
     )
     mock_retrieve_scm_from_koji.side_effect = NotFound
 
