@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 import stomp
 from requests.exceptions import HTTPError
+from werkzeug.exceptions import NotFound
 
 from greenwave.app_factory import create_app
 from greenwave.listeners.resultsdb import ResultsDBListener
@@ -355,6 +356,14 @@ def test_decision_changes(
         (
             HTTPError(),  # type: ignore
             {"policies_satisfied": True},
+        ),
+        (
+            NotFound(),
+            {"policies_satisfied": True},
+        ),
+        (
+            NotFound(),
+            NotFound(),
         ),
     ),
 )
