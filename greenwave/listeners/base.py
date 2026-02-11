@@ -12,6 +12,7 @@ from opentelemetry.trace.propagation.tracecontext import (
     TraceContextTextMapPropagator,
 )
 from requests.exceptions import HTTPError
+from werkzeug.exceptions import HTTPException
 
 import greenwave.app_factory
 from greenwave.logger import init_logging, log_to_stdout
@@ -249,7 +250,7 @@ class BaseListener(stomp.ConnectionListener):
             old_decision = greenwave.decision.make_decision(
                 request_data, self.app.config
             )
-        except HTTPError as e:
+        except (HTTPError, HTTPException) as e:
             self.app.logger.exception(
                 "Failed to retrieve decision for data=%s, error: %s", request_data, e
             )
