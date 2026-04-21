@@ -17,8 +17,7 @@ RUN set -exo pipefail \
         python3 \
     && dnf --installroot=/mnt/rootfs clean all \
     # Install uv
-    && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && python3 -m venv /venv
+    && curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ENV \
     PIP_DEFAULT_TIMEOUT=100 \
@@ -47,12 +46,8 @@ ARG COMMIT_TIMESTAMP
 # hadolint ignore=SC1091
 RUN set -ex \
     && export PATH=/root/.cargo/bin:"$PATH" \
-    && . /venv/bin/activate \
     && uv version "2.3.0.dev$COMMIT_TIMESTAMP+git.$SHORT_COMMIT" \
-    && uv build --wheel \
-    && version=$(uv version --short) \
-    && pip install --no-cache-dir dist/greenwave-"$version"-py3*.whl \
-    && deactivate \
+    && UV_PROJECT_ENVIRONMENT=/venv uv sync --frozen --no-dev --no-editable \
     && mv /venv /mnt/rootfs \
     && mkdir -p /mnt/rootfs/src/docker \
     && cp -v docker/docker-entrypoint.sh /mnt/rootfs/src/docker \
