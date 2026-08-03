@@ -81,7 +81,7 @@ class Consumer:
         suffix = hub.config.get(
             f"{self.hub_config_prefix}topic_suffix", self.default_topic
         )
-        self.topic = [".".join([prefix, env, suffix])]
+        self.topic = [f"{prefix}.{env}.{suffix}"]
 
         config = kwargs.pop("config", None)
 
@@ -146,10 +146,8 @@ class Consumer:
                 request_data, self.flask_app.config
             )
             log.debug("old decision: %s", old_decision)
-        except requests.exceptions.HTTPError as e:
-            log.exception(
-                "Failed to retrieve decision for data=%s, error: %s", request_data, e
-            )
+        except requests.exceptions.HTTPError:
+            log.exception("Failed to retrieve decision for data=%s", request_data)
             return None, None
 
         return old_decision, decision
@@ -157,10 +155,10 @@ class Consumer:
     def _publish_decision_change(
         self, submit_time, subject, testcase, product_version, publish_testcase
     ):
-        policy_attributes = dict(
-            subject=subject,
-            testcase=testcase,
-        )
+        policy_attributes = {
+            "subject": subject,
+            "testcase": testcase,
+        }
 
         if product_version:
             policy_attributes["product_version"] = product_version
@@ -170,11 +168,11 @@ class Consumer:
             policies, **policy_attributes
         )
 
-        for decision_context, product_version in sorted(contexts_product_versions):
+        for decision_context, pv in sorted(contexts_product_versions):
             old_decision, decision = self._old_and_new_decisions(
                 submit_time,
                 decision_context=decision_context,
-                product_version=product_version,
+                product_version=pv,
                 subject_type=subject.type,
                 subject_identifier=subject.identifier,
             )
@@ -202,7 +200,7 @@ class Consumer:
                     # subject is for backwards compatibility only:
                     "subject": [subject.to_dict()],
                     "decision_context": decision_context,
-                    "product_version": product_version,
+                    "product_version": pv,
                     "previous": old_decision,
                 }
             )

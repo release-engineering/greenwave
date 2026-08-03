@@ -155,7 +155,7 @@ def test_retrieve_yaml_remote_rule_connection_error(app, requests_mock):
 
 
 def test_retrieve_scm_from_koji_build_socket_error(app, koji_proxy):
-    koji_proxy.getBuild.side_effect = socket.error("Socket is closed")
+    koji_proxy.getBuild.side_effect = OSError("Socket is closed")
     nvr = "nethack-3.6.1-3.fc29"
     expected_error = "Could not reach Koji: Socket is closed"
     with pytest.raises(socket.error, match=expected_error):

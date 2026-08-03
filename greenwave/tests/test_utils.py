@@ -28,12 +28,11 @@ def test_json_connection_error(
     error, expected_status_code, expected_error_message_part
 ):
     app = greenwave.app_factory.create_app()
-    with app.app_context():
-        with app.test_request_context():
-            r = json_error(error)
-            data = json.loads(r.get_data())
-            assert r.status_code == expected_status_code
-            assert expected_error_message_part in data["message"]
+    with app.app_context(), app.test_request_context():
+        r = json_error(error)
+        data = json.loads(r.get_data())
+        assert r.status_code == expected_status_code
+        assert expected_error_message_part in data["message"]
 
 
 def test_load_config_defaults(monkeypatch):

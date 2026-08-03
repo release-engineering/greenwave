@@ -277,8 +277,8 @@ def retrieve_scm_from_koji(nvr: str):
 def retrieve_scm_from_koji_build(nvr: str, source: str, koji_url: str):
     if not source:
         raise NoSourceException(
-            'Failed to retrieve SCM URL from Koji build "{}" at "{}" '
-            '(expected SCM URL in "source" attribute)'.format(nvr, koji_url)
+            f'Failed to retrieve SCM URL from Koji build "{nvr}" at "{koji_url}" '
+            '(expected SCM URL in "source" attribute)'
         )
 
     url = urlparse(source)
@@ -292,10 +292,8 @@ def retrieve_scm_from_koji_build(nvr: str, source: str, koji_url: str):
     rev = url.fragment
     if not rev:
         raise KojiScmUrlParseError(
-            'Failed to parse SCM URL "{}" from Koji build "{}" at "{}" '
-            "(missing URL fragment with SCM revision information)".format(
-                source, nvr, koji_url
-            )
+            f'Failed to parse SCM URL "{source}" from Koji build "{nvr}" at "{koji_url}" '
+            "(missing URL fragment with SCM revision information)"
         )
 
     pkg_name = url.path.split("/")[-1]

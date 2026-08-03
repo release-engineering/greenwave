@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 
 # It's all local, and so should be fast enough.
-TEST_HTTP_TIMEOUT = int(os.environ.get("TEST_HTTP_TIMEOUT", 2))
+TEST_HTTP_TIMEOUT = int(os.environ.get("TEST_HTTP_TIMEOUT", "2"))
 
 
 @fixture(scope="session", autouse=True)
@@ -102,7 +102,7 @@ def server_subprocess(
         config_env_var = env_var_prefix + "_CONFIG"
         env[config_env_var] = settings_file.strpath
 
-    subprocess_arguments = dict(env=env, cwd=source_path)
+    subprocess_arguments = {"env": env, "cwd": source_path}
 
     # Create and populate the database
     if dbname:
@@ -189,8 +189,8 @@ def waiverdb_server(tmpdir_factory):
 def distgit_server(tmpdir_factory):
     """Creating a fake dist-git process. It is just a serving some files in a tmp dir"""
     tmp_dir = tmpdir_factory.mktemp("distgit")
-    f = open(tmp_dir.strpath + "/gating.yaml", "w+")
-    f.close()
+    with open(tmp_dir.strpath + "/gating.yaml", "w+"):
+        pass
 
     start_server_arguments = [sys.executable, "-m", "http.server", "5678"]
 
@@ -223,11 +223,11 @@ def cache_config(tmpdir_factory):
 
 @fixture(scope="session")
 def greenwave_server(tmpdir_factory, cache_config, resultsdb_server, waiverdb_server):
-    settings_content = """
-        CACHE = {}
-        RESULTSDB_API_URL = '{}api/v2.0'
-        WAIVERDB_API_URL = '{}api/v1.0'
-        """.format(json.dumps(cache_config), resultsdb_server, waiverdb_server)
+    settings_content = f"""
+        CACHE = {json.dumps(cache_config)}
+        RESULTSDB_API_URL = '{resultsdb_server}api/v2.0'
+        WAIVERDB_API_URL = '{waiverdb_server}api/v1.0'
+        """
 
     start_server_arguments = [
         "gunicorn-3",

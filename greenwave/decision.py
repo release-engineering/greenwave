@@ -80,20 +80,18 @@ class Decision:
                 dc = " ".join(dc)
 
             raise NotFound(
-                "Found no applicable policies for {} subjects at gating point(s) {} in {}".format(
-                    subject.type, dc, self.product_version
-                )
+                f"Found no applicable policies for {subject.type} subjects at gating point(s) {dc} in {self.product_version}"
             )
 
         if self.verbose:
             # Retrieve test results and waivers for all items when verbose output is requested.
             self.verbose_results.extend(results_retriever.retrieve(subject))
             self.waiver_filters.append(
-                dict(
-                    subject_type=subject.type,
-                    subject_identifier=subject.identifier,
-                    product_version=self.product_version,
-                )
+                {
+                    "subject_type": subject.type,
+                    "subject_identifier": subject.identifier,
+                    "product_version": self.product_version,
+                }
             )
 
         rule_context = RuleContext(
@@ -212,7 +210,7 @@ def make_decision(data, config):
 
     if when:
         try:
-            datetime.datetime.strptime(when, "%Y-%m-%dT%H:%M:%S.%f")
+            datetime.datetime.strptime(when, "%Y-%m-%dT%H:%M:%S.%f")  # noqa: DTZ007
         except ValueError:
             raise BadRequest('Invalid "when" parameter, must be in ISO8601 format')
 

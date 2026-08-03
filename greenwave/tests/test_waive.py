@@ -28,25 +28,25 @@ def test_waive_failed_result():
     assert answers == waived
 
     waivers = [
-        dict(
-            id=9,
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            product_version="rawhide",
-            testcase="test1",
-        )
+        {
+            "id": 9,
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "product_version": "rawhide",
+            "testcase": "test1",
+        }
     ]
     waived = waive_answers(answers, waivers)
-    expected_json = dict(
-        type="test-result-failed-waived",
-        testcase="test1",
-        subject_type="koji_build",
-        subject_identifier="nethack-1.2.3-1.rawhide",
-        result_id=99,
-        waiver_id=9,
-        scenario="scenario1",
-        source="https://greenwave_tests.example.com",
-    )
+    expected_json = {
+        "type": "test-result-failed-waived",
+        "testcase": "test1",
+        "subject_type": "koji_build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
+        "result_id": 99,
+        "waiver_id": 9,
+        "scenario": "scenario1",
+        "source": "https://greenwave_tests.example.com",
+    }
     assert 1 == len(waived)
     assert expected_json == waived[0].to_json()
 
@@ -65,24 +65,24 @@ def test_waive_missing_result():
     assert answers == waived
 
     waivers = [
-        dict(
-            id=9,
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            product_version="rawhide",
-            testcase="test1",
-        )
+        {
+            "id": 9,
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "product_version": "rawhide",
+            "testcase": "test1",
+        }
     ]
     waived = waive_answers(answers, waivers)
-    expected_json = dict(
-        type="test-result-missing-waived",
-        testcase="test1",
-        subject_type="koji_build",
-        subject_identifier="nethack-1.2.3-1.rawhide",
-        waiver_id=9,
-        scenario="scenario1",
-        source="https://greenwave_tests.example.com",
-    )
+    expected_json = {
+        "type": "test-result-missing-waived",
+        "testcase": "test1",
+        "subject_type": "koji_build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
+        "waiver_id": 9,
+        "scenario": "scenario1",
+        "source": "https://greenwave_tests.example.com",
+    }
     assert 1 == len(waived)
     assert expected_json == waived[0].to_json()
 
@@ -102,25 +102,25 @@ def test_waive_incomplete_result():
     assert answers == waived
 
     waivers = [
-        dict(
-            id=9,
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            product_version="rawhide",
-            testcase="test1",
-        )
+        {
+            "id": 9,
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "product_version": "rawhide",
+            "testcase": "test1",
+        }
     ]
     waived = waive_answers(answers, waivers)
-    expected_json = dict(
-        type="test-result-missing-waived",
-        testcase="test1",
-        subject_type="koji_build",
-        subject_identifier="nethack-1.2.3-1.rawhide",
-        result_id=99,
-        waiver_id=9,
-        scenario="scenario1",
-        source="https://greenwave_tests.example.com",
-    )
+    expected_json = {
+        "type": "test-result-missing-waived",
+        "testcase": "test1",
+        "subject_type": "koji_build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
+        "result_id": 99,
+        "waiver_id": 9,
+        "scenario": "scenario1",
+        "source": "https://greenwave_tests.example.com",
+    }
     assert 1 == len(waived)
     assert expected_json == waived[0].to_json()
 
@@ -141,26 +141,26 @@ def test_waive_errored_result():
     assert answers == waived
 
     waivers = [
-        dict(
-            id=9,
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            product_version="rawhide",
-            testcase="test1",
-        )
+        {
+            "id": 9,
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "product_version": "rawhide",
+            "testcase": "test1",
+        }
     ]
     waived = waive_answers(answers, waivers)
-    expected_json = dict(
-        type="test-result-errored-waived",
-        testcase="test1",
-        subject_type="koji_build",
-        subject_identifier="nethack-1.2.3-1.rawhide",
-        result_id=99,
-        waiver_id=9,
-        scenario="scenario1",
-        source="https://greenwave_tests.example.com",
-        error_reason="Failed",
-    )
+    expected_json = {
+        "type": "test-result-errored-waived",
+        "testcase": "test1",
+        "subject_type": "koji_build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
+        "result_id": 99,
+        "waiver_id": 9,
+        "scenario": "scenario1",
+        "source": "https://greenwave_tests.example.com",
+        "error_reason": "Failed",
+    }
     assert 1 == len(waived)
     assert expected_json == waived[0].to_json()
 
@@ -179,13 +179,13 @@ def test_waive_invalid_gatin_yaml():
     assert answers == waived
 
     waivers = [
-        dict(
-            id=9,
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            product_version="rawhide",
-            testcase="invalid-gating-yaml",
-        )
+        {
+            "id": 9,
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "product_version": "rawhide",
+            "testcase": "invalid-gating-yaml",
+        }
     ]
     waived = waive_answers(answers, waivers)
     assert [] == waived
@@ -203,39 +203,39 @@ def test_waive_scenario():
     ]
 
     waivers = [
-        dict(
-            id=8,
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            product_version="rawhide",
-            testcase="test1",
-            scenario="scenario2",
-        )
+        {
+            "id": 8,
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "product_version": "rawhide",
+            "testcase": "test1",
+            "scenario": "scenario2",
+        }
     ]
     waived = waive_answers(answers, waivers)
     assert answers == waived
 
     waivers = [
-        dict(
-            id=9,
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            product_version="rawhide",
-            testcase="test1",
-            scenario="scenario1",
-        )
+        {
+            "id": 9,
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "product_version": "rawhide",
+            "testcase": "test1",
+            "scenario": "scenario1",
+        }
     ]
     waived = waive_answers(answers, waivers)
-    expected_json = dict(
-        type="test-result-failed-waived",
-        testcase="test1",
-        subject_type="koji_build",
-        subject_identifier="nethack-1.2.3-1.rawhide",
-        result_id=99,
-        waiver_id=9,
-        scenario="scenario1",
-        source="https://greenwave_tests.example.com",
-    )
+    expected_json = {
+        "type": "test-result-failed-waived",
+        "testcase": "test1",
+        "subject_type": "koji_build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
+        "result_id": 99,
+        "waiver_id": 9,
+        "scenario": "scenario1",
+        "source": "https://greenwave_tests.example.com",
+    }
     assert 1 == len(waived)
     assert expected_json == waived[0].to_json()
 
@@ -259,37 +259,37 @@ def test_waive_scenarios_all():
     ]
 
     waivers = [
-        dict(
-            id=9,
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            product_version="rawhide",
-            testcase="test1",
-            scenario=None,
-        )
+        {
+            "id": 9,
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "product_version": "rawhide",
+            "testcase": "test1",
+            "scenario": None,
+        }
     ]
     waived = waive_answers(answers, waivers)
     expected_json = [
-        dict(
-            type="test-result-failed-waived",
-            testcase="test1",
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            result_id=98,
-            waiver_id=9,
-            scenario="scenario1",
-            source="https://greenwave_tests.example.com",
-        ),
-        dict(
-            type="test-result-failed-waived",
-            testcase="test1",
-            subject_type="koji_build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            result_id=99,
-            waiver_id=9,
-            scenario="scenario2",
-            source="https://greenwave_tests.example.com",
-        ),
+        {
+            "type": "test-result-failed-waived",
+            "testcase": "test1",
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "result_id": 98,
+            "waiver_id": 9,
+            "scenario": "scenario1",
+            "source": "https://greenwave_tests.example.com",
+        },
+        {
+            "type": "test-result-failed-waived",
+            "testcase": "test1",
+            "subject_type": "koji_build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "result_id": 99,
+            "waiver_id": 9,
+            "scenario": "scenario2",
+            "source": "https://greenwave_tests.example.com",
+        },
     ]
     assert expected_json == [w.to_json() for w in waived]
 
@@ -310,23 +310,23 @@ def test_waive_with_subject_type_alias():
     assert answers == waived
 
     waivers = [
-        dict(
-            id=9,
-            subject_type="brew-build",
-            subject_identifier="nethack-1.2.3-1.rawhide",
-            product_version="rawhide",
-            testcase="test1",
-        )
+        {
+            "id": 9,
+            "subject_type": "brew-build",
+            "subject_identifier": "nethack-1.2.3-1.rawhide",
+            "product_version": "rawhide",
+            "testcase": "test1",
+        }
     ]
     waived = waive_answers(answers, waivers)
-    expected_json = dict(
-        type="test-result-missing-waived",
-        testcase="test1",
-        subject_type="koji_build",
-        subject_identifier="nethack-1.2.3-1.rawhide",
-        waiver_id=9,
-        scenario="scenario1",
-        source="https://greenwave_tests.example.com",
-    )
+    expected_json = {
+        "type": "test-result-missing-waived",
+        "testcase": "test1",
+        "subject_type": "koji_build",
+        "subject_identifier": "nethack-1.2.3-1.rawhide",
+        "waiver_id": 9,
+        "scenario": "scenario1",
+        "source": "https://greenwave_tests.example.com",
+    }
     assert 1 == len(waived)
     assert expected_json == waived[0].to_json()

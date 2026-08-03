@@ -72,3 +72,7 @@ include = [
     "run-dev-server.py",
     "tox.ini",
 ]
+
+[tool.ruff.lint]
+# RUF012: too noisy for Flask config and SafeYAML classes (https://github.com/astral-sh/ruff/issues/5243)
+ignore = ["RUF012"]

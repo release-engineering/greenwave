@@ -95,8 +95,7 @@ def _remote_urls(subject, url_templates):
 
         if "{subject_id}" in current_url:
             subj_id = subject.identifier
-            if subj_id.startswith("sha256:"):
-                subj_id = subj_id[7:]
+            subj_id = subj_id.removeprefix("sha256:")
             url_params.update(subject_id=subj_id)
 
         yield current_url.format(**url_params)
@@ -654,7 +653,7 @@ class RemoteRule(Rule):
             error = f"Failed to get remote policies: {e}"
             return [], [FailedFetchRemoteRuleYaml(subject, remote_policies_urls, error)]
         except Exception:
-            logging.exception("Failed to retrieve policies for %r", subject)
+            log.exception("Failed to retrieve policies for %r", subject)
             error = "Unexpected error while fetching remote policies"
             raise BadGateway(error)
 

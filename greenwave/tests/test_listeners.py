@@ -810,14 +810,14 @@ def test_container_brew_build(
 
 
 def test_waiverdb_message(mock_retrieve_decision, mock_connection):
-    waiver = dict(
-        subject_identifier=DUMMY_NVR,
-        subject_type="koji_build",
-        testcase="example_test",
-        product_version="rawhide",
-        comment="waived for tests",
-        timestamp="2019-04-24T13:07:00.000000",
-    )
+    waiver = {
+        "subject_identifier": DUMMY_NVR,
+        "subject_type": "koji_build",
+        "testcase": "example_test",
+        "product_version": "rawhide",
+        "comment": "waived for tests",
+        "timestamp": "2019-04-24T13:07:00.000000",
+    }
 
     policies = dedent("""
         --- !Policy
