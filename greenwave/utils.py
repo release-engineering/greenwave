@@ -156,12 +156,15 @@ def add_to_timestamp(timestamp, **kwargs):
     if timestamp.endswith(" UTC"):
         # date/time format submitted by resultsdb using fedora-messaging
         from_date_format = "%Y-%m-%d %H:%M:%S UTC"
+        parsed = datetime.datetime.strptime(timestamp, from_date_format).replace(
+            tzinfo=datetime.UTC
+        )
     else:
-        from_date_format = date_format
+        parsed = datetime.datetime.strptime(timestamp, date_format).replace(
+            tzinfo=datetime.UTC
+        )
 
-    return datetime.datetime.strftime(
-        datetime.datetime.strptime(timestamp, from_date_format) + delta, date_format
-    )
+    return (parsed + delta).strftime(date_format)
 
 
 def right_before_this_time(timestamp):

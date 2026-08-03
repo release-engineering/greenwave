@@ -1191,12 +1191,12 @@ def test_validate_gating_yaml_missing_decision_context(
     ("variant1", "variant2"),
     (
         (
-            dict(variant="BaseOS", architecture="ppc64"),
-            dict(variant="BaseOS", architecture="x86_64"),
+            {"variant": "BaseOS", "architecture": "ppc64"},
+            {"variant": "BaseOS", "architecture": "x86_64"},
         ),
         (
-            dict(variant="BaseOS", architecture="ppc64"),
-            dict(variant="Cloud_Base", architecture="ppc64"),
+            {"variant": "BaseOS", "architecture": "ppc64"},
+            {"variant": "Cloud_Base", "architecture": "ppc64"},
         ),
     ),
 )

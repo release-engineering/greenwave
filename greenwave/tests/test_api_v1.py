@@ -8,12 +8,12 @@ import pytest
 from greenwave.app_factory import create_app
 from greenwave.policies import Policy
 
-DEFAULT_DECISION_DATA = dict(
-    decision_context="test_policies",
-    product_version="fedora-rawhide",
-    subject_type="koji_build",
-    subject_identifier="nethack-1.2.3-1.f31",
-)
+DEFAULT_DECISION_DATA = {
+    "decision_context": "test_policies",
+    "product_version": "fedora-rawhide",
+    "subject_type": "koji_build",
+    "subject_identifier": "nethack-1.2.3-1.f31",
+}
 
 DEFAULT_DECISION_POLICIES = """
     --- !Policy

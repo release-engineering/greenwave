@@ -273,17 +273,15 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
             child_node = nodes.get(attribute_name)
             if child_node is None:
                 if not yaml_attribute.optional:
-                    msg = "{}: Attribute {!r} is required".format(
-                        result.safe_yaml_label, attribute_name
-                    )
+                    msg = f"{result.safe_yaml_label}: Attribute {attribute_name!r} is required"
                     raise SafeYAMLError(msg)
                 value = yaml_attribute.default_value
             else:
                 try:
                     value = yaml_attribute.from_yaml(loader, child_node)
                 except (SafeYAMLError, yaml.YAMLError) as e:
-                    msg = "{}: Attribute {!r}: {}".format(
-                        result.safe_yaml_label, attribute_name, str(e)
+                    msg = (
+                        f"{result.safe_yaml_label}: Attribute {attribute_name!r}: {e!s}"
                     )
                     raise SafeYAMLError(msg)
             setattr(result, attribute_name, value)
@@ -293,7 +291,7 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
         try:
             result.validate()
         except SafeYAMLError as e:
-            msg = f"{result.safe_yaml_label}: {str(e)}"
+            msg = f"{result.safe_yaml_label}: {e!s}"
             raise SafeYAMLError(msg)
 
         return result
@@ -329,7 +327,7 @@ class SafeYAMLObject(yaml.YAMLObject, metaclass=SafeYAMLObjectMetaclass):
                 try:
                     value = yaml_attribute.from_value(value)
                 except SafeYAMLError as e:
-                    msg = f"Attribute {attribute_name!r}: {str(e)}"
+                    msg = f"Attribute {attribute_name!r}: {e!s}"
                     raise SafeYAMLError(msg)
 
             setattr(result, attribute_name, value)

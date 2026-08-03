@@ -38,11 +38,16 @@ def _guess_product_versions(toparse, koji_build=False) -> list[str]:
         product_version = "fedora-"
     elif toparse.startswith("epel"):
         product_version = "epel-"
-    elif toparse.startswith("el") and len(toparse) > 2 and toparse[2].isdigit():
+    elif (
+        toparse.startswith("el")
+        and len(toparse) > 2
+        and toparse[2].isdigit()
+        or toparse.startswith("rhel-")
+        and len(toparse) > 5
+        and toparse[5].isdigit()
+    ):
         product_version = "rhel-"
-    elif toparse.startswith("rhel-") and len(toparse) > 5 and toparse[5].isdigit():
-        product_version = "rhel-"
-    elif toparse.startswith("fc") or toparse.startswith("Fedora"):
+    elif toparse.startswith(("fc", "Fedora")):
         product_version = "fedora-"
 
     if not product_version:

@@ -492,33 +492,33 @@ def test_remote_rule_policy_old_config(tmpdir):
 
         app = create_app(config)
 
-        with app.app_context():
-            with mock.patch("greenwave.resources.retrieve_scm_from_koji") as scm:
-                scm.return_value = (
-                    "rpms",
-                    "nethack",
-                    "c3c47a08a66451cb9686c49f040776ed35a0d1bb",
-                )
-                with mock.patch("greenwave.resources.retrieve_yaml_remote_rule") as f:
-                    f.return_value = remote_fragment
-                    policies = load_policies(tmpdir.strpath)
+        with (
+            app.app_context(),
+            mock.patch("greenwave.resources.retrieve_scm_from_koji") as scm,
+            mock.patch("greenwave.resources.retrieve_yaml_remote_rule") as f,
+        ):
+            scm.return_value = (
+                "rpms",
+                "nethack",
+                "c3c47a08a66451cb9686c49f040776ed35a0d1bb",
+            )
+            f.return_value = remote_fragment
+            policies = load_policies(tmpdir.strpath)
 
-                    # Ensure that presence of a result is success.
-                    results = DummyResultsRetriever(subject, "dist.upgradepath")
-                    decision = Decision(
-                        "bodhi_update_push_stable_with_remoterule", "fedora-26"
-                    )
-                    decision.check(subject, policies, results)
-                    assert answer_types(decision.answers) == [
-                        "fetched-gating-yaml",
-                        "test-result-passed",
-                    ]
+            # Ensure that presence of a result is success.
+            results = DummyResultsRetriever(subject, "dist.upgradepath")
+            decision = Decision("bodhi_update_push_stable_with_remoterule", "fedora-26")
+            decision.check(subject, policies, results)
+            assert answer_types(decision.answers) == [
+                "fetched-gating-yaml",
+                "test-result-passed",
+            ]
 
-                    call = mock.call(
-                        "https://localhost.localdomain/nethack/"
-                        "c3c47a08a66451cb9686c49f040776ed35a0d1bb/gating.yaml"
-                    )
-                    assert f.mock_calls == [call]
+            call = mock.call(
+                "https://localhost.localdomain/nethack/"
+                "c3c47a08a66451cb9686c49f040776ed35a0d1bb/gating.yaml"
+            )
+            assert f.mock_calls == [call]
     finally:
         Config.REMOTE_RULE_POLICIES = config_remote_rules_backup
 
@@ -631,31 +631,31 @@ def test_remote_rule_policy_with_no_remote_rule_policies_param_defined(tmpdir):
     p.write(serverside_fragment)
     app = create_app("greenwave.config.FedoraTestingConfig")
 
-    with app.app_context():
-        with mock.patch("greenwave.resources.retrieve_scm_from_koji") as scm:
-            scm.return_value = (
-                "rpms",
-                "nethack",
-                "c3c47a08a66451cb9686c49f040776ed35a0d1bb",
-            )
-            with mock.patch("greenwave.resources.retrieve_yaml_remote_rule") as f:
-                f.return_value = remote_fragment
-                policies = load_policies(tmpdir.strpath)
+    with (
+        app.app_context(),
+        mock.patch("greenwave.resources.retrieve_scm_from_koji") as scm,
+        mock.patch("greenwave.resources.retrieve_yaml_remote_rule") as f,
+    ):
+        scm.return_value = (
+            "rpms",
+            "nethack",
+            "c3c47a08a66451cb9686c49f040776ed35a0d1bb",
+        )
+        f.return_value = remote_fragment
+        policies = load_policies(tmpdir.strpath)
 
-                # Ensure that presence of a result is success.
-                results = DummyResultsRetriever(subject, "dist.upgradepath")
-                decision = Decision(
-                    "bodhi_update_push_stable_with_remoterule", "fedora-26"
-                )
-                decision.check(subject, policies, results)
-                assert answer_types(decision.answers) == [
-                    "fetched-gating-yaml",
-                    "test-result-passed",
-                ]
-                f.assert_called_with(
-                    "https://src.fedoraproject.org/rpms/nethack/raw/"
-                    "c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml"
-                )
+        # Ensure that presence of a result is success.
+        results = DummyResultsRetriever(subject, "dist.upgradepath")
+        decision = Decision("bodhi_update_push_stable_with_remoterule", "fedora-26")
+        decision.check(subject, policies, results)
+        assert answer_types(decision.answers) == [
+            "fetched-gating-yaml",
+            "test-result-passed",
+        ]
+        f.assert_called_with(
+            "https://src.fedoraproject.org/rpms/nethack/raw/"
+            "c3c47a08a66451cb9686c49f040776ed35a0d1bb/f/gating.yaml"
+        )
 
 
 @pytest.mark.parametrize("namespace", ["modules", ""])
@@ -892,34 +892,36 @@ def test_get_sub_policies_multiple_urls(tmpdir, requests_mock):
         ],
     }
 
-    with app.app_context():
-        with mock.patch("greenwave.resources.retrieve_scm_from_koji") as scm:
-            scm.return_value = (
-                "rpms",
-                "nethack",
-                "c3c47a08a66451cb9686c49f040776ed35a0d1bb",
+    with (
+        app.app_context(),
+        mock.patch("greenwave.resources.retrieve_scm_from_koji") as scm,
+    ):
+        scm.return_value = (
+            "rpms",
+            "nethack",
+            "c3c47a08a66451cb9686c49f040776ed35a0d1bb",
+        )
+        urls = [
+            "https://src{}.fp.org/{}/{}/raw/{}/f/gating.yaml".format(
+                i, *scm.return_value
             )
-            urls = [
-                "https://src{}.fp.org/{}/{}/raw/{}/f/gating.yaml".format(
-                    i, *scm.return_value
-                )
-                for i in range(1, 3)
-            ]
-            for url in urls:
-                requests_mock.get(url, status_code=404)
+            for i in range(1, 3)
+        ]
+        for url in urls:
+            requests_mock.get(url, status_code=404)
 
-            policy = OnDemandPolicy.create_from_json(serverside_json)
-            assert isinstance(policy.rules[0], RemoteRule)
-            assert policy.rules[0].required
+        policy = OnDemandPolicy.create_from_json(serverside_json)
+        assert isinstance(policy.rules[0], RemoteRule)
+        assert policy.rules[0].required
 
-            results = DummyResultsRetriever()
-            decision = Decision(None, "fedora-26")
-            decision.check(subject, [policy], results)
-            request_history = [(r.method, r.url) for r in requests_mock.request_history]
-            assert request_history == [("GET", urls[0]), ("GET", urls[1])]
-            assert answer_types(decision.answers) == ["missing-gating-yaml"]
-            assert not decision.answers[0].is_satisfied
-            assert decision.answers[0].subject.identifier == subject.identifier
+        results = DummyResultsRetriever()
+        decision = Decision(None, "fedora-26")
+        decision.check(subject, [policy], results)
+        request_history = [(r.method, r.url) for r in requests_mock.request_history]
+        assert request_history == [("GET", urls[0]), ("GET", urls[1])]
+        assert answer_types(decision.answers) == ["missing-gating-yaml"]
+        assert not decision.answers[0].is_satisfied
+        assert decision.answers[0].subject.identifier == subject.identifier
 
 
 def test_get_sub_policies_scm_error(tmpdir):
@@ -1433,7 +1435,7 @@ def test_policy_with_packages_allowlist(tmpdir, package, expected_answers):
     p = tmpdir.join("temp.yaml")
     p.write(
         dedent(
-            """
+            f"""
         --- !Policy
         id: "some_policy"
         product_versions:
@@ -1441,10 +1443,10 @@ def test_policy_with_packages_allowlist(tmpdir, package, expected_answers):
         decision_context: test
         subject_type: koji_build
         packages:
-        - {}
+        - {package}
         rules:
           - !PassingTestCaseRule {{test_case_name: sometest}}
-        """.format(package)
+        """
         )
     )
     policies = load_policies(tmpdir.strpath)

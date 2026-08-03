@@ -22,7 +22,7 @@ import sys
 os.environ["DOCS"] = "true"
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
-import greenwave  # noqa: E402
+import greenwave
 
 # -- General configuration ------------------------------------------------
 

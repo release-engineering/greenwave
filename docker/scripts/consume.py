@@ -45,10 +45,10 @@ def message_handler(message, data):
             print("body:", body)
     else:
         if data["pp"]:
-            print("Got [%02d]:" % num)
+            print(f"Got [{num:02d}]:")
             pprint(json.loads(body))
         else:
-            print("Got [%02d]:" % num, body)
+            print(f"Got [{num:02d}]:", body)
 
     return data["one_message_only"], not data["manual_ack"]
 

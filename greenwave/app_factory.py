@@ -75,7 +75,7 @@ def register_handlers(app):
 
 
 def register_error_handlers(app):
-    for code in default_exceptions.keys():
+    for code in default_exceptions:
         app.register_error_handler(code, json_error)
     app.register_error_handler(ConnectionError, json_error)
     app.register_error_handler(requests.ConnectionError, json_error)

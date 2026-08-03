@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-import socket
 
 import pytest
 
@@ -39,7 +38,7 @@ def test_guess_koji_build_product_version(brew_pv, expected_pvs, koji_proxy, app
 @pytest.mark.parametrize("task_id", (None, 3))
 def test_guess_koji_build_product_version_socket_error(task_id, koji_proxy, app):
     koji_proxy.getBuild.side_effect = koji_proxy.getTaskRequest.side_effect = (
-        socket.timeout("timed out")
+        TimeoutError("timed out")
     )
     expected = "Could not reach Koji: timed out"
     with pytest.raises(ConnectionError, match=expected):

@@ -250,9 +250,9 @@ class BaseListener(stomp.ConnectionListener):
             old_decision = greenwave.decision.make_decision(
                 request_data, self.app.config
             )
-        except (HTTPError, HTTPException) as e:
+        except (HTTPError, HTTPException):
             self.app.logger.exception(
-                "Failed to retrieve decision for data=%s, error: %s", request_data, e
+                "Failed to retrieve decision for data=%s", request_data
             )
             return None, None
 
@@ -261,10 +261,10 @@ class BaseListener(stomp.ConnectionListener):
     def _publish_decision_change(
         self, submit_time, subject, testcase, product_version, publish_testcase
     ):
-        policy_attributes = dict(
-            subject=subject,
-            testcase=testcase,
-        )
+        policy_attributes = {
+            "subject": subject,
+            "testcase": testcase,
+        }
 
         if product_version:
             policy_attributes["product_version"] = product_version
@@ -274,11 +274,11 @@ class BaseListener(stomp.ConnectionListener):
             policies, **policy_attributes
         )
 
-        for decision_context, product_version in sorted(contexts_product_versions):
+        for decision_context, pv in sorted(contexts_product_versions):
             old_decision, decision = self._old_and_new_decisions(
                 submit_time,
                 decision_context=decision_context,
-                product_version=product_version,
+                product_version=pv,
                 subject_type=subject.type,
                 subject_identifier=subject.identifier,
             )
@@ -290,7 +290,7 @@ class BaseListener(stomp.ConnectionListener):
 
             log_label = (
                 f"[item:{subject.identifier} type:{subject.type}"
-                f" context:{decision_context} pv:{product_version}]"
+                f" context:{decision_context} pv:{pv}]"
             )
             if old_decision["summary"] != decision["summary"]:
                 self.app.logger.debug(
@@ -317,7 +317,7 @@ class BaseListener(stomp.ConnectionListener):
                     # subject is for backwards compatibility only:
                     "subject": [subject.to_dict()],
                     "decision_context": decision_context,
-                    "product_version": product_version,
+                    "product_version": pv,
                     "previous": old_decision,
                 }
             )

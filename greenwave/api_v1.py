@@ -53,7 +53,7 @@ def landing_page():
            "resultsdb_api": "https://resultsdb.example.com/api/v2.0",
            "waiverdb_api": "https://waiverdb.example.com/api/v1.0"
        }
-    """  # noqa: E501
+    """
     return (
         jsonify(
             {
@@ -422,7 +422,7 @@ def make_decision():
     :statuscode 404: No Koji build found
     :statuscode 502: Error while querying Koji to retrieve the SCM URL
     :statuscode 504: Timeout while querying an upstream
-    """  # noqa: E501
+    """
     data = request.get_json()
     response = greenwave.decision.make_decision(data, current_app.config)
     log.debug("Response: %s", response)
