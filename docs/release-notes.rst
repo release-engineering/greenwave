@@ -254,7 +254,7 @@ Greenwave 1.4.1
 Released 11 November 2019
 
 * Greenwave now using ``extra->source->original_url`` field instead of just ``source``
-  field to retreive SCM information from Koji build.
+  field to retrieve SCM information from Koji build.
   If there is no ``source`` nor ``extra->source->original_url`` field, other rules
   are still being checked.
 * Added support for the ``redhat-container-image`` subject type. This type is now
@@ -345,7 +345,7 @@ Released 15 May 2019
   waivers IDs lists to ignore (``ignore_result``, ``ignore_waiver``). These are used to compare
   the new decision with older one. In case of multiple new results or waivers there could be a race
   condition. This change introduces new parameters results_since and waivers_since, used to
-  determin the decision before these specific dates. This solves the race conditions.
+  determine the decision before these specific dates. This solves the race conditions.
   ``ignore_result`` and ``ignore_waiver`` are not used anymore to gather the old decision, but they
   are still parameters of the API for backwards compatibility.
 * Add support for on-demand policies: enhancing the ``/decision`` endpoint API to allow a new parameter
@@ -387,7 +387,7 @@ Released 04 February 2019
 
 * Replace PackageSpecificBuild with a packages whitelist on the policy.
   Also deprecating the key "blacklist" and introduced instead ``excluded_packages``:
-  unifing these mechanisms and tweak the terminology to be a little more
+  unifying these mechanisms and tweak the terminology to be a little more
   consistent and self-describing.
   The plan is to support "blacklist" for the next 4 months and then stop
   supporting it completely.
@@ -568,7 +568,7 @@ Greenwave 0.9.2
 
 Released 06 August 2018.
 
-* Small code improvement: removed unsed variable.
+* Small code improvement: removed unused variable.
 
 * Fixed retrieving old decisions when publishing a new message about a
   decision change (when received a message about a new result) and

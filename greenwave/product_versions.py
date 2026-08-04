@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 def _product_version_number_or_none(toparse) -> int | None:
-    # seperate the prefix from the number
+    # separate the prefix from the number
     result = list(filter(None, "-".join(re.split(r"(\d+)", toparse)).split("-")))
     if len(result) >= 2:
         try:

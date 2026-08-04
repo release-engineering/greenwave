@@ -19,7 +19,7 @@ parameters:
   required: true
 - name: GREENWAVE_IMAGE
   displayName: Greenwave container image
-  description: Image to be used for Greenwave deployement
+  description: Image to be used for Greenwave deployment
   value: 172.30.1.1:5000/myproject/greenwave:latest
   required: true
 - name: GREENWAVE_SECRET_KEY
