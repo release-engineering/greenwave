@@ -74,5 +74,6 @@ include = [
 ]
 
 [tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
 # RUF012: too noisy for Flask config and SafeYAML classes (https://github.com/astral-sh/ruff/issues/5243)
-ignore = ["RUF012"]
+ignore = ["E501", "RUF012"]
