@@ -148,7 +148,7 @@ class SafeYAMLDateTime(SafeYAMLAttribute):
 
 class SafeYAMLList(SafeYAMLAttribute):
     """
-    YAML object attribute represeting a list of values.
+    YAML object attribute representing a list of values.
     """
 
     def __init__(self, item_type, default_factory: Callable[[], list] = list, **kwargs):

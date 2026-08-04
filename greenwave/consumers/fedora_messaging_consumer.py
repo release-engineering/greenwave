@@ -5,7 +5,7 @@ The fedora-messaging consumer.
 This module is responsible consuming messages sent to the fedora message bus via
 fedora-messaging.
 It will get all the messages and pass them onto their appropriate base consumers
-to re-use the same code path.
+to reuse the same code path.
 """
 
 import logging

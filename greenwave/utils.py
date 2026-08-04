@@ -122,7 +122,7 @@ def load_config(config_obj=None):
 
 
 def insert_headers(response):
-    """Insert the CORS headers for the give reponse if there are any
+    """Insert the CORS headers for the give response if there are any
     configured for the application.
     """
     if current_app.config.get("CORS_URL"):
