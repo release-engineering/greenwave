@@ -15,6 +15,27 @@ LISTENER_CONNECTION = {
     "reconnect_sleep_max": 10.0,
     "reconnect_attempts_max": 5,
 }
+LISTENER_BACKEND = "kafka"
+KAFKA = {
+    "resultsdb_topic": "eng.resultsdb.result.new",
+    "waiverdb_topic": "eng.waiverdb.waiver.new",
+    "decision_topic": "eng.greenwave.decision.update",
+    "consumer": {
+        "bootstrap.servers": "message-broker:9092",
+        "client.id": "greenwave",
+        "enable.auto.commit": False,
+        "auto.offset.reset": "earliest",
+        "security.protocol": "PLAINTEXT",
+    },
+    "producer": {
+        "bootstrap.servers": "message-broker:9092",
+        "client.id": "greenwave",
+        "retries": 3,
+        "retry.backoff.ms": 100,
+        "security.protocol": "PLAINTEXT",
+    },
+    "flush_timeout_seconds": 20.0,
+}
 CACHE = {
     # 'backend': 'dogpile.cache.null',
     "backend": "dogpile.cache.pymemcache",
@@ -33,6 +54,9 @@ LOGGING = {
             "level": "DEBUG",
         },
         "stomp.py": {
+            "level": "DEBUG",
+        },
+        "confluent_kafka": {
             "level": "DEBUG",
         },
     },

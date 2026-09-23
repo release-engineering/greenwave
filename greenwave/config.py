@@ -97,6 +97,32 @@ class Config:
         "ca_certs": "/etc/pki/umb/umb-ca",
     }
 
+    # Listener message bus: "stomp" (UMB) or "kafka" (MSK).
+    LISTENER_BACKEND = "stomp"
+    # Used when LISTENER_BACKEND is "kafka".
+    # "consumer" and "producer" keys are passed to confluent-kafka (librdkafka).
+    # Full reference: https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
+    # SASL credentials are read from GREENWAVE_KAFKA_SASL_USERNAME and
+    # GREENWAVE_KAFKA_SASL_PASSWORD environment variables.
+    KAFKA = {
+        "resultsdb_topic": "eng.resultsdb.result.new",
+        "waiverdb_topic": "eng.waiverdb.waiver.new",
+        "decision_topic": "eng.greenwave.decision.update",
+        "consumer": {
+            "bootstrap.servers": "localhost:9092",
+            "client.id": "greenwave",
+            "enable.auto.commit": False,
+            "auto.offset.reset": "latest",
+        },
+        "producer": {
+            "bootstrap.servers": "localhost:9092",
+            "client.id": "greenwave",
+            "retries": 3,
+            "retry.backoff.ms": 100,
+        },
+        "flush_timeout_seconds": 20.0,
+    }
+
     OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = None
     OTEL_EXPORTER_SERVICE_NAME = "greenwave"
 

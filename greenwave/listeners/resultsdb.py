@@ -34,7 +34,10 @@ class ResultsDBListener(BaseListener):
 
     def __init__(self, config_obj=None):
         super().__init__(uid_suffix="resultsdb", config_obj=config_obj)
-        self.topic = self.app.config["LISTENER_RESULTSDB_QUEUE"]
+        if self._backend == "kafka":
+            self.topic = self.app.config["KAFKA"]["resultsdb_topic"]
+        else:
+            self.topic = self.app.config["LISTENER_RESULTSDB_QUEUE"]
         self.koji_base_url = self.app.config["KOJI_BASE_URL"]
 
     @staticmethod

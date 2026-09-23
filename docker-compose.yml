@@ -43,9 +43,11 @@ services:
       test: "pg_isready -U postgres || exit 1"
 
   resultsdb:
-    image: quay.io/factory2/resultsdb:latest@sha256:d75d6e737c677104fb7e96469139141239afaef72945b43c6ad1f613f5de21fd
+    image: quay.io/redhat-user-workloads/exd-sp-rhel-wf-tenant/resultsdb:latest@sha256:c3862d7008c788b43e084e8b272c383b7f654913bbf9ea9bd2edc3f3b332f338
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
+      - RESULTSDB_KAFKA_SASL_USERNAME=resultsdb
+      - RESULTSDB_KAFKA_SASL_PASSWORD=resultsdb
     command: ["bash", "-c", "/start.sh"]
     volumes:
       - ./docker/home:/home/dev:rw,z
@@ -67,7 +69,7 @@ services:
     env_file: ["docker/waiverdb-db.env"]
 
   waiverdb:
-    image: quay.io/factory2/waiverdb:latest@sha256:fa167759506262ff21003e9f773d50c3e1bf0054580e5fec835c3a0d028187a9
+    image: quay.io/redhat-user-workloads/exd-sp-rhel-wf-tenant/waiverdb:latest@sha256:84f032c6473510e2e374323d3f641cead1d66a0e03ccb16f1797a9829b80f784
     env_file: ["docker/waiverdb.env"]
     environment:
       - GREENWAVE_LISTENERS=${GREENWAVE_LISTENERS:-1}
@@ -126,14 +128,36 @@ services:
       replicas: ${GREENWAVE_LISTENERS:-1}
 
   message-broker:
-    image: docker.io/apache/activemq-artemis:latest-alpine@sha256:1bce124d2324faeb1253e2db4bb68d64decf46412ecfd8d9ef46c08b1b4af5b4
+    image: docker.io/apache/kafka:3.9.0@sha256:fbc7d7c428e3755cf36518d4976596002477e4c052d1f80b5b9eafd06d0fff2f
+    hostname: message-broker
     restart: unless-stopped
-    volumes:
-      - ./docker/broker.xml:/var/lib/artemis-instance/etc-override/broker.xml:ro,z
     ports:
-      - 127.0.0.1:5671:5671    # amqp
-      - 127.0.0.1:61612:61612  # stomp
-      - 127.0.0.1:8162:8161    # http
+      - 127.0.0.1:9092:9092
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://message-broker:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@message-broker:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
     deploy:
       replicas: ${GREENWAVE_LISTENERS:-1}
 

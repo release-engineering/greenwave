@@ -7,6 +7,7 @@ import threading
 import uuid
 
 import stomp
+from confluent_kafka import KafkaError
 from opentelemetry.context import Context
 from opentelemetry.trace.propagation.tracecontext import (
     TraceContextTextMapPropagator,
@@ -15,6 +16,7 @@ from requests.exceptions import HTTPError
 from werkzeug.exceptions import HTTPException
 
 import greenwave.app_factory
+from greenwave.listeners.kafka import KafkaBus
 from greenwave.logger import init_logging, log_to_stdout
 from greenwave.monitor import (
     decision_changed_counter,
@@ -83,15 +85,22 @@ class BaseListener(stomp.ConnectionListener):
         self.connecting = False
         self.stop = False
 
+        self.uid_suffix = uid_suffix
         self.uid = f"{GREENWAVE_LISTENER_PREFIX}-{uid_suffix}-{uuid.uuid1().hex}"
 
         init_logging()
         log_to_stdout(logging.DEBUG)
         self.app = greenwave.app_factory.create_app(config_obj)
 
-        self.destination = self.app.config["LISTENER_DECISION_UPDATE_DESTINATION"]
+        self._backend = self.app.config.get("LISTENER_BACKEND", "stomp")
+        if self._backend == "kafka":
+            self.destination = self.app.config["KAFKA"]["decision_topic"]
+        else:
+            self.destination = self.app.config["LISTENER_DECISION_UPDATE_DESTINATION"]
 
         self.context = None
+        self._kafka_bus = None
+        self._kafka_thread = None
 
     def on_error(self, frame):
         self.app.logger.warning("Received an error: %s", frame.body)
@@ -160,16 +169,22 @@ class BaseListener(stomp.ConnectionListener):
         self._terminate()
 
     def listen(self):
-        if self.connection is not None:
-            self.app.logger.warning("Already connected")
-            return
-
         def handler(signum, frame):
             self.app.logger.warning("Stopping listener on signal %s", signum)
             self.disconnect()
 
         if threading.current_thread() is threading.main_thread():
             signal.signal(signal.SIGTERM, handler)
+
+        if self._backend == "kafka":
+            self._listen_kafka()
+        else:
+            self._listen_stomp()
+
+    def _listen_stomp(self):
+        if self.connection is not None:
+            self.app.logger.warning("Already connected")
+            return
 
         hosts = self.app.config["LISTENER_HOSTS"]
         hosts_and_ports = [tuple(url.split(":")) for url in hosts.split(",")]
@@ -191,14 +206,97 @@ class BaseListener(stomp.ConnectionListener):
 
         self.app.logger.info("Listening on %s", self.topic)
 
+    def _listen_kafka(self):
+        if self._kafka_bus is not None:
+            self.app.logger.warning("Already connected")
+            return
+
+        self._kafka_bus = KafkaBus(
+            self.app.config, group_id=f"greenwave-{self.uid_suffix}"
+        )
+        self._kafka_bus.subscribe(self.topic)
+        self._kafka_thread = threading.Thread(
+            target=self._kafka_loop,
+            name=f"greenwave-kafka-{self.uid_suffix}",
+            daemon=True,
+        )
+        self._kafka_thread.start()
+        self.app.logger.info("Listening on %s", self.topic)
+
+    def _kafka_loop(self):
+        try:
+            while True:
+                with self.connection_condition:
+                    if self.stop:
+                        return
+                    msg = self._kafka_bus.poll(1.0)
+                if msg is None:
+                    continue
+                error = msg.error()
+                if error:
+                    if error.code() == KafkaError._PARTITION_EOF:
+                        continue
+                    self.app.logger.error("Kafka consumer error: %s", error)
+                    if error.fatal():
+                        self._terminate()
+                        return
+                    continue
+                self._handle_kafka_message(msg)
+        except Exception:
+            self.app.logger.exception("Kafka consumer loop failed")
+            self._terminate()
+
+    def _handle_kafka_message(self, msg):
+        with self.connection_condition:
+            if self.stop:
+                return
+
+        self.app.logger.debug("Received a Kafka message: %s", msg.offset())
+        self._inc(messaging_rx_counter)
+
+        try:
+            data = json.loads(msg.value())
+        except (json.JSONDecodeError, TypeError) as e:
+            self.app.logger.debug("Failed to decode JSON message: %s", e)
+            self._inc(messaging_rx_ignored_counter)
+            with self.connection_condition:
+                if not self.stop:
+                    self._kafka_bus.commit(msg)
+            return
+
+        try:
+            with self.app.app_context():
+                processed = self._consume_message(data)
+        except BaseException:  # NOSONAR
+            self._inc(messaging_rx_failed_counter)
+            raise
+
+        if processed:
+            self._inc(messaging_rx_processed_ok_counter)
+        else:
+            self._inc(messaging_rx_ignored_counter)
+        with self.connection_condition:
+            if not self.stop:
+                self._kafka_bus.commit(msg)
+
+    def _stop_connections(self):
+        self.stop = True
+        if self._kafka_bus is not None:
+            self._kafka_bus.close()
+        if self.connection is not None:
+            self.connection.disconnect()
+
     def disconnect(self):
         self.app.logger.debug("Disconnecting listener")
         with self.connection_condition:
-            self.stop = True
-            self.connection.disconnect()
+            self._stop_connections()
+
+        if self._kafka_thread is not None:
+            self._kafka_thread.join(timeout=5)
 
     def _terminate(self):
-        self.disconnect()
+        with self.connection_condition:
+            self._stop_connections()
         os.kill(os.getpid(), signal.SIGQUIT)  # NOSONAR
 
     def _consume_message(self, message):
@@ -217,16 +315,27 @@ class BaseListener(stomp.ConnectionListener):
         TraceContextTextMapPropagator().inject(decision, self.context)
         message = {"msg": decision, "topic": self.destination}
         body = json.dumps(message)
+        headers = {
+            "subject_type": decision["subject_type"],
+            "subject_identifier": decision["subject_identifier"],
+            "product_version": decision["product_version"],
+            "decision_context": decision["decision_context"],
+            "policies_satisfied": str(decision["policies_satisfied"]).lower(),
+            "summary": decision["summary"],
+        }
+        if self._backend == "kafka":
+            try:
+                with self.connection_condition:
+                    self._kafka_bus.publish(self.destination, body, headers)
+            except Exception:
+                self.app.logger.exception("Error sending decision update message")
+                self._inc(messaging_tx_failed_counter)
+                raise
+            self._inc(messaging_tx_sent_ok_counter)
+            return
+
         while True:
             try:
-                headers = {
-                    "subject_type": decision["subject_type"],
-                    "subject_identifier": decision["subject_identifier"],
-                    "product_version": decision["product_version"],
-                    "decision_context": decision["decision_context"],
-                    "policies_satisfied": str(decision["policies_satisfied"]).lower(),
-                    "summary": decision["summary"],
-                }
                 self.connection.send(
                     body=body, headers=headers, destination=self.destination
                 )

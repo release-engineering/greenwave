@@ -8,7 +8,10 @@ class WaiverDBListener(BaseListener):
 
     def __init__(self, config_obj=None):
         super().__init__(uid_suffix="waiverdb", config_obj=config_obj)
-        self.topic = self.app.config["LISTENER_WAIVERDB_QUEUE"]
+        if self._backend == "kafka":
+            self.topic = self.app.config["KAFKA"]["waiverdb_topic"]
+        else:
+            self.topic = self.app.config["LISTENER_WAIVERDB_QUEUE"]
         self.koji_base_url = self.app.config["KOJI_BASE_URL"]
 
     def _consume_message(self, msg):
