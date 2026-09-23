@@ -14,11 +14,15 @@ SUPERUSERS = ["dummy"]
 RESULTSDB_API_URL = "http://resultsdb:5001/api/v2.0"  # NOSONAR
 
 MESSAGE_BUS_PUBLISH = os.environ.get("GREENWAVE_LISTENERS", "") not in ("", "0")
-MESSAGE_PUBLISHER = "stomp"
-STOMP_CONFIGS = {
-    "destination": "/topic/VirtualTopic.eng.waiverdb.waiver.new",
-    "connection": {
-        "host_and_ports": [("message-broker", 61612)],
-        "use_ssl": False,
+MESSAGE_PUBLISHER = "kafka"
+KAFKA = {
+    "topic": "eng.waiverdb.waiver.new",
+    "producer": {
+        "bootstrap.servers": "message-broker:9092",
+        "client.id": "waiverdb",
+        "retries": 3,
+        "retry.backoff.ms": 100,
+        "security.protocol": "PLAINTEXT",
     },
+    "flush_timeout_seconds": 20.0,
 }

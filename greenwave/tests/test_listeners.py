@@ -879,6 +879,8 @@ def test_listener_resultsdb_subscribe_after_connect(mock_connection):
         id=listener.uid,
         ack="client-individual",
     )
+    listener.listen()
+    assert len(mock_connection.connect.mock_calls) == 1
 
 
 def test_listener_waiverdb_subscribe_after_connect(mock_connection):
