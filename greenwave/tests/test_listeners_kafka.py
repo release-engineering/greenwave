@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 import json
+import logging
 from unittest.mock import Mock, patch
 
 from confluent_kafka import KafkaError, KafkaException
@@ -233,7 +234,7 @@ def _simulate_successful_produce(mock_producer):
     mock_producer.flush.side_effect = trigger_flush
 
 
-def test_kafka_bus_publish_success(kafka_env):
+def test_kafka_bus_publish_success(kafka_env, caplog):
     with (
         patch("greenwave.listeners.kafka.Consumer"),
         patch("greenwave.listeners.kafka.Producer") as mock_producer_cls,
@@ -243,20 +244,33 @@ def test_kafka_bus_publish_success(kafka_env):
         _simulate_successful_produce(mock_producer)
 
         bus = KafkaBus(_kafka_config(), group_id="greenwave-resultsdb")
-        bus.publish(
-            "qa.eng.greenwave.decision.update",
-            '{"msg": {}}',
-            {"summary": "ok"},
-        )
+        with caplog.at_level("DEBUG", logger="greenwave.listeners.kafka"):
+            bus.publish(
+                "qa.eng.greenwave.decision.update",
+                '{"msg": {}}',
+                {"summary": "ok"},
+            )
 
         mock_producer.produce.assert_called_once()
         args, kwargs = mock_producer.produce.call_args
         assert args[0] == "qa.eng.greenwave.decision.update"
         assert kwargs["headers"] == [("summary", b"ok")]
         mock_producer.flush.assert_called_with(timeout=15.0)
+        assert (
+            "greenwave.listeners.kafka",
+            logging.DEBUG,
+            "Emitting Kafka message to qa.eng.greenwave.decision.update "
+            "headers={'summary': 'ok'} body={\"msg\": {}}",
+        ) in caplog.record_tuples
+        assert (
+            "greenwave.listeners.kafka",
+            logging.INFO,
+            "Emitted Kafka message to qa.eng.greenwave.decision.update "
+            "headers={'summary': 'ok'}",
+        ) in caplog.record_tuples
 
 
-def test_kafka_bus_publish_delivery_error(kafka_env):
+def test_kafka_bus_publish_delivery_error(kafka_env, caplog):
     with (
         patch("greenwave.listeners.kafka.Consumer"),
         patch("greenwave.listeners.kafka.Producer") as mock_producer_cls,
@@ -279,8 +293,11 @@ def test_kafka_bus_publish_delivery_error(kafka_env):
         mock_producer.flush.side_effect = trigger_flush
 
         bus = KafkaBus(_kafka_config(), group_id="greenwave-resultsdb")
-        with raises(KafkaException):
-            bus.publish("qa.eng.greenwave.decision.update", "{}", {})
+        with caplog.at_level("DEBUG", logger="greenwave.listeners.kafka"):
+            with raises(KafkaException):
+                bus.publish("qa.eng.greenwave.decision.update", "{}", {})
+
+        assert "Emitted Kafka message" not in caplog.text
 
 
 def test_parse_kafka_config_consumer_not_dict(kafka_env):
@@ -290,7 +307,7 @@ def test_parse_kafka_config_consumer_not_dict(kafka_env):
         parse_kafka_config(config)
 
 
-def test_kafka_bus_publish_flush_timeout(kafka_env):
+def test_kafka_bus_publish_flush_timeout(kafka_env, caplog):
     with (
         patch("greenwave.listeners.kafka.Consumer"),
         patch("greenwave.listeners.kafka.Producer") as mock_producer_cls,
@@ -300,12 +317,14 @@ def test_kafka_bus_publish_flush_timeout(kafka_env):
         mock_producer_cls.return_value = mock_producer
 
         bus = KafkaBus(_kafka_config(), group_id="greenwave-resultsdb")
-        with raises(KafkaException) as exc_info:
-            bus.publish("qa.eng.greenwave.decision.update", "{}", {})
+        with caplog.at_level("DEBUG", logger="greenwave.listeners.kafka"):
+            with raises(KafkaException) as exc_info:
+                bus.publish("qa.eng.greenwave.decision.update", "{}", {})
 
         err = exc_info.value.args[0]
         assert isinstance(err, KafkaError)
         assert err.code() == KafkaError._MSG_TIMED_OUT
+        assert "Emitted Kafka message" not in caplog.text
 
 
 def _queued_result_payload():
