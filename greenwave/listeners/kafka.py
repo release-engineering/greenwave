@@ -84,6 +84,9 @@ class KafkaBus:
         kafka_headers: list[tuple[str, str | bytes | None]] = [
             (key, value.encode("utf-8")) for key, value in headers.items()
         ]
+        _log.debug(
+            "Emitting Kafka message to %s headers=%s body=%s", topic, headers, body
+        )
         self.producer.produce(
             topic,
             value=body.encode("utf-8"),
@@ -100,6 +103,7 @@ class KafkaBus:
             )
         if delivery_error is not None:
             raise delivery_error
+        _log.info("Emitted Kafka message to %s headers=%s", topic, headers)
 
     def close(self) -> None:
         try:
