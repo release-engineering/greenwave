@@ -1765,7 +1765,7 @@ def test_remote_rule_policy_on_demand_policy(namespace):
 def test_on_demand_policy_match(two_rules, koji_proxy):
     """Proceed other rules when there's no source URL in Koji build"""
 
-    nvr = "httpd-2.4.el9000"
+    nvr = "httpd-2.4-1.el9000"
     subject = create_subject("koji_build", nvr)
 
     serverside_json = {

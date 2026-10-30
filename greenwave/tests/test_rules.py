@@ -1,9 +1,7 @@
-import re
 from textwrap import dedent
 from unittest import mock
 
 import pytest
-from defusedxml.xmlrpc import xmlrpc_client
 from werkzeug.exceptions import BadGateway, BadRequest, NotFound
 
 from greenwave.app_factory import create_app
@@ -93,7 +91,6 @@ def test_invalid_nvr_iden(koji, mock_retrieve_yaml_remote_rule):
           - !RemoteRule {}
     """)
     nvr = "nieco-1"
-    koji().getBuild.side_effect = xmlrpc_client.Fault(1000, "invalid format")
 
     app = create_app("greenwave.config.TestingConfig")
     with app.app_context():
@@ -101,11 +98,18 @@ def test_invalid_nvr_iden(koji, mock_retrieve_yaml_remote_rule):
         policies = Policy.safe_load_all(policy_yaml)
         policy = policies[0]
         rule = policy.rules[0]
-        expected_error = re.escape(
-            f'Failed to get Koji build for "{nvr}": invalid format (code: 1000)'
+
+        # The invalid NVR is rejected before it is sent to the Koji API and
+        # the failure to fetch the remote rule file is reported.
+        sub_policies, answers = rule._get_sub_policies(policy, subject)
+        koji.assert_not_called()
+        assert sub_policies == []
+        assert len(answers) == 1
+        answer = answers[0].to_json()
+        assert answer["type"] == "failed-fetch-gating-yaml"
+        assert answer["error"] == (
+            "Failed to get remote policies: 400 Bad Request: Invalid NVR format: 'nieco-1'"
         )
-        with pytest.raises(BadGateway, match=expected_error):
-            rule._get_sub_policies(policy, subject)
 
 
 @mock.patch("greenwave.resources.retrieve_yaml_remote_rule")

@@ -209,9 +209,20 @@ def retrieve_koji_build_target(task_id, koji_url: str):
     return None
 
 
+def _is_valid_nvr(nvr: str) -> bool:
+    """
+    Check that the NVR can be passed to the Koji API, mirroring the
+    validation done by koji.parse_NVR(): name, version and release must be
+    separated by dashes, with non-empty version and release. The name may
+    contain dashes (e.g. "pki-core-10.5.1-1.el8"), an epoch, or be empty.
+    Unlike koji.parse_NVR(), line breaks in the name are also rejected.
+    """
+    return isinstance(nvr, str) and re.fullmatch(r".*-[^-]+-[^-]+", nvr) is not None
+
+
 @cached
 def _retrieve_koji_build_attributes(nvr: str, koji_url: str):
-    if not isinstance(nvr, str) or "-" not in nvr:
+    if not _is_valid_nvr(nvr):
         raise BadRequest(f"Invalid NVR format: {nvr!r}")
 
     log.debug("Getting Koji build %r", nvr)
