@@ -6,9 +6,10 @@ from unittest import mock
 import pytest
 import stomp
 from requests.exceptions import HTTPError
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import BadGateway, NotFound
 
 from greenwave.app_factory import create_app
+from greenwave.config import TestingConfig
 from greenwave.listeners.resultsdb import ResultsDBListener
 from greenwave.listeners.waiverdb import WaiverDBListener
 from greenwave.monitor import (
@@ -84,6 +85,30 @@ class DummyMessage:
     @property
     def body(self):
         return json.dumps(self.message)
+
+
+class DummyKafkaMessage:
+    """
+    Simple stand-in for confluent_kafka.Message, as returned by
+    KafkaBus.poll().
+    """
+
+    def __init__(self, body, offset=67818):
+        self._body = body
+        self._offset = offset
+
+    def error(self):
+        return None
+
+    def value(self):
+        return self._body
+
+    def offset(self):
+        return self._offset
+
+
+class KafkaTestingConfig(TestingConfig):
+    LISTENER_BACKEND = "kafka"
 
 
 def resultsdb_listener(policies=POLICIES_DEFAULT):
@@ -543,6 +568,79 @@ def test_remote_rule_decision_change_not_matching(
         listener.on_message(DummyMessage())
 
     assert len(mock_connection.send.mock_calls) == 0
+
+
+def test_listener_survives_failed_policy_matching(
+    mock_retrieve_scm_from_koji,
+    mock_retrieve_yaml_remote_rule,
+    mock_retrieve_decision,
+    mock_retrieve_results,
+    mock_connection,
+    koji_proxy,
+):
+    """
+    Test that the listener keeps processing messages when applicable
+    policies cannot be determined for a subject, e.g. when Koji rejects
+    an invalid NVR such as a bare package name.
+    """
+    mock_retrieve_scm_from_koji.side_effect = BadGateway(
+        'Failed to get Koji build for "pki-core": invalid format: pki-core (code: 1000)'
+    )
+
+    listener = resultsdb_listener(POLICIES_WITH_REMOTE_RULE)
+
+    with listener.app.app_context():
+        listener.on_message(DummyMessage(nvr="pki-core"))
+
+    # No decision update is published for the invalid subject.
+    assert len(mock_connection.send.mock_calls) == 0
+
+    # The listener still processes the next message.
+    gating_yaml = dedent("""
+        --- !Policy
+        product_versions: [fedora-rawhide]
+        decision_context: test_context
+        rules:
+          - !PassingTestCaseRule {test_case_name: dist.rpmdeplint}
+    """)
+    mock_retrieve_yaml_remote_rule.return_value = gating_yaml
+    mock_retrieve_scm_from_koji.side_effect = None
+    mock_retrieve_scm_from_koji.return_value = (
+        "rpms",
+        DUMMY_NVR,
+        "c3c47a08a66451cb9686c49f040776ed35a0d1bb",
+    )
+
+    with listener.app.app_context():
+        listener.on_message(DummyMessage())
+
+    assert len(mock_connection.send.mock_calls) == 1
+
+
+def test_kafka_listener_commits_message_on_failed_policy_matching(
+    mock_retrieve_scm_from_koji,
+    koji_proxy,
+):
+    """
+    Test that the Kafka consumer commits a message even when applicable
+    policies cannot be determined for its subject, e.g. when Koji rejects
+    an invalid NVR such as a bare package name. Not committing such a
+    message would make the consumer loop fail on it again after every
+    restart, blocking all messages behind it in the partition.
+    """
+    mock_retrieve_scm_from_koji.side_effect = BadGateway(
+        'Failed to get Koji build for "pki-core": invalid format: pki-core (code: 1000)'
+    )
+
+    listener = ResultsDBListener(config_obj=KafkaTestingConfig)
+    listener.app.config["policies"] = Policy.safe_load_all(POLICIES_WITH_REMOTE_RULE)
+    listener._kafka_bus = mock.Mock()
+
+    message = DummyKafkaMessage(DummyMessage(nvr="pki-core").body)
+    listener._handle_kafka_message(message)
+
+    listener._kafka_bus.publish.assert_not_called()
+    listener._kafka_bus.commit.assert_called_once_with(message)
 
 
 def test_guess_product_version(mock_connection, koji_proxy):

@@ -379,9 +379,18 @@ class BaseListener(stomp.ConnectionListener):
             policy_attributes["product_version"] = product_version
 
         policies = self.app.config["policies"]
-        contexts_product_versions = applicable_decision_context_product_version_pairs(
-            policies, **policy_attributes
-        )
+        try:
+            contexts_product_versions = (
+                applicable_decision_context_product_version_pairs(
+                    policies, **policy_attributes
+                )
+            )
+        except (HTTPError, HTTPException):
+            self.app.logger.exception(
+                "Failed to find applicable policies for data=%s", policy_attributes
+            )
+            self._inc(decision_failed_counter.labels(decision_context=""))
+            return
 
         for decision_context, pv in sorted(contexts_product_versions):
             old_decision, decision = self._old_and_new_decisions(
