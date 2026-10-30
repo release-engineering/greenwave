@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 import stomp
+from defusedxml.xmlrpc import xmlrpc_client
 from requests.exceptions import HTTPError
 from werkzeug.exceptions import BadGateway, NotFound
 
@@ -641,6 +642,32 @@ def test_kafka_listener_commits_message_on_failed_policy_matching(
 
     listener._kafka_bus.publish.assert_not_called()
     listener._kafka_bus.commit.assert_called_once_with(message)
+
+
+def test_decision_change_for_invalid_nvr(
+    mock_retrieve_decision,
+    mock_retrieve_results,
+    mock_connection,
+    koji_proxy,
+):
+    """
+    Test that a message about a subject with an invalid NVR, e.g. a bare
+    package name, does not crash the listener: the invalid NVR is rejected
+    before it is sent to the Koji API and the failure to fetch the remote
+    rule file is reported in the published decision.
+    """
+    koji_proxy.getBuild.side_effect = xmlrpc_client.Fault(
+        1000, "invalid format: pki-core"
+    )
+
+    listener = resultsdb_listener(POLICIES_WITH_REMOTE_RULE)
+
+    with listener.app.app_context():
+        listener.on_message(DummyMessage(nvr="pki-core"))
+
+    # The invalid NVR was not sent to the Koji API.
+    koji_proxy.getBuild.assert_not_called()
+    assert len(mock_connection.send.mock_calls) == 1
 
 
 def test_guess_product_version(mock_connection, koji_proxy):
