@@ -104,6 +104,27 @@ def test_guess_product_version_with_koji_and_unexpected_task_type(
 
 
 @pytest.mark.parametrize(
+    "nvr, expected_product_versions",
+    (
+        ("nethack-1.2.3-1.el10", ["rhel-10"]),
+        ("nethack-1.2.3-1.el10,draft_123", ["rhel-10"]),
+        ("anaconda-34.25.7.20-1.el9,draft_4134868", ["rhel-9"]),
+        ("kernel-6.12.0-211.71.1.el10_2,draft_4146901", ["rhel-10"]),
+        ("cloud-init-24.4-6.el10_1.2,draft_3983663", ["rhel-10"]),
+        ("cloud-init-24.4-6.el10_1.2", ["rhel-10"]),
+        ("freerdp-2.1.1-5.el7_9.14,draft_4144991", ["rhel-7"]),
+        # Release can contain extra dot-separated components before the
+        # product version.
+        ("nmstate-2.2.64-0.20261123.2888git847992c2.el10", ["rhel-10"]),
+    ),
+)
+def test_guess_product_version_from_nvr(nvr, expected_product_versions, app):
+    subject = create_subject("koji_build", nvr)
+    product_versions = subject_product_versions(subject)
+    assert product_versions == expected_product_versions
+
+
+@pytest.mark.parametrize(
     "nvr",
     (
         "badnvr.elastic-1-228",

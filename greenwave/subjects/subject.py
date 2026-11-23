@@ -66,10 +66,19 @@ class Subject:
         if self.subject_type.is_nvr:
             try:
                 _, _, release = self.identifier.rsplit("-", 2)
-                _, short_prod_version = release.rsplit(".", 1)
-                return short_prod_version
-            except (KeyError, ValueError):
-                pass
+            except ValueError:
+                return None
+
+            # Koji draft builds use "<release>,draft_<build_id>".
+            release = release.partition(",")[0]
+
+            # The product version is the last release component, but trailing
+            # numeric build revisions can follow it, for example
+            # "6.el10_1.2".
+            parts = release.split(".")
+            while len(parts) > 1 and parts[-1].isdigit():
+                parts.pop()
+            return parts[-1]
 
         return None
 
