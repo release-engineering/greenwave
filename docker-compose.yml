@@ -91,7 +91,7 @@ services:
       - waiverdb-db
 
   memcached:
-    image: "quay.io/factory2/memcached:latest@sha256:49d8e413ff528ce4be6320d432e3fcd7f691a8ad2c9b5784dc58b1054a1b45fb"
+    image: "mirror.gcr.io/library/memcached:1.6.45-alpine@sha256:084fb554292d1447bc2c68b80c2331b98834514f56c866bc21a61be3c2ee376d"
     ports:
       - 127.0.0.1:11211:11211
 
